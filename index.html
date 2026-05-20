@@ -770,10 +770,13 @@
   .podium-standings-footer {
     text-align: center;
     border-top: 1px solid rgba(245,233,208,0.12);
-    padding-top: 16px;
+    padding-top: 12px;
     width: 100%;
     max-width: 1100px;
     flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   /* Top monogram lockup — like "ReserveCup MIAMI" */
@@ -1045,10 +1048,13 @@
     text-align: center;
     position: relative;
     z-index: 1;
-    padding-top: 28px;
+    padding-top: 14px;
     border-top: 1px solid rgba(245,233,208,0.12);
     width: 100%;
     max-width: 980px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
   .podium-footer-brand {
     font-family: 'Cormorant Garamond', Georgia, serif;
@@ -1072,11 +1078,11 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    max-width: 320px;
-    margin-top: 10px;
+    max-width: 280px;
+    margin: 10px auto 0;
     padding-top: 10px;
     border-top: 1px solid rgba(240,235,224,0.1);
-    gap: 12px;
+    gap: 16px;
   }
   .podium-social-ig {
     display: flex;
@@ -5307,15 +5313,17 @@ function boot() {
     showView('overview');
     const _bn = document.getElementById('bottomNav'); if (_bn) _bn.style.display = 'flex';
     document.getElementById('resetBtn').style.display = 'flex';
-  document.getElementById('saveBtn').style.display = 'flex';
+    document.getElementById('saveBtn').style.display = 'flex';
     renderAll();
-    // Update setup form values to match restored state
-    document.querySelectorAll('input, select').forEach(inp => {
-      // Setup re-init handles defaults. Just make sure tournamentName reflects.
-    });
   } else {
+    // Fresh start — ensure redactMode default is true
+    state.redactMode = true;
     initSetup();
   }
+  // Always sync switch visual + apply redact mode on boot
+  state.redactMode = true; // always default to redacted
+  document.getElementById('blurSwitch').classList.toggle('on', state.redactMode);
+  applyRedactMode();
 }
 
 boot();
