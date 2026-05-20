@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
@@ -2414,7 +2416,138 @@ main { background: var(--rc-forest) !important; }
   #standingBody .player-name-cell { font-size: 13px; }
   #standingBody .points-cell { font-size: 15px; }
 }
-/* ===== BOTTOM TAB NAV ===== */
+/* ===== RESULTS LIST ===== */
+.podium-results-page {
+  flex: 1 0 100vh;
+  min-height: 100vh;
+  max-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px 14px;
+  position: relative;
+  z-index: 1;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  overflow: hidden;
+}
+.podium-results-header {
+  text-align: center;
+  flex-shrink: 0;
+  margin-bottom: 10px;
+}
+.podium-results-header h2 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 30px;
+  color: var(--cream);
+  letter-spacing: -0.5px;
+  line-height: 1;
+  margin-bottom: 3px;
+}
+.podium-results-header .results-sub {
+  font-size: 9px;
+  color: var(--cream-dim);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+.podium-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  overflow: hidden;
+}
+.result-row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  background: rgba(245,233,208,0.04);
+  border: 1px solid rgba(245,233,208,0.08);
+  border-radius: 8px;
+  min-height: 0;
+}
+.result-row.row-win {
+  border-color: rgba(201,169,97,0.25);
+  background: rgba(201,169,97,0.05);
+}
+.result-row-label {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--cream-dim);
+  opacity: 0.6;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.result-row-teams {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.result-row-team {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--cream-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.result-row-team.winner { color: var(--cream); }
+.result-row-dot {
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--rc-gold, #c9a961);
+  flex-shrink: 0;
+}
+.result-row-score {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.result-row-num {
+  font-size: 20px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  color: var(--cream-dim);
+  letter-spacing: -1px;
+  line-height: 1;
+  min-width: 20px;
+  text-align: center;
+}
+.result-row-num.winner-score { color: var(--rc-gold, #c9a961); }
+.result-row-colon {
+  font-size: 14px;
+  color: rgba(245,233,208,0.2);
+  line-height: 1;
+}
+.podium-results-footer {
+  flex-shrink: 0;
+  padding-top: 8px;
+  text-align: center;
+}
+@media (max-width: 640px) {
+  .podium-results-page { padding: 14px 12px 10px; }
+  .podium-results-header { margin-bottom: 8px; }
+  .podium-results-header h2 { font-size: 24px; }
+  .podium-results-list { gap: 4px; }
+  .result-row { padding: 6px 8px; gap: 8px; }
+  .result-row-label { font-size: 7px; }
+  .result-row-team { font-size: 10px; }
+  .result-row-num { font-size: 18px; min-width: 18px; }
+}
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -4018,11 +4151,11 @@ function renderAll() {
   const statusBtn = document.getElementById('openStatusBtn');
   if (statusBtn) statusBtn.style.display = state.started ? '' : 'none';
 
-  // Disable score inputs when ended (both old and new selectors)
-  document.querySelectorAll('.score-box, .match-score-input, .sb-score-input').forEach(inp => {
-    inp.disabled = state.ended;
-    inp.readOnly = state.ended;
-    inp.style.cursor = state.ended ? 'not-allowed' : '';
+  // Score inputs always editable (even after end — user may need to correct scores)
+  document.querySelectorAll('.sb-score-input').forEach(inp => {
+    inp.disabled = false;
+    inp.readOnly = false;
+    inp.style.cursor = '';
   });
 
   // Persist state after every render
@@ -4104,12 +4237,12 @@ function renderOverview() {
           <div class="sb-score-row">
             <div class="sb-score-box ${winner === 'A' ? 'winner' : ''}">
               <input class="sb-score-input" type="text" inputmode="numeric" pattern="[0-9]*"
-                     value="${m.scoreA}" data-match="${i}" data-team="A" ${state.ended ? 'disabled' : ''}>
+                     value="${m.scoreA}" data-match="${i}" data-team="A">
             </div>
             <div class="sb-score-sep">:</div>
             <div class="sb-score-box ${winner === 'B' ? 'winner' : ''}">
               <input class="sb-score-input" type="text" inputmode="numeric" pattern="[0-9]*"
-                     value="${m.scoreB}" data-match="${i}" data-team="B" ${state.ended ? 'disabled' : ''}>
+                     value="${m.scoreB}" data-match="${i}" data-team="B">
             </div>
           </div>
           <div class="sb-vs-label">VS</div>
@@ -4131,27 +4264,25 @@ function renderOverview() {
       const val = e.target.value.replace(/[^0-9]/g, '');
       e.target.value = val;
       const mIdx = parseInt(inp.dataset.match);
-      applyScoreInput(mIdx, inp.dataset.team, val);
-      refreshCourtCard(mIdx);
-      updateStandingTable();
-      // Auto-dismiss keyboard when score is complete (fixed mode: other side auto-filled)
       const info = modeInfo(state.mode);
-      const m = state.rounds[state.currentRoundIdx].matches[mIdx];
-      if (info.type === 'fixed' && val !== '' && parseInt(val) <= info.target) {
-        // Both scores filled — dismiss keyboard
-        inp.blur();
-      } else if (info.type === 'race' && parseInt(val) === info.target) {
-        inp.blur();
+      if (info.type === 'fixed') {
+        const num = parseInt(val);
+        if (!isNaN(num) && num > info.target) e.target.value = String(info.target);
+      } else {
+        applyScoreInput(mIdx, inp.dataset.team, val);
+        refreshCourtCard(mIdx);
+        updateStandingTable();
+        if (!isNaN(parseInt(val)) && parseInt(val) >= info.target) inp.blur();
       }
     });
     inp.addEventListener('blur', e => {
-      if (e.target.value === '' || isNaN(parseInt(e.target.value))) {
-        applyScoreInput(parseInt(inp.dataset.match), inp.dataset.team, '0');
-        refreshCourtCard(parseInt(inp.dataset.match));
-      }
+      const val = e.target.value.replace(/[^0-9]/g, '') || '0';
+      e.target.value = val;
+      const mIdx = parseInt(inp.dataset.match);
+      applyScoreInput(mIdx, inp.dataset.team, val);
+      refreshCourtCard(mIdx);
       updateStandingTable();
     });
-    // Dismiss keyboard on Enter/Done
     inp.addEventListener('keydown', e => {
       if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
     });
@@ -4579,6 +4710,77 @@ function formatDate(d) {
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+function buildResultsPages() {
+  if (!state.rounds || state.rounds.length === 0) return '';
+
+  const allRows = [];
+  state.rounds.forEach((round, rIdx) => {
+    if (!round || !round.matches) return;
+    round.matches.forEach(m => {
+      if (m.scoreA === 0 && m.scoreB === 0) return; // skip unplayed
+      allRows.push({ round: rIdx + 1, match: m });
+    });
+  });
+
+  if (allRows.length === 0) return '';
+
+  // Each row is ~44px, header ~56px, footer ~32px, padding ~24px
+  // Assume 740px viewport height (typical mobile) → usable = 740 - 56 - 32 - 24 = ~628px → ~14 rows
+  // Use 12 as safe default so it's never too cramped
+  const ROWS_PER_PAGE = 12;
+  let html = '';
+
+  for (let p = 0; p < allRows.length; p += ROWS_PER_PAGE) {
+    const pageEntries = allRows.slice(p, p + ROWS_PER_PAGE);
+    const pageNum = Math.floor(p / ROWS_PER_PAGE) + 1;
+    const totalPages = Math.ceil(allRows.length / ROWS_PER_PAGE);
+
+    const rowsHtml = pageEntries.map(({ round, match: m }) => {
+      const cIdx = m.court ?? 0;
+      const courtName = (state.courtNames && state.courtNames[cIdx]) || `C${cIdx + 1}`;
+      const aNames = getMatchPlayerNames(m, 'A');
+      const bNames = getMatchPlayerNames(m, 'B');
+      const winA = m.scoreA > m.scoreB;
+      const winB = m.scoreB > m.scoreA;
+
+      const teamRow = (names, isWinner) => {
+        const dot = isWinner ? `<span class="result-row-dot"></span>` : '';
+        return `<div class="result-row-team ${isWinner ? 'winner' : ''}">${dot}${names.map(n => escapeHtml(n || '—')).join(' & ')}</div>`;
+      };
+
+      return `
+        <div class="result-row ${winA ? 'row-win' : ''}">
+          <div class="result-row-label">R${round}<br>${escapeHtml(courtName)}</div>
+          <div class="result-row-teams">
+            ${teamRow(aNames, winA)}
+            ${teamRow(bNames, winB)}
+          </div>
+          <div class="result-row-score">
+            <span class="result-row-num ${winA ? 'winner-score' : ''}">${m.scoreA}</span>
+            <span class="result-row-colon">:</span>
+            <span class="result-row-num ${winB ? 'winner-score' : ''}">${m.scoreB}</span>
+          </div>
+        </div>`;
+    }).join('');
+
+    const pageLabel = totalPages > 1 ? ` ${pageNum}/${totalPages}` : '';
+
+    html += `
+      <div class="podium-results-page">
+        <div class="podium-results-header">
+          <h2>Results${pageLabel}</h2>
+          <div class="results-sub">${state.tournamentName ? escapeHtml(state.tournamentName) + ' · ' : ''}${allRows.length} matches</div>
+        </div>
+        <div class="podium-results-list">${rowsHtml}</div>
+        <div class="podium-results-footer">
+          <div class="podium-footer-brand">padel<span>.</span>teroos</div>
+        </div>
+      </div>`;
+  }
+
+  return html;
+}
+
 function showPodium() {
   const standings = computeStandings();
   const top3 = standings.slice(0, 3);
@@ -4778,6 +4980,9 @@ function showPodium() {
         <div class="podium-footer-tag">Main asik, skill naik!</div>
       </div>
     </div>
+
+    ${buildResultsPages()}
+
     <div class="podium-tip">📸 Screenshot for socmed</div>
   `;
 
@@ -5045,6 +5250,199 @@ function boot() {
 }
 
 boot();
+
+// ========== FIREBASE REALTIME SYNC ==========
+// Uses Firebase Realtime Database to sync tournament state
+// Admin: full control (no ?room= param, or ?admin=1)
+// Viewer: read-only live view via ?room=ROOMID
+
+const FB_CONFIG = {
+  apiKey: "AIzaSyBUm22kFzD0upeGy2tfWSIYQQciA2vsUog",
+  authDomain: "scoring-padel-teroos.firebaseapp.com",
+  databaseURL: "https://scoring-padel-teroos-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "scoring-padel-teroos",
+  storageBucket: "scoring-padel-teroos.firebasestorage.app",
+  messagingSenderId: "1046784012606",
+  appId: "1:1046784012606:web:ee8c0258b19ed886e6bc6f"
+};
+
+// Detect viewer mode
+const _urlParams = new URLSearchParams(window.location.search);
+const _roomParam = _urlParams.get('room');
+const IS_VIEWER = !!_roomParam;
+
+let _fbApp = null, _fbDb = null, _fbSyncInterval = null, _currentRoomId = null;
+
+function slugify(str) {
+  return (str || 'tournament')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 40) || 'tournament';
+}
+
+function getRoomId() {
+  if (_roomParam) return _roomParam;
+  return slugify(state.tournamentName || 'tournament');
+}
+
+async function initFirebase() {
+  if (_fbApp) return;
+  try {
+    if (typeof firebase === 'undefined') return; // SDK not available, skip silently
+    _fbApp = firebase.initializeApp(FB_CONFIG);
+    _fbDb = firebase.database();
+  } catch (e) {
+    // Firebase unavailable — app works offline via localStorage
+  }
+}
+
+// Push state to Firebase (admin only)
+async function pushToFirebase() {
+  if (IS_VIEWER || !state.started) return;
+  if (!_fbDb) await initFirebase();
+  if (!_fbDb) return;
+  try {
+    const roomId = getRoomId();
+    _currentRoomId = roomId;
+    const snap = { ...state, endedAt: state.endedAt ? state.endedAt.toISOString() : null, _pushedAt: Date.now() };
+    await _fbDb.ref(`tournaments/${roomId}`).set(snap);
+  } catch (e) {
+    console.warn('Firebase push failed:', e);
+  }
+}
+
+// Pull state from Firebase (viewer)
+async function pullFromFirebase() {
+  if (!_fbDb) return;
+  try {
+    const roomId = getRoomId();
+    const snap = await _fbDb.ref(`tournaments/${roomId}`).get();
+    if (!snap.exists()) return;
+    const loaded = snap.val();
+    if (!loaded || !loaded.started) return;
+    // Only update if newer
+    if (loaded._pushedAt && loaded._pushedAt <= (window._lastPulledAt || 0)) return;
+    window._lastPulledAt = loaded._pushedAt || Date.now();
+    Object.keys(loaded).forEach(k => {
+      if (k.startsWith('_')) return;
+      if (k === 'endedAt' && loaded[k]) state[k] = new Date(loaded[k]);
+      else state[k] = loaded[k];
+    });
+    renderAll();
+  } catch (e) {
+    console.warn('Firebase pull failed:', e);
+  }
+}
+
+// Share button — copies viewer link to clipboard
+function showShareButton() {
+  const existing = document.getElementById('shareBtn');
+  if (existing) return;
+  const btn = document.createElement('button');
+  btn.id = 'shareBtn';
+  btn.className = 'icon-btn';
+  btn.title = 'Share live link';
+  btn.textContent = '📡';
+  btn.style.display = 'none';
+  btn.addEventListener('click', async () => {
+    const roomId = getRoomId();
+    const url = `${location.origin}${location.pathname}?room=${roomId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      btn.textContent = '✅';
+      setTimeout(() => { btn.textContent = '📡'; }, 2000);
+    } catch {
+      prompt('Share this link:', url);
+    }
+  });
+  // Insert before saveBtn
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.parentNode.insertBefore(btn, saveBtn);
+}
+
+// Override saveState to also push to Firebase
+const _origSaveState = saveState;
+window.saveState = function() {
+  _origSaveState();
+  pushToFirebase();
+};
+saveState = window.saveState;
+
+// Boot Firebase
+(async () => {
+  await initFirebase();
+
+  if (IS_VIEWER) {
+    // VIEWER MODE
+    document.title = '📺 Live — padel.teroos';
+
+    // Show viewer banner
+    const banner = document.createElement('div');
+    banner.style.cssText = `
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      background: rgba(201,169,97,0.15); border-bottom: 1px solid rgba(201,169,97,0.3);
+      text-align: center; padding: 6px 16px; font-size: 11px; font-weight: 700;
+      letter-spacing: 2px; text-transform: uppercase; color: #c9a961;
+      backdrop-filter: blur(10px);
+    `;
+    banner.textContent = '📺 Live View — Read Only';
+    document.body.insertBefore(banner, document.body.firstChild);
+    document.querySelector('header').style.marginTop = '32px';
+    document.getElementById('bottomNav') && (document.getElementById('bottomNav').style.display = 'none');
+
+    // Disable all interactive elements
+    const disableUI = () => {
+      document.querySelectorAll('button:not(#fullscreenBtn), .nav-btn, .bottom-tab, input').forEach(el => {
+        if (el.id !== 'fullscreenBtn') el.style.pointerEvents = 'none';
+      });
+      document.querySelectorAll('.sb-player').forEach(el => el.style.cursor = 'default');
+    };
+
+    // Initial pull
+    await pullFromFirebase();
+    disableUI();
+
+    // Show nav if tournament is live
+    if (state.started) {
+      const bn = document.getElementById('bottomNav');
+      if (bn) { bn.style.display = 'flex'; }
+      showView('overview');
+    }
+
+    // Poll every 3 seconds
+    _fbSyncInterval = setInterval(async () => {
+      await pullFromFirebase();
+      disableUI();
+    }, 3000);
+
+  } else {
+    // ADMIN MODE — push on every save
+    showShareButton();
+
+    // Show share button when tournament started
+    const origRenderAll = renderAll;
+    // Share button visibility tracked via saveState hook above
+    const _checkShare = () => {
+      const btn = document.getElementById('shareBtn');
+      if (btn) btn.style.display = state.started ? 'flex' : 'none';
+    };
+
+    // Patch renderAll to show share button
+    const _patchedRender = renderAll;
+    window.addEventListener('stateRendered', _checkShare);
+
+    // Check on existing renders
+    setInterval(_checkShare, 1000);
+
+    // Push current state if already started (e.g. page reload)
+    if (state.started) {
+      showShareButton();
+      document.getElementById('shareBtn').style.display = 'flex';
+      pushToFirebase();
+    }
+  }
+})();
 </script>
 </body>
 </html>
