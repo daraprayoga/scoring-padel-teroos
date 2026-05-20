@@ -4184,7 +4184,8 @@ function renderOverview() {
 
   // Top bar
   document.getElementById('liveRoundNum').textContent = state.currentRoundIdx + 1;
-  document.getElementById('liveRoundMeta').textContent = modeLabel(state.mode);
+  const totalRounds = state.rounds.length;
+  document.getElementById('liveRoundMeta').textContent = `of ${totalRounds} · ${modeLabel(state.mode)}`;
   document.getElementById('standingNameCol').textContent = isTeam() ? 'Pair' : 'Player';
 
   // Render court cards
@@ -5324,11 +5325,18 @@ async function pullFromFirebase() {
     // Only update if newer
     if (loaded._pushedAt && loaded._pushedAt <= (window._lastPulledAt || 0)) return;
     window._lastPulledAt = loaded._pushedAt || Date.now();
+    // Preserve viewer's currentRoundIdx if they're browsing history
+    const savedRoundIdx = state.currentRoundIdx;
+    const wasViewing = IS_VIEWER && typeof window._viewerRoundRef !== 'undefined' ? window._viewerRoundRef : null;
     Object.keys(loaded).forEach(k => {
       if (k.startsWith('_')) return;
       if (k === 'endedAt' && loaded[k]) state[k] = new Date(loaded[k]);
       else state[k] = loaded[k];
     });
+    // Restore viewer's position if they were browsing a specific round
+    if (IS_VIEWER && wasViewing !== null) {
+      state.currentRoundIdx = Math.min(savedRoundIdx, state.rounds.length - 1);
+    }
     renderAll();
   } catch (e) {
     console.warn('Firebase pull failed:', e);
@@ -5494,13 +5502,19 @@ saveState = window.saveState;
 
     applyViewerUI();
 
-    // Poll every 3 seconds — only update round if viewer is following live
+    // Poll every 3 seconds — only follow live round if viewer hasn't navigated away
     _fbSyncInterval = setInterval(async () => {
       const wasOnLive = _viewerRound === null;
+      const prevRoundIdx = state.currentRoundIdx;
+      // Signal to pullFromFirebase whether to preserve round position
+      window._viewerRoundRef = wasOnLive ? null : prevRoundIdx;
       await pullFromFirebase();
       if (wasOnLive) {
-        // Follow live round
+        // Following live — jump to latest round
         state.currentRoundIdx = state.rounds.length - 1;
+      } else {
+        // Browsing history — stay on chosen round
+        state.currentRoundIdx = Math.min(prevRoundIdx, state.rounds.length - 1);
       }
       renderAll();
       applyViewerUI();
