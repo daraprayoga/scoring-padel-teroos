@@ -5456,30 +5456,29 @@ saveState = window.saveState;
       }
     };
 
-    // Override prev/next to track viewer position
-    document.querySelectorAll('[data-action="prev"]').forEach(btn => {
-      btn.addEventListener('click', () => {
+    // Override handleRoundAction for viewer — only allow prev/next navigation
+    const _origHandleRoundAction = handleRoundAction;
+    window.handleRoundAction = function(action) {
+      if (action === 'prev') {
         if (state.currentRoundIdx > 0) {
           state.currentRoundIdx -= 1;
           _viewerRound = state.currentRoundIdx;
           renderAll();
           applyViewerUI();
         }
-      }, true);
-    });
-    document.querySelectorAll('[data-action="next"]').forEach(btn => {
-      btn.addEventListener('click', () => {
+      } else if (action === 'next') {
         if (state.currentRoundIdx < state.rounds.length - 1) {
           state.currentRoundIdx += 1;
           _viewerRound = state.currentRoundIdx;
         } else {
-          // Already at latest — go to live
           _viewerRound = null;
         }
         renderAll();
         applyViewerUI();
-      }, true);
-    });
+      }
+      // All other actions (add, delete, end, podium) blocked for viewer
+    };
+    handleRoundAction = window.handleRoundAction;
 
     // Initial pull
     await pullFromFirebase();
