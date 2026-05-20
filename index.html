@@ -5379,6 +5379,7 @@ saveState = window.saveState;
 
     // Show viewer banner
     const banner = document.createElement('div');
+    banner.id = 'viewerBanner';
     banner.style.cssText = `
       position: fixed; top: 0; left: 0; right: 0; z-index: 200;
       background: rgba(201,169,97,0.15); border-bottom: 1px solid rgba(201,169,97,0.3);
@@ -5391,29 +5392,119 @@ saveState = window.saveState;
     document.querySelector('header').style.marginTop = '32px';
     document.getElementById('bottomNav') && (document.getElementById('bottomNav').style.display = 'none');
 
-    // Disable all interactive elements
-    const disableUI = () => {
-      document.querySelectorAll('button:not(#fullscreenBtn), .nav-btn, .bottom-tab, input').forEach(el => {
-        if (el.id !== 'fullscreenBtn') el.style.pointerEvents = 'none';
-      });
-      document.querySelectorAll('.sb-player').forEach(el => el.style.cursor = 'default');
+    // Viewer state: track which round viewer is on vs live round
+    let _viewerRound = null; // null = always follow live
+
+    // Lock viewer to latest round on pull
+    const lockToLive = () => {
+      _viewerRound = null;
+      state.currentRoundIdx = state.rounds.length - 1;
     };
+
+    // Apply viewer UI restrictions
+    const applyViewerUI = () => {
+      // Disable everything except fullscreen
+      document.querySelectorAll('button, .nav-btn, .bottom-tab, input, label').forEach(el => {
+        if (el.id === 'fullscreenBtn') return;
+        el.style.pointerEvents = 'none';
+        el.style.opacity = '0.3';
+        el.style.cursor = 'not-allowed';
+      });
+      document.querySelectorAll('.sb-player, .sb-court-name').forEach(el => {
+        el.style.cursor = 'default';
+        el.style.pointerEvents = 'none';
+      });
+
+      // Re-enable prev/next nav buttons with visual highlight
+      document.querySelectorAll('[data-action="prev"], [data-action="next"]').forEach(btn => {
+        btn.style.pointerEvents = 'auto';
+        btn.style.cursor = 'pointer';
+        btn.style.opacity = '1';
+        // Gold highlight to signal these are the only interactive buttons
+        btn.style.border = '1px solid rgba(201,169,97,0.6)';
+        btn.style.boxShadow = '0 0 10px rgba(201,169,97,0.2)';
+        btn.style.color = '#c9a961';
+      });
+
+      // Show "back to live" button if viewer has navigated away from latest round
+      const liveRound = state.rounds.length - 1;
+      const isOnLive = state.currentRoundIdx === liveRound;
+      let liveBtn = document.getElementById('viewerLiveBtn');
+      if (!isOnLive) {
+        if (!liveBtn) {
+          liveBtn = document.createElement('button');
+          liveBtn.id = 'viewerLiveBtn';
+          liveBtn.textContent = '⚡ Back to Live';
+          liveBtn.style.cssText = `
+            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+            z-index: 150; background: rgba(201,169,97,0.9); color: #000;
+            border: none; border-radius: 20px; padding: 8px 20px;
+            font-size: 12px; font-weight: 800; letter-spacing: 1.5px;
+            text-transform: uppercase; cursor: pointer; white-space: nowrap;
+            box-shadow: 0 4px 20px rgba(201,169,97,0.4);
+          `;
+          liveBtn.addEventListener('click', () => {
+            state.currentRoundIdx = state.rounds.length - 1;
+            _viewerRound = null;
+            renderAll();
+            applyViewerUI();
+          });
+          document.body.appendChild(liveBtn);
+        }
+      } else {
+        if (liveBtn) liveBtn.remove();
+      }
+    };
+
+    // Override prev/next to track viewer position
+    document.querySelectorAll('[data-action="prev"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (state.currentRoundIdx > 0) {
+          state.currentRoundIdx -= 1;
+          _viewerRound = state.currentRoundIdx;
+          renderAll();
+          applyViewerUI();
+        }
+      }, true);
+    });
+    document.querySelectorAll('[data-action="next"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (state.currentRoundIdx < state.rounds.length - 1) {
+          state.currentRoundIdx += 1;
+          _viewerRound = state.currentRoundIdx;
+        } else {
+          // Already at latest — go to live
+          _viewerRound = null;
+        }
+        renderAll();
+        applyViewerUI();
+      }, true);
+    });
 
     // Initial pull
     await pullFromFirebase();
-    disableUI();
+    lockToLive();
+    renderAll();
 
-    // Show nav if tournament is live
+    // Show nav
     if (state.started) {
       const bn = document.getElementById('bottomNav');
-      if (bn) { bn.style.display = 'flex'; }
+      if (bn) bn.style.display = 'flex';
       showView('overview');
     }
 
-    // Poll every 3 seconds
+    applyViewerUI();
+
+    // Poll every 3 seconds — only update round if viewer is following live
     _fbSyncInterval = setInterval(async () => {
+      const wasOnLive = _viewerRound === null;
       await pullFromFirebase();
-      disableUI();
+      if (wasOnLive) {
+        // Follow live round
+        state.currentRoundIdx = state.rounds.length - 1;
+      }
+      renderAll();
+      applyViewerUI();
     }, 3000);
 
   } else {
