@@ -628,24 +628,32 @@
     gap: 18px;
   }
 
-  /* Page 1: top content centered, footer pinned to bottom */
+  .podium-page-1 .podium-monogram { margin-bottom: 10px; }
+  .podium-page-1 .podium-header { margin-bottom: 10px; }
   .podium-page-1 {
-    justify-content: center;
-    padding-bottom: 100px; /* reserve space for footer + scroll hint */
+    justify-content: flex-start;
+    padding-top: 20px;
+    padding-bottom: 30px;
+    gap: 10px;
+  }
+  .podium-page-1 .podium-stage {
+    margin-bottom: 0;
+    flex: 1;
+  }
+  .podium-page-1 .podium-stage .podium-card {
+    min-height: 0 !important;
+    flex: 1;
   }
   .podium-page-1 .podium-footer {
-    position: absolute;
-    bottom: 28px;
-    left: 0; right: 0;
-    margin: 0 auto;
-    max-width: calc(100% - 80px);
+    flex-shrink: 0;
     border-top: 1px solid rgba(245,233,208,0.12);
     padding-top: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    width: 100%;
   }
-  .podium-page-1 .podium-scroll-hint { bottom: 6px; }
+  .podium-page-1 .podium-scroll-hint { display: none; }
 
   /* Scroll hint — chevron pulse at bottom of page 1 */
   .podium-scroll-hint {
