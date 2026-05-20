@@ -628,6 +628,17 @@
     gap: 18px;
   }
 
+  /* Page 1: footer pinned above scroll hint so social row always visible */
+  .podium-page-1 .podium-footer {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 80px);
+    max-width: 600px;
+  }
+  .podium-page-1 .podium-scroll-hint { bottom: 8px; }
+
   /* Scroll hint — chevron pulse at bottom of page 1 */
   .podium-scroll-hint {
     position: absolute;
