@@ -3572,13 +3572,23 @@ function buildMexicanoMatches(roundIdx) {
   const total = state.players;
   const activePlayers = state.courts * 4;
 
-  // Check if we have enough scored rounds to rank meaningfully
+  // Get available players
+  const available = [];
+  for (let i = 0; i < total; i++) {
+    if (isAvailable(i)) available.push(i);
+  }
+  const unavailable = [];
+  for (let i = 0; i < total; i++) {
+    if (!isAvailable(i)) unavailable.push(i);
+  }
+
+  // Check if we have scored rounds to rank meaningfully
   const scoredRounds = state.rounds.filter(r =>
-    r && r.matches && r && r.matches && r.matches.some(m => m.scoreA > 0 || m.scoreB > 0)
+    r && r.matches && r.matches.some(m => m.scoreA > 0 || m.scoreB > 0)
   ).length;
 
-  if (scoredRounds === 0) {
-    // No scores yet — use random assignment
+  if (scoredRounds === 0 || available.length <= activePlayers) {
+    // Round 0 or everyone fits — random assignment
     const pool = selectPlayingPool(total, activePlayers, hist.games);
     const assignments = assignPlayersToCourts(pool.playing, state.courts, hist);
     return {
@@ -3587,46 +3597,28 @@ function buildMexicanoMatches(roundIdx) {
     };
   }
 
-  // Get current standings order
+  // === FAIR SIT-OUT: GP first, then rank tiebreak ===
+  // Step 1: get standings rank for each player
   const standings = computeStandings();
-  if (!standings || standings.length === 0) {
-    const pool = selectPlayingPool(total, activePlayers, hist.games);
-    const assignments = assignPlayersToCourts(pool.playing, state.courts, hist);
-    return {
-      matches: buildIndividualMatchesFromAssignments(assignments),
-      resting: pool.resting
-    };
-  }
+  const rankOf = {};
+  standings.forEach((s, i) => { rankOf[s.id] = i; });
 
-  // Filter to available players, preserve standings rank order
-  const availableByRank = standings
-    .map(s => s.id)
-    .filter(id => isAvailable(id));
+  // Step 2: sort available by games played ASC (fewest plays first = must play this round)
+  // tiebreak: better rank plays, worse rank sits
+  const sorted = [...available].sort((a, b) => {
+    const gDiff = hist.games[a] - hist.games[b];
+    if (gDiff !== 0) return gDiff; // fewer games → play
+    // same GP: better rank plays, worse rank sits (higher rankIdx = worse)
+    return (rankOf[a] ?? 999) - (rankOf[b] ?? 999);
+  });
 
-  // Fair sit-out: if more available than slots, sit out those with most games
-  // (tiebreak: worse standing sits out first)
-  let playing, resting;
-  if (availableByRank.length <= activePlayers) {
-    playing = availableByRank;
-    resting = [];
-  } else {
-    const excess = availableByRank.length - activePlayers;
-    // Sort by most games DESC, tiebreak by worst rank DESC (end of list = worst)
-    const withMeta = availableByRank.map((id, rankIdx) => ({
-      id, games: hist.games[id], rankIdx
-    }));
-    withMeta.sort((a, b) => b.games - a.games || b.rankIdx - a.rankIdx);
-    const sitterIds = new Set(withMeta.slice(0, excess).map(x => x.id));
-    playing = availableByRank.filter(id => !sitterIds.has(id));
-    resting = [...sitterIds];
-  }
+  // Top activePlayers get to play, rest sit out
+  const playing = sorted.slice(0, activePlayers);
+  const resting = [...sorted.slice(activePlayers), ...unavailable];
 
-  // Add unavailable to resting
-  for (let i = 0; i < total; i++) {
-    if (!isAvailable(i) && !resting.includes(i)) resting.push(i);
-  }
+  // Sort playing by rank for Mexicano court assignment (rank 1+3 vs 2+4)
+  playing.sort((a, b) => (rankOf[a] ?? 999) - (rankOf[b] ?? 999));
 
-  // playing is already in standings rank order
   const matches = [];
   for (let c = 0; c < state.courts; c++) {
     const group = playing.slice(c * 4, c * 4 + 4);
@@ -3639,7 +3631,7 @@ function buildMexicanoMatches(roundIdx) {
     });
   }
 
-  // Safety: anyone in playing but not matched goes to resting
+  // Safety: unmatched → resting
   const matchedIds = new Set(matches.flatMap(m => [...m.teamA, ...m.teamB]));
   for (const id of playing) {
     if (!matchedIds.has(id)) resting.push(id);
@@ -3654,43 +3646,40 @@ function buildTeamMexicanoMatches(roundIdx) {
   const total = state.pairs;
   const activePairs = state.courts * 2;
 
+  const available = [];
+  for (let i = 0; i < total; i++) {
+    if (isAvailable(i)) available.push(i);
+  }
+  const unavailable = [];
+  for (let i = 0; i < total; i++) {
+    if (!isAvailable(i)) unavailable.push(i);
+  }
+
   const scoredRounds = state.rounds.filter(r =>
     r && r.matches && r.matches.some(m => m.scoreA > 0 || m.scoreB > 0)
   ).length;
 
-  if (scoredRounds === 0) {
+  if (scoredRounds === 0 || available.length <= activePairs) {
     const pool = selectPlayingPool(total, activePairs, hist.games);
     return { matches: buildTeamMatches(pool.playing), resting: pool.resting };
   }
 
+  // === FAIR SIT-OUT: GP first, then rank tiebreak ===
   const standings = computeStandings();
-  if (!standings || standings.length === 0) {
-    const pool = selectPlayingPool(total, activePairs, hist.games);
-    return { matches: buildTeamMatches(pool.playing), resting: pool.resting };
-  }
+  const rankOf = {};
+  standings.forEach((s, i) => { rankOf[s.id] = i; });
 
-  const availableByRank = standings
-    .map(s => s.id)
-    .filter(id => isAvailable(id));
+  const sorted = [...available].sort((a, b) => {
+    const gDiff = hist.games[a] - hist.games[b];
+    if (gDiff !== 0) return gDiff;
+    return (rankOf[a] ?? 999) - (rankOf[b] ?? 999);
+  });
 
-  let playing, resting;
-  if (availableByRank.length <= activePairs) {
-    playing = availableByRank;
-    resting = [];
-  } else {
-    const excess = availableByRank.length - activePairs;
-    const withMeta = availableByRank.map((id, rankIdx) => ({
-      id, games: hist.games[id], rankIdx
-    }));
-    withMeta.sort((a, b) => b.games - a.games || b.rankIdx - a.rankIdx);
-    const sitterIds = new Set(withMeta.slice(0, excess).map(x => x.id));
-    playing = availableByRank.filter(id => !sitterIds.has(id));
-    resting = [...sitterIds];
-  }
+  const playing = sorted.slice(0, activePairs);
+  const resting = [...sorted.slice(activePairs), ...unavailable];
 
-  for (let i = 0; i < total; i++) {
-    if (!isAvailable(i) && !resting.includes(i)) resting.push(i);
-  }
+  // Sort playing by rank for Mexicano court assignment
+  playing.sort((a, b) => (rankOf[a] ?? 999) - (rankOf[b] ?? 999));
 
   const matches = buildTeamMatches(playing);
   const matchedIds = new Set(matches.flatMap(m => [...m.teamA, ...m.teamB]));
