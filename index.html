@@ -4177,18 +4177,29 @@ function renderAll() {
   document.querySelectorAll('[data-action="delete"]').forEach(b => {
     b.disabled = !canDelete;
     b.style.opacity = canDelete ? '1' : '0.4';
+    b.style.pointerEvents = canDelete ? 'auto' : 'none';
+    b.style.cursor = canDelete ? 'pointer' : 'not-allowed';
   });
   document.querySelectorAll('[data-action="prev"]').forEach(b => {
     b.disabled = !canPrev;
     b.style.opacity = canPrev ? '1' : '0.4';
+    b.style.pointerEvents = canPrev ? 'auto' : 'none';
+    b.style.cursor = canPrev ? 'pointer' : 'not-allowed';
   });
   document.querySelectorAll('[data-action="next"]').forEach(b => {
-    b.disabled = !canNext;
-    b.style.opacity = canNext ? '1' : '0.4';
+    b.disabled = false;
+    b.style.opacity = '1';
+    b.style.pointerEvents = 'auto';
+    b.style.cursor = 'pointer';
+    b.style.border = '';
+    b.style.boxShadow = '';
+    b.style.color = '';
   });
   document.querySelectorAll('[data-action="add"]').forEach(b => {
-    b.disabled = !canAdd;
-    b.style.opacity = canAdd ? '1' : '0.4';
+    b.disabled = false;
+    b.style.opacity = '1';
+    b.style.pointerEvents = 'auto';
+    b.style.cursor = 'pointer';
   });
 
   // Toggle End Game / Show Podium buttons
