@@ -2932,7 +2932,7 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
             <tbody id="standingBody"></tbody>
           </table>
           <div class="bonus-legend" id="bonusLegend" style="display:none;">
-            <span class="gold-asterisk">*</span> Points compensated for missed games
+            <span class="gold-asterisk">+N</span> = poin kompensasi untuk game yang di-skip
           </div>
         </div>
       </div>
@@ -4659,7 +4659,7 @@ function updateStandingTable() {
     const tr = document.createElement('tr');
     const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
     const wrPct = s.games > 0 ? Math.round(s.winRate * 100) : 0;
-    const bonusMarker = s.bonus ? `<span class="bonus-marker" title="Pts compensated: +${s.bonusPoints} for ${s.missedGames} missed game${s.missedGames>1?'s':''}">*</span>` : '';
+    const bonusMarker = s.bonus ? `<span class="bonus-marker" title="+${s.bonusPoints} pts for ${s.missedGames} missed game${s.missedGames>1?'s':''}">&nbsp;+${s.bonusPoints}</span>` : '';
     if (s.bonus) anyBonus = true;
     tr.innerHTML = `
       <td><span class="rank ${rankClass}">${i+1}</span></td>
@@ -4920,7 +4920,7 @@ function showPodium() {
     if (!top3[i]) continue;
     const s = top3[i];
     const winsDisplay = String(s.wins);
-    const nameStar = s.bonus ? '<span class="bonus-marker">*</span>' : '';
+    const nameStar = s.bonus ? `<span class="bonus-marker">&nbsp;+${s.bonusPoints}</span>` : '';
     slotsHtml += `
       <div class="podium-slot ${slots[i]}">
         <div class="podium-icon">${icons[i]}</div>
@@ -4958,7 +4958,7 @@ function showPodium() {
     const winsDisplay = String(s.wins);
     const wrPct = s.games > 0 ? Math.round(s.winRate * 100) : 0;
     const rankClass = idx === 0 ? 'rank-gold' : idx === 1 ? 'rank-silver' : idx === 2 ? 'rank-bronze' : '';
-    const bonusMarker = s.bonus ? '<span class="bonus-marker">*</span>' : '';
+    const bonusMarker = s.bonus ? `<span class="bonus-marker">&nbsp;+${s.bonusPoints}</span>` : '';
     return `
       <tr class="${rankClass}">
         <td class="rank-cell">${idx + 1}</td>
