@@ -2610,6 +2610,14 @@ main { background: var(--rc-forest) !important; }
   .result-row-team { font-size: 10px; }
   .result-row-num { font-size: 18px; min-width: 18px; }
 }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes toastOut {
+  from { opacity: 1; transform: translateX(-50%) translateY(0); }
+  to   { opacity: 0; transform: translateX(-50%) translateY(6px); }
+}
 @keyframes podiumPulse {
   0%, 100% { box-shadow: 0 0 20px rgba(201,169,97,0.5), 0 0 40px rgba(201,169,97,0.2); }
   50% { box-shadow: 0 0 35px rgba(201,169,97,0.8), 0 0 70px rgba(201,169,97,0.4); }
@@ -3669,6 +3677,7 @@ function buildTeamMexicanoMatches(roundIdx) {
   const rankOf = {};
   standings.forEach((s, i) => { rankOf[s.id] = i; });
 
+  // Sort available: fewest GP first, tiebreak by rank (better rank plays)
   const sorted = [...available].sort((a, b) => {
     const gDiff = hist.games[a] - hist.games[b];
     if (gDiff !== 0) return gDiff;
@@ -3678,7 +3687,7 @@ function buildTeamMexicanoMatches(roundIdx) {
   const playing = sorted.slice(0, activePairs);
   const resting = [...sorted.slice(activePairs), ...unavailable];
 
-  // Sort playing by rank for Mexicano court assignment
+  // Sort playing by rank for Mexicano court assignment (rank 1+2 vs 3+4 etc)
   playing.sort((a, b) => (rankOf[a] ?? 999) - (rankOf[b] ?? 999));
 
   const matches = buildTeamMatches(playing);
@@ -4076,8 +4085,16 @@ function handleRoundAction(action) {
   if (action === 'next') {
     if (state.currentRoundIdx === state.rounds.length - 1) {
       if (state.ended) {
-        // After ended: no new rounds, but stay on last round
         return;
+      }
+      // Mexicano: block next if current round has no scores
+      if (isMexicano()) {
+        const round = state.rounds[state.currentRoundIdx];
+        const hasScore = round && round.matches && round.matches.some(m => m.scoreA > 0 || m.scoreB > 0);
+        if (!hasScore) {
+          showToast('Input skor dulu sebelum lanjut ke round berikutnya');
+          return;
+        }
       }
       generateRound(state.rounds.length);
     } else {
@@ -4186,9 +4203,15 @@ function renderAll() {
     b.style.pointerEvents = canPrev ? 'auto' : 'none';
     b.style.cursor = canPrev ? 'pointer' : 'not-allowed';
   });
+  // Next button: dim if mexicano and current round unscored
+  const mexicanoUnscored = isMexicano() && !state.ended && (() => {
+    const round = state.rounds[state.currentRoundIdx];
+    return !(round && round.matches && round.matches.some(m => m.scoreA > 0 || m.scoreB > 0));
+  })() && state.currentRoundIdx === state.rounds.length - 1;
+
   document.querySelectorAll('[data-action="next"]').forEach(b => {
     b.disabled = false;
-    b.style.opacity = '1';
+    b.style.opacity = mexicanoUnscored ? '0.4' : '1';
     b.style.pointerEvents = 'auto';
     b.style.cursor = 'pointer';
     b.style.border = '';
@@ -5078,6 +5101,29 @@ function showPodium() {
   document.getElementById('podiumModal').classList.add('show');
 }
 
+function showToast(msg) {
+  const existing = document.getElementById('appToast');
+  if (existing) existing.remove();
+  const t = document.createElement('div');
+  t.id = 'appToast';
+  t.textContent = msg;
+  t.style.cssText = `
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: rgba(10,22,14,0.96); border: 1px solid rgba(201,169,97,0.4);
+    color: #f0ebe0; padding: 10px 18px; border-radius: 12px;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.3px;
+    backdrop-filter: blur(20px); z-index: 500;
+    max-width: calc(100vw - 40px); text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    animation: toastIn 0.2s ease both;
+  `;
+  document.body.appendChild(t);
+  setTimeout(() => {
+    t.style.animation = 'toastOut 0.3s ease both';
+    setTimeout(() => t.remove(), 300);
+  }, 3000);
+}
+
 function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
@@ -5439,7 +5485,7 @@ function showShareButton() {
   btn.id = 'shareBtn';
   btn.className = 'icon-btn';
   btn.title = 'Share live link';
-  btn.textContent = '📡';
+  btn.textContent = '📺';
   btn.style.display = 'none';
   btn.addEventListener('click', async () => {
     const roomId = getRoomId();
@@ -5456,7 +5502,8 @@ function showShareButton() {
       document.body.removeChild(tmp);
     }
     btn.textContent = '✅';
-    setTimeout(() => { btn.textContent = '📡'; }, 2000);
+    showToast('Link sudah dicopy! Paste ke penonton untuk share mode nonton 👁');
+    setTimeout(() => { btn.textContent = '📺'; }, 2000);
   });
   // Insert before saveBtn
   const saveBtn = document.getElementById('saveBtn');
