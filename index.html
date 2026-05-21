@@ -4075,7 +4075,10 @@ function applyScoreInput(mIdx, team, rawValue) {
 function handleRoundAction(action) {
   if (action === 'next') {
     if (state.currentRoundIdx === state.rounds.length - 1) {
-      if (state.ended) return; // can't generate new round after ended
+      if (state.ended) {
+        // After ended: no new rounds, but stay on last round
+        return;
+      }
       generateRound(state.rounds.length);
     } else {
       state.currentRoundIdx += 1;
@@ -4084,14 +4087,11 @@ function handleRoundAction(action) {
   } else if (action === 'prev') {
     if (state.currentRoundIdx > 0) { state.currentRoundIdx -= 1; renderAll(); }
   } else if (action === 'add') {
-    if (state.ended) return;
     generateRound(state.rounds.length);
     renderAll();
   } else if (action === 'delete') {
-    if (state.ended) return;
     if (state.rounds.length <= 1) return;
-    if (state.currentRoundIdx !== state.rounds.length - 1) return;
-    document.getElementById('deleteRoundText').textContent = `Delete Round ${state.rounds.length}? Scores from this round will be removed from standings.`;
+    document.getElementById('deleteRoundText').textContent = `Delete Round ${state.rounds.length}? Scores from this round will be removed.`;
     document.getElementById('deleteRoundModal').classList.add('show');
   } else if (action === 'end') {
     if (state.ended) return;
@@ -4168,11 +4168,11 @@ function renderAll() {
     if (tnDisplay) tnDisplay.style.display = 'none';
   }
 
-  const canDelete = !state.ended && state.rounds.length > 1 && state.currentRoundIdx === state.rounds.length - 1;
+  const canDelete = state.rounds.length > 1;
   const canPrev = state.currentRoundIdx > 0;
   // Next: always allow navigation to existing rounds; only block generating NEW round when ended
   const canNext = true;
-  const canAdd = !state.ended;
+  const canAdd = true; // admin can always add rounds
 
   document.querySelectorAll('[data-action="delete"]').forEach(b => {
     b.disabled = !canDelete;
@@ -4712,6 +4712,11 @@ document.getElementById('sortSelector').addEventListener('change', e => {
 document.getElementById('confirmDeleteRound').addEventListener('click', () => {
   state.rounds.pop();
   state.currentRoundIdx = state.rounds.length - 1;
+  // If tournament was ended, un-end it since we deleted a round
+  if (state.ended) {
+    state.ended = false;
+    state.endedAt = null;
+  }
   document.getElementById('deleteRoundModal').classList.remove('show');
   renderAll();
 });
@@ -5430,11 +5435,17 @@ function showShareButton() {
     const url = `${location.origin}${location.pathname}?room=${roomId}`;
     try {
       await navigator.clipboard.writeText(url);
-      btn.textContent = '✅';
-      setTimeout(() => { btn.textContent = '📡'; }, 2000);
     } catch {
-      prompt('Share this link:', url);
+      // Fallback: create temp input
+      const tmp = document.createElement('input');
+      tmp.value = url;
+      document.body.appendChild(tmp);
+      tmp.select();
+      document.execCommand('copy');
+      document.body.removeChild(tmp);
     }
+    btn.textContent = '✅';
+    setTimeout(() => { btn.textContent = '📡'; }, 2000);
   });
   // Insert before saveBtn
   const saveBtn = document.getElementById('saveBtn');
