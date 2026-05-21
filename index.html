@@ -3765,17 +3765,33 @@ function buildTeamAmericanoRound(roundIdx) {
   const courts = state.courts;
   const activePairs = courts * 2;
 
-  // Sort by GP ASC — fewest games played must play this round
-  // Tiebreak: random (shuffle equally-played pairs)
-  const shuffled = shuffle(available);
-  shuffled.sort((a, b) => hist.games[a] - hist.games[b]);
+  // === STEP 1: Strict GP-based selection ===
+  // Sort by GP ASC, shuffle within same GP for variety
+  const byGP = {};
+  for (const id of available) {
+    const g = hist.games[id];
+    if (!byGP[g]) byGP[g] = [];
+    byGP[g].push(id);
+  }
+  // Shuffle within each GP tier
+  for (const g in byGP) byGP[g] = shuffle(byGP[g]);
 
-  const playing = shuffled.slice(0, activePairs);
-  const resting = [...shuffled.slice(activePairs), ...unavailable];
+  // Build ordered list: least GP first
+  const sorted = Object.keys(byGP).map(Number).sort((a,b) => a-b)
+    .flatMap(g => byGP[g]);
 
-  // Among playing, pick matchups minimizing opponent repeats
+  const playing = sorted.slice(0, activePairs);
+  const resting = [...sorted.slice(activePairs), ...unavailable];
+
+  // === STEP 2: Among playing, pick matchups minimizing opponent repeats ===
+  // Use bipartite matching: split playing into two halves, match across
+  // Simple greedy on sorted matchups
   const allMatchups = getAllMatchups(playing);
-  allMatchups.sort((x, y) => hist.opponent[x[0]][x[1]] - hist.opponent[y[0]][y[1]]);
+  allMatchups.sort((x, y) => {
+    const facedDiff = hist.opponent[x[0]][x[1]] - hist.opponent[y[0]][y[1]];
+    if (facedDiff !== 0) return facedDiff;
+    return Math.random() - 0.5; // random tiebreak for variety
+  });
 
   const usedPairs = new Set();
   const chosen = [];
@@ -3787,13 +3803,15 @@ function buildTeamAmericanoRound(roundIdx) {
     usedPairs.add(b);
   }
 
+  // If greedy couldn't fill all courts (shouldn't happen), fill remaining
+  if (chosen.length < courts) {
+    for (const id of playing) {
+      if (!usedPairs.has(id)) resting.push(id);
+    }
+  }
+
   const pairOrder = [];
   chosen.forEach(([a, b]) => pairOrder.push(a, b));
-
-  // Any playing pair not matched → also rest
-  for (const id of playing) {
-    if (!usedPairs.has(id)) resting.push(id);
-  }
 
   return { pairOrder, resting };
 }
