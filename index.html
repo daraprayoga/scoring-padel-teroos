@@ -3753,20 +3753,20 @@ function buildTeamAmericanoRound(roundIdx) {
   }
 
   const courts = state.courts;
+  const activePairs = courts * 2;
 
-  // All possible matchups among available pairs
-  const allMatchups = getAllMatchups(available);
+  // Sort by GP ASC — fewest games played must play this round
+  // Tiebreak: random (shuffle equally-played pairs)
+  const shuffled = shuffle(available);
+  shuffled.sort((a, b) => hist.games[a] - hist.games[b]);
 
-  // Score each matchup: lower = higher priority
-  // Primary: times they've faced each other (hist.opponent[a][b])
-  // Secondary: sum of games played (fairness for sit-out)
-  allMatchups.sort((x, y) => {
-    const facedDiff = hist.opponent[x[0]][x[1]] - hist.opponent[y[0]][y[1]];
-    if (facedDiff !== 0) return facedDiff;
-    return (hist.games[x[0]] + hist.games[x[1]]) - (hist.games[y[0]] + hist.games[y[1]]);
-  });
+  const playing = shuffled.slice(0, activePairs);
+  const resting = [...shuffled.slice(activePairs), ...unavailable];
 
-  // Greedy pick: take top matchups where no pair appears more than once
+  // Among playing, pick matchups minimizing opponent repeats
+  const allMatchups = getAllMatchups(playing);
+  allMatchups.sort((x, y) => hist.opponent[x[0]][x[1]] - hist.opponent[y[0]][y[1]]);
+
   const usedPairs = new Set();
   const chosen = [];
   for (const [a, b] of allMatchups) {
@@ -3780,10 +3780,12 @@ function buildTeamAmericanoRound(roundIdx) {
   const pairOrder = [];
   chosen.forEach(([a, b]) => pairOrder.push(a, b));
 
-  const resting = [];
-  for (const id of available) if (!usedPairs.has(id)) resting.push(id);
+  // Any playing pair not matched → also rest
+  for (const id of playing) {
+    if (!usedPairs.has(id)) resting.push(id);
+  }
 
-  return { pairOrder, resting: [...resting, ...unavailable] };
+  return { pairOrder, resting };
 }
 
 // Individual Americano: exhaustive opponent tracking.
