@@ -572,6 +572,8 @@
     scroll-behavior: smooth;
   }
   .podium-backdrop.show { display: flex; }
+  .podium-backdrop.show ~ * .beta-banner,
+  body:has(.podium-backdrop.show) .beta-banner { display: none !important; }
 
   /* Blurred court line decorations — mimic Reserve Cup's blurred court lines bg */
   .podium-backdrop::before,
@@ -4957,6 +4959,8 @@ document.getElementById('confirmEndGame').addEventListener('click', () => {
 
 document.getElementById('closePodium').addEventListener('click', () => {
   document.getElementById('podiumModal').classList.remove('show');
+  const betaBanner = document.getElementById('betaBanner');
+  if (betaBanner) betaBanner.style.display = '';
 });
 
 // ========== PODIUM RENDER ==========
@@ -5254,10 +5258,11 @@ function showPodium() {
 
     ${buildResultsPages()}
 
-    <div class="podium-tip">📸 Screenshot for socmed</div>
   `;
 
   document.getElementById('podiumModal').classList.add('show');
+  const betaBanner = document.getElementById('betaBanner');
+  if (betaBanner) betaBanner.style.display = 'none';
 }
 
 function showToast(msg) {
