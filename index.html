@@ -47,15 +47,21 @@
     .view { height: auto; min-height: calc(100vh - 120px); }
   }
 
+  .topbar-wrap {
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    flex-shrink: 0;
+  }
   .beta-banner {
-    position: fixed;
-    top: 0; left: 0; right: 0;
+    position: relative;
     z-index: 9999;
     background: #f5c800;
     overflow: hidden;
     height: 26px;
     display: flex;
     align-items: center;
+    flex-shrink: 0;
   }
   .beta-ticker {
     display: flex;
@@ -78,8 +84,6 @@
 
   /* Podium backdrop covers beta banner */
   header {
-    position: sticky;
-    top: 26px; /* sits below beta banner */
     background: rgba(8,16,10,0.97);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -93,7 +97,6 @@
     box-shadow: 0 2px 20px rgba(0,0,0,0.4);
     z-index: 100;
   }
-  body { padding-top: 26px; } /* reserve space for fixed beta banner */
   .brand { display: flex; align-items: center; gap: 10px; }
   .brand-img-logo { height: 36px; width: auto; flex-shrink: 0; display: block; }
   .brand-logo { font-weight: 800; font-size: 15px; line-height: 1; color: var(--cream); letter-spacing: -0.3px; white-space: nowrap; }
@@ -2138,7 +2141,7 @@ main { background: var(--rc-forest) !important; }
 /* Top bar */
 .sb-topbar {
   position: sticky;
-  top: 84px; /* beta banner (26) + header (~58) */
+  top: 0;
   z-index: 40;
   background: rgba(10,20,14,0.95);
   backdrop-filter: blur(16px);
@@ -2554,7 +2557,7 @@ main { background: var(--rc-forest) !important; }
 
 /* Phone tweaks for sb */
 @media (max-width: 640px) {
-  .sb-topbar { padding: 6px 10px; gap: 8px; top: 106px; /* beta(26)+header mobile(~80) */}
+  .sb-topbar { padding: 6px 10px; gap: 8px; }
   .sb-round-num { font-size: 22px; }
   .sb-tab { padding: 5px 12px; font-size: 12px; }
   .sb-nav-btn { padding: 5px 10px; font-size: 12px; }
@@ -2791,6 +2794,7 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
 </head>
 <body>
 
+<div class="topbar-wrap">
 <div class="beta-banner" id="betaBanner">
   <div class="beta-ticker">
     <span>⚠️ MASIH BETA. PERLU BANYAK UJI COBA. REKOMENDASI: COBA DI MABAR SKALA KECIL DULU.</span>
@@ -2808,8 +2812,7 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
     <button class="icon-btn danger" id="resetBtn" title="Reset" style="display:none;">↺</button>
   </div>
 </header>
-
-<!-- BOTTOM TAB BAR -->
+</div><!-- /topbar-wrap -->
 <div class="bottom-nav" id="bottomNav" style="display:none;">
   <button class="bottom-tab active" data-view="overview" id="mainNav">
     <span class="bottom-tab-icon">📋</span>
@@ -4414,7 +4417,7 @@ function renderOverview() {
   courts.innerHTML = '';
   const courtCount = round.matches.length;
   courts.className = `sb-courts courts-count-${courtCount}`;
-    const winner = matchWinner(m);
+  round.matches.forEach((m, i) => {
     const complete = isMatchComplete(m);
     const aNames = getMatchPlayerNames(m, 'A');
     const bNames = getMatchPlayerNames(m, 'B');
