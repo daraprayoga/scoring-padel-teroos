@@ -4410,6 +4410,7 @@ function renderOverview() {
   const courtCount = round.matches.length;
   courts.className = `sb-courts courts-count-${courtCount}`;
   round.matches.forEach((m, i) => {
+    const winner = matchWinner(m);
     const complete = isMatchComplete(m);
     const aNames = getMatchPlayerNames(m, 'A');
     const bNames = getMatchPlayerNames(m, 'B');
