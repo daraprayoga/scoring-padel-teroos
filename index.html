@@ -47,21 +47,15 @@
     .view { height: auto; min-height: calc(100vh - 120px); }
   }
 
-  .topbar-wrap {
-    position: sticky;
-    top: 0;
-    z-index: 200;
-    flex-shrink: 0;
-  }
   .beta-banner {
-    position: relative;
+    position: fixed;
+    top: 0; left: 0; right: 0;
     z-index: 9999;
     background: #f5c800;
     overflow: hidden;
     height: 26px;
     display: flex;
     align-items: center;
-    flex-shrink: 0;
   }
   .beta-ticker {
     display: flex;
@@ -2794,7 +2788,6 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
 </head>
 <body>
 
-<div class="topbar-wrap">
 <div class="beta-banner" id="betaBanner">
   <div class="beta-ticker">
     <span>⚠️ MASIH BETA. PERLU BANYAK UJI COBA. REKOMENDASI: COBA DI MABAR SKALA KECIL DULU.</span>
@@ -2812,7 +2805,6 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
     <button class="icon-btn danger" id="resetBtn" title="Reset" style="display:none;">↺</button>
   </div>
 </header>
-</div><!-- /topbar-wrap -->
 <div class="bottom-nav" id="bottomNav" style="display:none;">
   <button class="bottom-tab active" data-view="overview" id="mainNav">
     <span class="bottom-tab-icon">📋</span>
@@ -5547,6 +5539,13 @@ function boot() {
   document.getElementById('blurSwitch').classList.add('on');
   applyRedactMode();
 }
+
+// Beta banner offset — push all content below the fixed banner
+(function() {
+  const BANNER_H = 26;
+  document.documentElement.style.setProperty('--beta-h', BANNER_H + 'px');
+  document.body.style.paddingTop = BANNER_H + 'px';
+})();
 
 boot();
 
