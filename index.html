@@ -2138,7 +2138,7 @@ main { background: var(--rc-forest) !important; }
 /* Top bar */
 .sb-topbar {
   position: sticky;
-  top: 0;
+  top: 84px; /* beta banner (26) + header (~58) */
   z-index: 40;
   background: rgba(10,20,14,0.95);
   backdrop-filter: blur(16px);
@@ -2228,13 +2228,57 @@ main { background: var(--rc-forest) !important; }
 
 /* Pages */
 .sb-page {
-  padding: 10px 12px 20px;
+  padding: 10px 12px 100px;
   max-width: 100%;
   box-sizing: border-box;
 }
 
 /* ---- COURT CARD ---- */
 .sb-courts { display: flex; flex-direction: column; gap: 10px; }
+
+/* Compact mode: 3-4 courts fit without scroll */
+.sb-courts.courts-count-3,
+.sb-courts.courts-count-4 {
+  gap: 6px;
+}
+.sb-courts.courts-count-3 .sb-court-card,
+.sb-courts.courts-count-4 .sb-court-card {
+  border-radius: 14px;
+}
+.sb-courts.courts-count-3 .sb-court-header,
+.sb-courts.courts-count-4 .sb-court-header {
+  padding: 5px 12px;
+}
+.sb-courts.courts-count-3 .sb-match-body,
+.sb-courts.courts-count-4 .sb-match-body {
+  padding: 8px 12px;
+  gap: 6px;
+}
+.sb-courts.courts-count-3 .sb-score-box,
+.sb-courts.courts-count-4 .sb-score-box {
+  width: 48px;
+  height: 52px;
+}
+.sb-courts.courts-count-3 .sb-score-input,
+.sb-courts.courts-count-4 .sb-score-input {
+  font-size: 26px;
+}
+.sb-courts.courts-count-3 .sb-player,
+.sb-courts.courts-count-4 .sb-player {
+  font-size: 11px;
+  max-width: 90px;
+}
+.sb-courts.courts-count-3 .sb-vs-label,
+.sb-courts.courts-count-4 .sb-vs-label {
+  font-size: 8px;
+  margin-top: 2px;
+}
+
+/* Also fix sb-page bottom padding for compact view */
+.sb-courts.courts-count-1,
+.sb-courts.courts-count-2,
+.sb-courts.courts-count-3,
+.sb-courts.courts-count-4 ~ * { }
 
 .sb-court-card {
   background: var(--rc-panel);
@@ -2510,11 +2554,11 @@ main { background: var(--rc-forest) !important; }
 
 /* Phone tweaks for sb */
 @media (max-width: 640px) {
-  .sb-topbar { padding: 6px 10px; gap: 8px; }
+  .sb-topbar { padding: 6px 10px; gap: 8px; top: 106px; /* beta(26)+header mobile(~80) */}
   .sb-round-num { font-size: 22px; }
   .sb-tab { padding: 5px 12px; font-size: 12px; }
   .sb-nav-btn { padding: 5px 10px; font-size: 12px; }
-  .sb-page { padding: 8px 10px 16px; }
+  .sb-page { padding: 8px 10px 120px; } /* extra bottom for bottom-nav */
   .sb-score-box { width: 52px; height: 58px; border-radius: 10px; }
   .sb-score-input { font-size: 30px; }
   .sb-player { font-size: 12px; max-width: 100px; }
@@ -4368,7 +4412,8 @@ function renderOverview() {
   // Render court cards
   const courts = document.getElementById('sbCourts');
   courts.innerHTML = '';
-  round.matches.forEach((m, i) => {
+  const courtCount = round.matches.length;
+  courts.className = `sb-courts courts-count-${courtCount}`;
     const winner = matchWinner(m);
     const complete = isMatchComplete(m);
     const aNames = getMatchPlayerNames(m, 'A');
