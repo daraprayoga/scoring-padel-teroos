@@ -55,9 +55,10 @@
     z-index: 9999;
     background: #f5c800;
     overflow: hidden;
-    height: 26px;
+    height: calc(26px + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
     display: flex;
-    align-items: center;
+    align-items: flex-end;
   }
   .beta-ticker {
     display: flex;
@@ -5548,11 +5549,20 @@ function boot() {
   applyRedactMode();
 }
 
-// Beta banner offset — push all content below the fixed banner
+// Beta banner offset — push all content below the fixed banner + iOS status bar
 (function() {
   const BANNER_H = 26;
   document.documentElement.style.setProperty('--beta-h', BANNER_H + 'px');
+  // For iOS standalone mode, account for safe area inset top
+  const safeTop = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sat') || '0') || 0;
   document.body.style.paddingTop = BANNER_H + 'px';
+  // Apply safe area to beta banner via CSS
+  const betaBanner = document.getElementById('betaBanner');
+  if (betaBanner) {
+    betaBanner.style.paddingTop = 'env(safe-area-inset-top, 0px)';
+    betaBanner.style.height = 'calc(26px + env(safe-area-inset-top, 0px))';
+    document.body.style.paddingTop = 'calc(26px + env(safe-area-inset-top, 0px))';
+  }
 })();
 
 boot();
