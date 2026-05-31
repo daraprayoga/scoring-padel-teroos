@@ -2397,6 +2397,8 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   border-radius: 12px;
   padding: 10px 11px;
   flex-shrink: 0;
+  overflow: visible;
+  word-break: break-word;
 }
 .rp-section-title {
   font-size: 10px;
@@ -3610,7 +3612,7 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
             </div>
           </div>
         </div>
-        <div class="sb-actions" id="sbActions">
+        <div class="sb-actions" id="sbActions" style="display:none;">
           <button class="ghost-btn sb-action-sm" data-action="delete">Delete Round</button>
           <button class="ghost-btn sb-action-sm" data-action="add">+ Add Round</button>
           <button class="ghost-btn sb-action-sm" id="openScheduleBtn" style="display:none;">📋 Schedule</button>
@@ -4911,6 +4913,11 @@ function clearStoredState() {
 
 // ========== RENDER ==========
 function renderAll() {
+  // Show actions only if NOT in viewer mode
+  if (!IS_VIEWER) {
+    const actionsEl = document.getElementById('sbActions');
+    if (actionsEl) actionsEl.style.removeProperty('display');
+  }
   renderOverview();
   document.getElementById('formatBadge').textContent = state.started
     ? (state.ended ? `🏆 Final · ${formatLabel(state.format)}` : `${formatLabel(state.format)} · ${modeLabel(state.mode)}`)
@@ -6237,7 +6244,14 @@ function updateLandscapePanel() {
         if (isTeam()) {
           const raw = state.pairNames && state.pairNames[id] ? state.pairNames[id] : `Pair ${id+1}`;
           // Format "A,B" → "A & B"
-          name = raw.includes(',') ? raw.split(',').map(s=>s.trim()).join(' & ') : raw;
+          // Handle both "A,B" and "A & B" formats
+          if (raw.includes(' & ')) {
+            name = raw; // already formatted
+          } else if (raw.includes(',')) {
+            name = raw.split(',').map(s => s.trim()).filter(Boolean).join(' & ');
+          } else {
+            name = raw;
+          }
         } else {
           name = state.playerNames && state.playerNames[id] ? state.playerNames[id] : `P${id+1}`;
         }
@@ -6455,12 +6469,10 @@ saveState = window.saveState;
     // Apply viewer UI restrictions
     const applyViewerUI = () => {
       // Hide action buttons entirely in viewer mode
-      // Hide actions - multiple methods to ensure it works
-      const actionsEl = document.getElementById('sbActions') || document.querySelector('.sb-actions');
-      if (actionsEl) {
-        actionsEl.style.setProperty('display', 'none', 'important');
-        actionsEl.setAttribute('hidden', '');
-      }
+      // Actions are hidden by default (style="display:none" in HTML)
+      // Just ensure it stays hidden
+      const actionsEl = document.getElementById('sbActions');
+      if (actionsEl) actionsEl.style.display = 'none';
       // Disable everything except fullscreen
       document.querySelectorAll('button, .nav-btn, .bottom-tab, input, label').forEach(el => {
         if (el.id === 'fullscreenBtn') return;
