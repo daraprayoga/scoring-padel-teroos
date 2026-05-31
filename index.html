@@ -782,7 +782,15 @@
   .podium-standings-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: auto;
     color: var(--cream);
+  }
+  .podium-standings-table .name-col {
+    white-space: normal;
+    word-break: break-word;
+    min-width: 100px;
+    max-width: none;
+    text-align: left;
   }
   .podium-standings-table th {
     text-align: right;
@@ -795,7 +803,7 @@
     border-bottom: 1px solid rgba(245, 233, 208, 0.15);
   }
   .podium-standings-table th:first-child { text-align: left; width: 36px; }
-  .podium-standings-table th.name-col { text-align: left; }
+  .podium-standings-table th.name-col { text-align: left; white-space: normal; word-break: break-word; min-width: 120px; }
   .podium-standings-table td {
     padding: 8px 8px;
     font-size: 12px;
@@ -2257,9 +2265,9 @@ main { background: var(--rc-forest) !important; }
 .sb-right-panel { display: none; }
 
 @media (orientation: landscape) and (min-width: 600px) {
-  /* Desktop landscape: make main non-scrollable, use flex layout */
+  /* Desktop landscape: flex layout, scrolling allowed */
   main {
-    overflow: hidden !important;
+    overflow: visible !important;
     display: flex !important;
     flex-direction: column;
   }
@@ -2269,7 +2277,7 @@ main { background: var(--rc-forest) !important; }
     min-height: 0;
     display: flex !important;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible;
   }
   /* Score page: full flex column */
   #sbPageScore {
@@ -2277,7 +2285,7 @@ main { background: var(--rc-forest) !important; }
     display: flex !important;
     flex-direction: column;
     overflow: visible;
-    padding: 5px 10px 2px !important;
+    padding: 5px 10px 60px !important;
     min-height: 0;
   }
   /* Compact sb-actions */
@@ -2305,8 +2313,7 @@ main { background: var(--rc-forest) !important; }
     gap: 10px;
     flex: 1;
     min-height: 0;
-    overflow: hidden;
-    overflow-y: visible;
+    overflow: visible;
   }
   .sb-left-panel {
     flex: 0 0 57%;
@@ -2348,15 +2355,15 @@ main { background: var(--rc-forest) !important; }
     gap: 4px !important;
   }
   .sb-score-box {
-    width: clamp(34px, 4.8vh, 62px) !important;
-    height: clamp(38px, 6.6vh, 74px) !important;
+    width: clamp(40px, 5.8vh, 74px) !important;
+    height: clamp(46px, 7.9vh, 89px) !important;
     border-radius: 7px !important;
   }
-  .sb-score-input { font-size: clamp(16px, 3.4vh, 38px) !important; }
+  .sb-score-input { font-size: clamp(19px, 4.1vh, 46px) !important; }
   .sb-player {
-    font-size: clamp(10px, 1.4vh, 17px) !important;
+    font-size: clamp(20px, 2.8vh, 34px) !important;
     font-weight: 700 !important;
-    max-width: 90px !important;
+    max-width: 160px !important;
     line-height: 1.2 !important;
   }
   .sb-vs-label { font-size: 7px !important; margin-top: 1px !important; }
@@ -2730,7 +2737,7 @@ main { background: var(--rc-forest) !important; }
 }
 
 /* Override standing table for cleaner look */
-#standingTable { border-radius: 16px; overflow: hidden; width: 100%; table-layout: fixed; }
+#standingTable { border-radius: 16px; overflow: hidden; width: 100%; table-layout: auto; }
 #standingTable thead tr { background: rgba(15,35,24,0.06); }
 #standingTable thead th {
   padding: 10px 6px;
@@ -5747,7 +5754,7 @@ function showPodium() {
   }
 
   // All standings, paginated 16 per page
-  const PER_PAGE = 16;
+  const PER_PAGE = 10;
   const totalPages = Math.ceil(standings.length / PER_PAGE);
   const densityClass = standings.length > 12 ? 'density-compact' : 'density-roomy';
 
