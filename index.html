@@ -2277,7 +2277,7 @@ main { background: var(--rc-forest) !important; }
     display: flex !important;
     flex-direction: column;
     overflow: hidden;
-    padding: 5px 10px 0 !important;
+    padding: 5px 10px 2px !important;
     min-height: 0;
   }
   /* Compact sb-actions */
@@ -2312,7 +2312,8 @@ main { background: var(--rc-forest) !important; }
     min-width: 0;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
   .sb-right-panel {
     display: flex !important;
@@ -2330,28 +2331,19 @@ main { background: var(--rc-forest) !important; }
     display: grid !important;
     grid-template-columns: 1fr 1fr;
     gap: 5px !important;
-    flex: 1;
-    min-height: 0;
-    grid-auto-rows: 1fr;
-    overflow: hidden;
+    align-content: start;
+    overflow: visible;
   }
-  /* Court card fills grid cell */
+  /* Court card: natural compact height */
   .sb-court-card {
     border-radius: 8px !important;
-    min-height: 0 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    overflow: hidden;
   }
   .sb-court-header { padding: 3px 8px !important; flex-shrink: 0; }
   .sb-court-name { font-size: 9px !important; letter-spacing: 1px !important; }
   .court-status { font-size: 9px !important; padding: 1px 6px !important; }
   .sb-match-body {
-    padding: 3px 8px 4px !important;
-    gap: 3px !important;
-    flex: 1;
-    min-height: 0;
-    align-items: center;
+    padding: 3px 8px 6px !important;
+    gap: 4px !important;
   }
   .sb-score-box {
     width: clamp(28px, 4vh, 52px) !important;
@@ -2377,28 +2369,28 @@ main { background: var(--rc-forest) !important; }
   flex-shrink: 0;
 }
 .rp-section-title {
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 2px;
   text-transform: uppercase;
   color: #4a8a6a;
-  margin-bottom: 7px;
+  margin-bottom: 8px;
 }
 .rp-tournament-name {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 800;
   color: #2d6b4e;
   line-height: 1.2;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
   word-break: break-word;
 }
 .rp-tournament-meta {
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 1.2px;
   text-transform: uppercase;
   color: #4a8a6a;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 .rp-qr-wrap {
   display: flex;
@@ -2411,14 +2403,15 @@ main { background: var(--rc-forest) !important; }
   border: 2px solid rgba(45,107,78,0.2);
   width: 100% !important;
   height: auto !important;
-  max-width: 120px;
+  max-width: 180px;
 }
 .rp-qr-label {
-  font-size: 7px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
   color: #4a8a6a;
+  margin-top: 4px;
 }
 .rp-sitout-list, .rp-next-list {
   display: flex;
@@ -2426,12 +2419,12 @@ main { background: var(--rc-forest) !important; }
   gap: 3px;
 }
 .rp-sitout-item {
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 700;
   color: #2d6b4e;
-  padding: 2px 6px;
+  padding: 4px 8px;
   background: rgba(45,107,78,0.07);
-  border-radius: 5px;
+  border-radius: 6px;
 }
 .rp-next-match {
   padding: 4px 6px;
@@ -2440,14 +2433,14 @@ main { background: var(--rc-forest) !important; }
   line-height: 1.4;
 }
 .rp-court-label {
-  font-size: 7px;
+  font-size: 9px;
   letter-spacing: 1px;
   text-transform: uppercase;
   color: #4a8a6a;
   font-weight: 700;
 }
 .rp-next-teams {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   color: #2d6b4e;
 }
@@ -6247,12 +6240,12 @@ function drawQR(text) {
   if (!img) {
     img = document.createElement('img');
     img.id = 'rpQrImg';
-    img.style.cssText = 'border-radius:6px;border:2px solid rgba(45,107,78,0.2);max-width:100%;width:130px;height:130px;display:block;background:#f5f0e6;';
+    img.style.cssText = 'border-radius:8px;border:2px solid rgba(45,107,78,0.2);max-width:100%;width:180px;height:180px;display:block;background:#f5f0e6;';
     parent.insertBefore(img, canvas);
     canvas.style.display = 'none';
   }
   // Use goqr.me API — reliable, no CORS
-  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=130x130&bgcolor=f5f0e6&color=2d6b4e&margin=6&data=${encodeURIComponent(text)}`;
+  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&bgcolor=f5f0e6&color=2d6b4e&margin=8&data=${encodeURIComponent(text)}`;
   img.alt = text;
   img.onerror = () => {
     // Ultimate fallback: show the URL
