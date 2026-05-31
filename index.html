@@ -3746,8 +3746,7 @@ const state = {
   playerStatus: [], // per-player status: 'available' | 'late' | 'left'
   playerGenders: [], // per-player gender: 'M' | 'F' (used in Mixicano)
   courtNames: [],  // custom court names e.g. ['Court Biru', 'Court Merah']
-  scheduleAhead: 5,  // how many rounds ahead to pre-generate
-  roomSuffix: ''  // unique suffix per tournament session
+  scheduleAhead: 5  // how many rounds ahead to pre-generate
 };
 
 const RANDOM_POOL = ['Kiki','Marsa','Dwita','Pomen','Renny','Bella','Fina','Tarisa','Dila','Elva','Janes','Anggi','Sheva','Yola','Rina','Gia','Geges','OKI','Dhana','Rere','Adee','Una','Karina','Minda','Erlin','Rizkita','Vera','Chaca','Shintia','Vina','Cita','Diana','Sita','Eno','Bianca','Diths','Janty','Vio'];
@@ -4048,8 +4047,7 @@ function startTournament() {
   state.started = true;
   state.rounds = [];
   state.currentRoundIdx = 0;
-  // Generate unique room suffix so same-name tournaments don't collide on Firebase
-  if (!state.roomSuffix) state.roomSuffix = Date.now().toString(36).slice(-4);
+
 
   // Initialize player status — all available by default
   const count = isTeam() ? state.pairs : state.players;
@@ -6338,9 +6336,7 @@ function renderLandscapePanel() {
 
 function getRoomId() {
   if (_roomParam) return _roomParam;
-  const base = slugify(state.tournamentName || 'tournament');
-  const suffix = state.roomSuffix || '';
-  return suffix ? `${base}-${suffix}` : base;
+  return slugify(state.tournamentName || 'tournament');
 }
 
 async function initFirebase() {
@@ -6379,7 +6375,8 @@ async function pullFromFirebase() {
     const loaded = snap.val();
     if (!loaded || !loaded.started) return;
     // Only update if newer
-    if (loaded._pushedAt && loaded._pushedAt <= (window._lastPulledAt || 0)) return;
+    // Always pull latest data in viewer mode
+    if (!IS_VIEWER && loaded._pushedAt && loaded._pushedAt <= (window._lastPulledAt || 0)) return;
     window._lastPulledAt = loaded._pushedAt || Date.now();
     // Preserve viewer's currentRoundIdx if they're browsing history
     const savedRoundIdx = state.currentRoundIdx;
@@ -6451,19 +6448,24 @@ saveState = window.saveState;
     // Mark body as viewer mode
     document.body.classList.add('viewer-mode');
 
-    // Replace beta banner with viewer banner
+    // Hide beta banner, show fresh viewer banner
     const betaBannerEl = document.getElementById('betaBanner');
-    if (betaBannerEl) {
-      betaBannerEl.style.background = '#2d6b4e';
-      betaBannerEl.style.height = 'calc(28px + env(safe-area-inset-top, 0px))';
-      betaBannerEl.style.paddingTop = 'env(safe-area-inset-top, 0px)';
-      betaBannerEl.style.alignItems = 'flex-end';
-      betaBannerEl.style.justifyContent = 'center';
-      // Stop the ticker, show static text
-      const ticker = betaBannerEl.querySelector('.beta-ticker');
-      if (ticker) ticker.style.animation = 'none';
-      betaBannerEl.innerHTML = '<div style="font-size:11px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#f5f0e6;padding-bottom:3px;">📺 &nbsp; MODE NONTON &nbsp;·&nbsp; VIEW ONLY</div>';
-    }
+    if (betaBannerEl) betaBannerEl.style.display = 'none';
+    // Create viewer banner as new element (avoids CSS conflicts)
+    const viewerBanner = document.createElement('div');
+    viewerBanner.id = 'viewerModeBanner';
+    viewerBanner.style.cssText = [
+      'position:fixed', 'top:0', 'left:0', 'right:0', 'z-index:99999',
+      'background:#2d6b4e', 'color:#f5f0e6',
+      'font-size:11px', 'font-weight:800', 'letter-spacing:2px',
+      'text-transform:uppercase', 'text-align:center',
+      'padding:8px 16px', 'padding-top:calc(8px + env(safe-area-inset-top,0px))',
+      'box-shadow:0 2px 8px rgba(0,0,0,0.2)', 'pointer-events:none'
+    ].join(';');
+    viewerBanner.textContent = '📺  MODE NONTON  ·  VIEW ONLY';
+    document.body.insertBefore(viewerBanner, document.body.firstChild);
+    // Push content down
+    document.querySelector('header').style.marginTop = '36px';
     document.getElementById('bottomNav') && (document.getElementById('bottomNav').style.display = 'none');
 
     // Viewer state: track which round viewer is on vs live round
