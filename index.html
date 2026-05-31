@@ -2276,7 +2276,7 @@ main { background: var(--rc-forest) !important; }
     flex: 1 !important;
     display: flex !important;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible;
     padding: 5px 10px 2px !important;
     min-height: 0;
   }
@@ -2306,6 +2306,7 @@ main { background: var(--rc-forest) !important; }
     flex: 1;
     min-height: 0;
     overflow: hidden;
+    overflow-y: visible;
   }
   .sb-left-panel {
     flex: 0 0 57%;
@@ -2314,6 +2315,7 @@ main { background: var(--rc-forest) !important; }
     flex-direction: column;
     overflow-y: auto;
     overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
   }
   .sb-right-panel {
     display: flex !important;
@@ -2346,15 +2348,15 @@ main { background: var(--rc-forest) !important; }
     gap: 4px !important;
   }
   .sb-score-box {
-    width: clamp(28px, 4vh, 52px) !important;
-    height: clamp(32px, 5.5vh, 62px) !important;
+    width: clamp(34px, 4.8vh, 62px) !important;
+    height: clamp(38px, 6.6vh, 74px) !important;
     border-radius: 7px !important;
   }
-  .sb-score-input { font-size: clamp(13px, 2.8vh, 32px) !important; }
+  .sb-score-input { font-size: clamp(16px, 3.4vh, 38px) !important; }
   .sb-player {
-    font-size: clamp(8px, 1.1vh, 14px) !important;
+    font-size: clamp(10px, 1.4vh, 17px) !important;
     font-weight: 700 !important;
-    max-width: 80px !important;
+    max-width: 90px !important;
     line-height: 1.2 !important;
   }
   .sb-vs-label { font-size: 7px !important; margin-top: 1px !important; }
@@ -2419,10 +2421,10 @@ main { background: var(--rc-forest) !important; }
   gap: 3px;
 }
 .rp-sitout-item {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
   color: #2d6b4e;
-  padding: 4px 8px;
+  padding: 3px 7px;
   background: rgba(45,107,78,0.07);
   border-radius: 6px;
 }
@@ -6394,7 +6396,7 @@ saveState = window.saveState;
       // Stop the ticker, show static text
       const ticker = betaBannerEl.querySelector('.beta-ticker');
       if (ticker) ticker.style.animation = 'none';
-      betaBannerEl.innerHTML = '<div style="font-size:11px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#f5f0e6;padding-bottom:3px;">📺 &nbsp;VIEW ONLY — READ ONLY</div>';
+      betaBannerEl.innerHTML = '<div style="font-size:11px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#f5f0e6;padding-bottom:3px;">📺 &nbsp; MODE NONTON &nbsp;·&nbsp; VIEW ONLY</div>';
     }
     document.getElementById('bottomNav') && (document.getElementById('bottomNav').style.display = 'none');
 
@@ -6409,6 +6411,9 @@ saveState = window.saveState;
 
     // Apply viewer UI restrictions
     const applyViewerUI = () => {
+      // Hide action buttons entirely in viewer mode
+      const actionsEl = document.querySelector('.sb-actions');
+      if (actionsEl) actionsEl.style.display = 'none';
       // Disable everything except fullscreen
       document.querySelectorAll('button, .nav-btn, .bottom-tab, input, label').forEach(el => {
         if (el.id === 'fullscreenBtn') return;
