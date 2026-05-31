@@ -2256,7 +2256,7 @@ main { background: var(--rc-forest) !important; }
 .sb-landscape-wrapper { display: contents; }
 .sb-right-panel { display: none; }
 
-@media (orientation: landscape) and (max-height: 600px) {
+@media (orientation: landscape) and (min-width: 600px) {
   .sb-landscape-wrapper {
     display: flex;
     flex-direction: row;
@@ -5662,27 +5662,53 @@ function showPodium() {
     `;
   }
 
-  // REVISI: Hanya tampilkan Top 10
-  const displayStandings = standings.slice(0, 10);
-  const densityClass = 'density-roomy';
-  
-  const allRows = displayStandings.map((s, i) => buildRow(s, i)).join('');
-  const standingsTableHtml = `
-    <table class="podium-standings-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th class="name-col">Player</th>
-          <th>GP</th>
-          <th>W</th>
-          <th>+/−</th>
-          <th>WR</th>
-          <th>Pts</th>
-        </tr>
-      </thead>
-      <tbody>${allRows}</tbody>
-    </table>
-  `;
+  // All standings, paginated 16 per page
+  const PER_PAGE = 16;
+  const totalPages = Math.ceil(standings.length / PER_PAGE);
+  const densityClass = standings.length > 12 ? 'density-compact' : 'density-roomy';
+
+  let standingsPagesHtml = '';
+  for (let p = 0; p < totalPages; p++) {
+    const pageStandings = standings.slice(p * PER_PAGE, (p + 1) * PER_PAGE);
+    const startIdx = p * PER_PAGE;
+    const pageLabel = totalPages > 1 ? ` (${p + 1}/${totalPages})` : '';
+    const allRows = pageStandings.map((s, i) => buildRow(s, startIdx + i)).join('');
+    const standingsTableHtml = `
+      <table class="podium-standings-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th class="name-col">${isTeam() ? 'Pair' : 'Player'}</th>
+            <th>GP</th>
+            <th>W</th>
+            <th>+/−</th>
+            <th>WR</th>
+            <th>Pts</th>
+          </tr>
+        </thead>
+        <tbody>${allRows}</tbody>
+      </table>
+    `;
+    standingsPagesHtml += `
+    <div class="podium-page podium-page-2 ${densityClass}">
+      <div class="podium-monogram">
+        <div class="podium-monogram-name">${escapeHtml(title)}</div>
+        <div class="podium-monogram-sub">${formatLabel(state.format)} · ${date}</div>
+      </div>
+      <div class="podium-standings-header">
+        <h2>Full Standings${pageLabel}</h2>
+        <div class="podium-standings-sub">${standings.length} ${isTeam() ? 'pairs' : 'players'}</div>
+      </div>
+      <div class="podium-standings-table-wrap">
+        ${standingsTableHtml}
+      </div>
+      <div class="podium-standings-footer">
+        <div class="podium-footer-brand">Scoring by padel<span>.</span>teroos</div>
+        <div class="podium-footer-tag">Main asik, skill naik!</div>
+        ${podiumSocialFooter()}
+      </div>
+    </div>`;
+  }
 
   content.innerHTML = `
     <div class="podium-page podium-page-1">
@@ -5707,24 +5733,8 @@ function showPodium() {
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
     </div>
-    <div class="podium-page podium-page-2 ${densityClass}">
-      <div class="podium-monogram">
-        <div class="podium-monogram-name">${escapeHtml(title)}</div>
-        <div class="podium-monogram-sub">${formatLabel(state.format)} · ${date}</div>
-      </div>
-      <div class="podium-standings-header">
-        <h2>Full Standings</h2>
-        <div class="podium-standings-sub">Top 10 ${isTeam() ? 'pairs' : 'players'}</div>
-      </div>
-      <div class="podium-standings-table-wrap">
-        ${standingsTableHtml}
-      </div>
-      <div class="podium-standings-footer">
-        <div class="podium-footer-brand">Scoring by padel<span>.</span>teroos</div>
-        <div class="podium-footer-tag">Main asik, skill naik!</div>
-        ${podiumSocialFooter()}
-      </div>
-    </div>
+
+    ${standingsPagesHtml}
 
     ${buildResultsPages()}
 
@@ -6069,7 +6079,7 @@ function slugify(str) {
 // ===== LANDSCAPE RIGHT PANEL =====
 function updateLandscapePanel() {
   // Only compute if landscape panel is visible
-  if (window.innerWidth <= window.innerHeight) return;
+  if (window.innerWidth <= window.innerHeight || window.innerWidth < 600) return;
 
   // Tournament info
   const nameEl = document.getElementById('rpTournamentName');
