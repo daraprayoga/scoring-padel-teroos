@@ -2257,99 +2257,84 @@ main { background: var(--rc-forest) !important; }
 .sb-right-panel { display: none; }
 
 @media (orientation: landscape) and (min-width: 600px) {
-  /* ── Score page becomes flex ── */
+  /* Score page: flex column, fill viewport */
   #sbPageScore {
     display: flex !important;
     flex-direction: column;
-    height: calc(100vh - 56px); /* minus topbar */
-    padding: 6px 10px 6px !important;
+    height: calc(100vh - 52px);
+    padding: 5px 10px !important;
     overflow: hidden;
+    box-sizing: border-box;
   }
-  .sb-actions {
-    flex-shrink: 0;
-    padding-top: 4px;
-  }
+  .sb-actions { flex-shrink: 0; padding-top: 4px; }
 
-  /* ── Outer split: 57% left courts, 40% right panel ── */
+  /* 57/40 split */
   .sb-landscape-wrapper {
-    display: flex;
-    flex-direction: row;
-    gap: 10px;
-    width: 100%;
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
+    display: flex; flex-direction: row; gap: 10px;
+    width: 100%; flex: 1; min-height: 0; overflow: hidden;
   }
   .sb-left-panel {
-    flex: 0 0 57%;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    overflow: hidden;
+    flex: 0 0 57%; min-width: 0;
+    display: flex; flex-direction: column; overflow: hidden;
   }
   .sb-right-panel {
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 40%;
-    min-width: 0;
-    gap: 6px;
-    overflow-y: auto;
-    padding-bottom: 8px;
+    display: flex; flex-direction: column;
+    flex: 1 1 40%; min-width: 0;
+    gap: 6px; overflow-y: auto; padding-bottom: 8px;
   }
   .sb-rest { display: none !important; }
 
-  /* ── 2-column grid for courts ── */
+  /* 2-col grid that fills the left panel height */
   .sb-courts {
     display: grid !important;
     grid-template-columns: 1fr 1fr;
-    gap: 6px !important;
-    height: 100%;
-    align-content: start;
+    gap: 5px !important;
+    flex: 1;
+    min-height: 0;
+    grid-auto-rows: 1fr;
     overflow: hidden;
   }
 
-  /* ── Ultra-compact court card ── */
+  /* Court card fills grid cell */
   .sb-court-card {
     border-radius: 8px !important;
     min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden;
   }
-  .sb-court-header {
-    padding: 4px 8px !important;
-  }
-  .sb-court-header .sb-court-name {
-    font-size: 9px !important;
-    letter-spacing: 1px !important;
-  }
-  .sb-court-header .court-status {
-    font-size: 9px !important;
-    padding: 1px 6px !important;
-  }
+  .sb-court-header { padding: 3px 8px !important; flex-shrink: 0; }
+  .sb-court-name { font-size: 9px !important; letter-spacing: 1px !important; }
+  .court-status { font-size: 9px !important; padding: 1px 6px !important; }
   .sb-match-body {
-    padding: 4px 8px 6px !important;
-    gap: 4px !important;
+    padding: 3px 8px 4px !important;
+    gap: 3px !important;
+    flex: 1; min-height: 0; align-items: center;
   }
+  /* Responsive score boxes using viewport height */
   .sb-score-box {
-    width: 38px !important;
-    height: 42px !important;
+    width: clamp(30px, 4vh, 50px) !important;
+    height: clamp(34px, 5.5vh, 58px) !important;
     border-radius: 7px !important;
   }
-  .sb-score-input {
-    font-size: 20px !important;
-  }
+  .sb-score-input { font-size: clamp(14px, 2.6vh, 30px) !important; }
   .sb-player {
-    font-size: 10px !important;
+    font-size: clamp(8px, 1.1vh, 13px) !important;
     font-weight: 700 !important;
-    max-width: 72px !important;
+    max-width: 75px !important;
     line-height: 1.2 !important;
   }
-  .sb-vs-label {
-    font-size: 7px !important;
-    margin-top: 1px !important;
-  }
-  .sb-score-label {
-    font-size: 7px !important;
-  }
+  .sb-vs-label { font-size: 7px !important; margin-top: 1px !important; }
+  .sb-score-label { font-size: 7px !important; }
+
+  /* Compact topbar */
+  .sb-topbar { padding: 4px 12px !important; }
+  .round-label { font-size: 9px !important; }
+  .round-num { font-size: 22px !important; }
+  .round-meta { font-size: 10px !important; }
+  .sb-tab { padding: 4px 12px !important; font-size: 11px !important; }
+  .sb-nav-btn { padding: 4px 10px !important; font-size: 11px !important; }
+  .sb-nav-next { padding: 4px 14px !important; font-size: 12px !important; }
 }
 
 .rp-section {
@@ -6172,12 +6157,18 @@ function updateLandscapePanel() {
   const sitoutEl = document.getElementById('rpSitout');
   const sitoutList = document.getElementById('rpSitoutList');
   const round = state.rounds[state.currentRoundIdx];
-  const resting = (round && round.resting) ? round.resting : [];
+  // Get resting: could be IDs (individual) or pair IDs (team)
+  let resting = [];
+  if (round && round.resting && round.resting.length > 0) {
+    resting = round.resting.filter(id => isAvailable(id));
+  }
   if (sitoutEl && sitoutList) {
     if (resting.length > 0) {
       sitoutEl.style.display = '';
       sitoutList.innerHTML = resting.map(id => {
-        const name = entityName(id);
+        const name = isTeam()
+          ? (state.pairNames && state.pairNames[id] ? state.pairNames[id] : `Pair ${id+1}`)
+          : (state.playerNames && state.playerNames[id] ? state.playerNames[id] : `P${id+1}`);
         return `<div class="rp-sitout-item">${escapeHtml(name)}</div>`;
       }).join('');
     } else {
@@ -6207,34 +6198,35 @@ function updateLandscapePanel() {
   }
 }
 
-// Pure JS QR Code generator (simplified matrix, no library)
+// QR Code via img tag (no CORS issue)
 function drawQR(text) {
   const canvas = document.getElementById('rpQrCanvas');
   if (!canvas) return;
-  // Use a minimal QR via Google Charts API (cached, no tracking)
-  const size = 120;
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#f5f0e6';
-  ctx.fillRect(0, 0, size, size);
-  // Draw placeholder pattern while loading image
-  const img = new Image();
-  img.crossOrigin = 'anonymous';
-  img.onload = () => {
-    ctx.clearRect(0, 0, size, size);
-    ctx.fillStyle = '#f5f0e6';
-    ctx.fillRect(0, 0, size, size);
-    ctx.drawImage(img, 0, 0, size, size);
-  };
+  // Replace canvas with img for simplicity and reliability
+  const parent = canvas.parentNode;
+  let img = document.getElementById('rpQrImg');
+  if (!img) {
+    img = document.createElement('img');
+    img.id = 'rpQrImg';
+    img.style.cssText = 'border-radius:6px;border:2px solid rgba(45,107,78,0.2);max-width:100%;width:130px;height:130px;display:block;background:#f5f0e6;';
+    parent.insertBefore(img, canvas);
+    canvas.style.display = 'none';
+  }
+  // Use goqr.me API — reliable, no CORS
+  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=130x130&bgcolor=f5f0e6&color=2d6b4e&margin=6&data=${encodeURIComponent(text)}`;
+  img.alt = text;
   img.onerror = () => {
-    // Fallback: draw simple URL text
-    ctx.fillStyle = '#2d6b4e';
-    ctx.font = '7px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('viewer.link', size/2, size/2);
+    // Ultimate fallback: show the URL
+    img.style.display = 'none';
+    let urlEl = document.getElementById('rpQrUrl');
+    if (!urlEl) {
+      urlEl = document.createElement('div');
+      urlEl.id = 'rpQrUrl';
+      urlEl.style.cssText = 'font-size:8px;font-weight:700;color:#2d6b4e;word-break:break-all;text-align:center;padding:4px;background:rgba(45,107,78,0.06);border-radius:6px;';
+      parent.insertBefore(urlEl, canvas);
+    }
+    urlEl.textContent = text;
   };
-  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&bgcolor=f5f0e6&color=2d6b4e&data=${encodeURIComponent(text)}`;
 }
 
 // Listen for orientation changes
@@ -6364,10 +6356,10 @@ saveState = window.saveState;
     banner.id = 'viewerBanner';
     banner.style.cssText = `
       position: fixed; top: 0; left: 0; right: 0; z-index: 200;
-      background: rgba(201,169,97,0.15); border-bottom: 1px solid rgba(201,169,97,0.3);
-      text-align: center; padding: 6px 16px; font-size: 11px; font-weight: 700;
-      letter-spacing: 2px; text-transform: uppercase; color: #c9a961;
-      backdrop-filter: blur(10px);
+      background: #2d6b4e; border-bottom: 2px solid #1a4a35;
+      text-align: center; padding: 7px 16px; font-size: 11px; font-weight: 800;
+      letter-spacing: 2.5px; text-transform: uppercase; color: #f5f0e6;
+      box-shadow: 0 2px 12px rgba(45,107,78,0.3);
     `;
     banner.textContent = '📺 Live View — Read Only';
     document.body.insertBefore(banner, document.body.firstChild);
