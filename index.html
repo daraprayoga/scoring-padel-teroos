@@ -2257,6 +2257,20 @@ main { background: var(--rc-forest) !important; }
 .sb-right-panel { display: none; }
 
 @media (orientation: landscape) and (min-width: 600px) {
+  /* ── Score page becomes flex ── */
+  #sbPageScore {
+    display: flex !important;
+    flex-direction: column;
+    height: calc(100vh - 56px); /* minus topbar */
+    padding: 6px 10px 6px !important;
+    overflow: hidden;
+  }
+  .sb-actions {
+    flex-shrink: 0;
+    padding-top: 4px;
+  }
+
+  /* ── Outer split: 57% left courts, 40% right panel ── */
   .sb-landscape-wrapper {
     display: flex;
     flex-direction: row;
@@ -2264,30 +2278,78 @@ main { background: var(--rc-forest) !important; }
     width: 100%;
     flex: 1;
     min-height: 0;
+    overflow: hidden;
   }
   .sb-left-panel {
-    flex: 1 1 56%;
+    flex: 0 0 57%;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    overflow-y: auto;
+    gap: 0;
+    overflow: hidden;
   }
   .sb-right-panel {
     display: flex;
     flex-direction: column;
-    flex: 0 0 41%;
-    max-width: 41%;
-    gap: 8px;
+    flex: 1 1 40%;
+    min-width: 0;
+    gap: 6px;
     overflow-y: auto;
     padding-bottom: 8px;
   }
   .sb-rest { display: none !important; }
-  .sb-court-card { border-radius: 10px; }
-  .sb-match-body { padding: 5px 8px; }
-  .sb-score-box { width: 44px !important; height: 48px !important; }
-  .sb-score-input { font-size: 22px !important; }
-  .sb-player { font-size: 11px !important; max-width: 76px !important; }
+
+  /* ── 2-column grid for courts ── */
+  .sb-courts {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px !important;
+    height: 100%;
+    align-content: start;
+    overflow: hidden;
+  }
+
+  /* ── Ultra-compact court card ── */
+  .sb-court-card {
+    border-radius: 8px !important;
+    min-height: 0 !important;
+  }
+  .sb-court-header {
+    padding: 4px 8px !important;
+  }
+  .sb-court-header .sb-court-name {
+    font-size: 9px !important;
+    letter-spacing: 1px !important;
+  }
+  .sb-court-header .court-status {
+    font-size: 9px !important;
+    padding: 1px 6px !important;
+  }
+  .sb-match-body {
+    padding: 4px 8px 6px !important;
+    gap: 4px !important;
+  }
+  .sb-score-box {
+    width: 38px !important;
+    height: 42px !important;
+    border-radius: 7px !important;
+  }
+  .sb-score-input {
+    font-size: 20px !important;
+  }
+  .sb-player {
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    max-width: 72px !important;
+    line-height: 1.2 !important;
+  }
+  .sb-vs-label {
+    font-size: 7px !important;
+    margin-top: 1px !important;
+  }
+  .sb-score-label {
+    font-size: 7px !important;
+  }
 }
 
 .rp-section {
@@ -2700,6 +2762,16 @@ main { background: var(--rc-forest) !important; }
 /* Phone tweaks for sb */
 @media (max-width: 640px) {
   .sb-topbar { padding: 6px 10px; gap: 8px; }
+
+  @media (orientation: landscape) and (min-width: 600px) {
+    .sb-topbar { padding: 4px 12px; gap: 8px; min-height: 0; }
+    .sb-topbar .round-label { font-size: 9px; }
+    .sb-topbar .round-num { font-size: 22px; }
+    .sb-topbar .round-meta { font-size: 10px; }
+    .sb-tab { padding: 4px 12px; font-size: 11px; }
+    .sb-nav-btn { padding: 4px 10px; font-size: 11px; }
+    .sb-nav-next { padding: 4px 14px; font-size: 12px; }
+  }
   .sb-round-num { font-size: 22px; }
   .sb-tab { padding: 5px 12px; font-size: 12px; }
   .sb-nav-btn { padding: 5px 10px; font-size: 12px; }
@@ -6091,7 +6163,7 @@ function updateLandscapePanel() {
     metaEl.textContent = `${fmt} · Round ${round}`;
   }
 
-  // QR Code for viewer link
+  // QR Code — same link as 📺 TV button
   const roomId = getRoomId();
   const url = `${location.origin}${location.pathname}?room=${roomId}`;
   drawQR(url);
