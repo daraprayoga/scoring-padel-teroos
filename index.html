@@ -2409,16 +2409,17 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   margin-bottom: 8px;
 }
 .rp-tournament-name {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
   color: #2d6b4e;
-  line-height: 1.2;
+  line-height: 1.3;
   margin-bottom: 3px;
   word-break: break-word;
-  white-space: normal;
-  overflow: visible;
-  text-overflow: unset;
-  max-width: none;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  max-width: none !important;
+  display: block;
 }
 .rp-tournament-meta {
   font-size: 10px;
@@ -4913,10 +4914,10 @@ function clearStoredState() {
 
 // ========== RENDER ==========
 function renderAll() {
-  // Show actions only if NOT in viewer mode
+  // Actions visibility: CSS body.viewer-mode handles hide, renderAll just ensures admin sees it
   if (!IS_VIEWER) {
     const actionsEl = document.getElementById('sbActions');
-    if (actionsEl) actionsEl.style.removeProperty('display');
+    if (actionsEl) actionsEl.style.display = '';  // inherit from HTML/CSS
   }
   renderOverview();
   document.getElementById('formatBadge').textContent = state.started
@@ -6242,15 +6243,14 @@ function updateLandscapePanel() {
       sitoutList.innerHTML = resting.map(id => {
         let name;
         if (isTeam()) {
-          const raw = state.pairNames && state.pairNames[id] ? state.pairNames[id] : `Pair ${id+1}`;
-          // Format "A,B" → "A & B"
-          // Handle both "A,B" and "A & B" formats
-          if (raw.includes(' & ')) {
-            name = raw; // already formatted
-          } else if (raw.includes(',')) {
-            name = raw.split(',').map(s => s.trim()).filter(Boolean).join(' & ');
+          const rawPair = state.pairNames && state.pairNames[id];
+          if (!rawPair) {
+            name = `Pair ${id+1}`;
+          } else if (Array.isArray(rawPair)) {
+            name = rawPair.filter(Boolean).join(' & ') || `Pair ${id+1}`;
           } else {
-            name = raw;
+            const s = String(rawPair);
+            name = s.includes(' & ') ? s : s.split(',').map(x=>x.trim()).join(' & ');
           }
         } else {
           name = state.playerNames && state.playerNames[id] ? state.playerNames[id] : `P${id+1}`;
