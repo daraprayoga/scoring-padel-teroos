@@ -4914,11 +4914,9 @@ function clearStoredState() {
 
 // ========== RENDER ==========
 function renderAll() {
-  // Actions visibility: CSS body.viewer-mode handles hide, renderAll just ensures admin sees it
-  if (!IS_VIEWER) {
-    const actionsEl = document.getElementById('sbActions');
-    if (actionsEl) actionsEl.style.display = '';  // inherit from HTML/CSS
-  }
+  // Actions: always explicitly set — no CSS dependency
+  const actionsEl = document.getElementById('sbActions');
+  if (actionsEl) actionsEl.style.display = IS_VIEWER ? 'none' : '';
   renderOverview();
   document.getElementById('formatBadge').textContent = state.started
     ? (state.ended ? `🏆 Final · ${formatLabel(state.format)}` : `${formatLabel(state.format)} · ${modeLabel(state.mode)}`)
