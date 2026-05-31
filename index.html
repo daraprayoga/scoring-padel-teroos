@@ -6206,8 +6206,19 @@ function updateLandscapePanel() {
   if (!state || !state.started) return;
   const rightPanel = document.getElementById('sbRightPanel');
   if (!rightPanel) return;
-  // Let CSS media query handle display
-  rightPanel.style.removeProperty('display');
+  // Force display via JS — don't rely on CSS media query alone
+  const isLandscape = window.innerWidth > window.innerHeight && window.innerWidth >= 600;
+  if (!isLandscape) {
+    rightPanel.style.display = 'none';
+    return;
+  }
+  rightPanel.style.display = 'flex';
+  rightPanel.style.flexDirection = 'column';
+  rightPanel.style.flex = '1 1 40%';
+  rightPanel.style.minWidth = '0';
+  rightPanel.style.gap = '6px';
+  rightPanel.style.overflowY = 'auto';
+  rightPanel.style.maxHeight = '80vh';
 
   try {
 
@@ -6324,6 +6335,18 @@ window.addEventListener('resize', () => {
 });
 
 function renderLandscapePanel() {
+  const isLandscape = window.innerWidth > window.innerHeight && window.innerWidth >= 600;
+  const wrapper = document.querySelector('.sb-landscape-wrapper');
+  if (wrapper) {
+    if (isLandscape) {
+      wrapper.style.display = 'flex';
+      wrapper.style.flexDirection = 'row';
+      wrapper.style.gap = '10px';
+      wrapper.style.overflow = 'visible';
+    } else {
+      wrapper.style.display = '';
+    }
+  }
   updateLandscapePanel();
 }
 
