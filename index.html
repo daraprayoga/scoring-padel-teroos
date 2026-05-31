@@ -2270,28 +2270,23 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
 .sb-right-panel { display: none; }
 
 @media (orientation: landscape) and (min-width: 600px) {
-  /* main: scrollable container, flex column */
+  /* HP Android landscape: main scrolls, everything else natural height */
   main {
     overflow-y: auto !important;
     overflow-x: hidden !important;
-    display: flex !important;
-    flex-direction: column;
+    -webkit-overflow-scrolling: touch !important;
+    display: block !important;
   }
   #view-overview {
-    flex: none;
-    display: flex !important;
-    flex-direction: column;
+    display: block;
     overflow: visible;
   }
-  /* Score page: natural height, flex column, NO height constraint */
   #sbPageScore {
-    display: flex !important;
-    flex-direction: column;
+    display: block;
     overflow: visible;
     padding: 6px 10px 10px !important;
-    min-height: 0;
   }
-  /* Actions always visible, compact */
+  /* Actions compact but always visible */
   .sb-actions {
     flex-shrink: 0 !important;
     padding: 6px 0 4px !important;
@@ -2309,29 +2304,25 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   }
   .round-num { font-size: 20px !important; }
 
-  /* 57/40 split — natural height, scroll from main */
+  /* 57/40 split via inline flex (set by JS) */
   .sb-landscape-wrapper {
-    display: flex !important;
+    display: flex;
     flex-direction: row;
     gap: 10px;
-    overflow: visible;
-    min-height: 0;
+    align-items: flex-start;
   }
   .sb-left-panel {
     flex: 0 0 57%;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    overflow: visible;
   }
   .sb-right-panel {
-    display: flex !important;
-    flex-direction: column;
     flex: 1 1 40%;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
     gap: 6px;
-    overflow-y: auto;
-    max-height: 80vh;
     padding-bottom: 8px;
   }
   .sb-rest { display: none !important; }
@@ -2342,7 +2333,6 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
     grid-template-columns: 1fr 1fr;
     gap: 6px !important;
     align-content: start;
-    overflow: visible;
   }
   .sb-court-card { border-radius: 8px !important; }
   .sb-court-header { padding: 3px 8px !important; flex-shrink: 0; }
@@ -2352,7 +2342,7 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
     padding: 4px 10px 8px !important;
     gap: 5px !important;
   }
-  /* Score box - COMPACT for admin landscape */
+  /* Score box compact admin */
   .sb-score-box {
     width: clamp(34px, 4.5vh, 52px) !important;
     height: clamp(38px, 5.5vh, 60px) !important;
@@ -2370,8 +2360,7 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
-  /* Score box - BIG for viewer landscape */
+  /* Score box big for viewer */
   body.viewer-mode .sb-score-box {
     width: clamp(72px, 10vh, 120px) !important;
     height: clamp(82px, 13vh, 140px) !important;
@@ -2387,8 +2376,8 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
     text-overflow: unset !important;
     white-space: normal !important;
   }
-  .sb-vs-label { font-size: 8px !important; margin-top: 2px !important; }
-  .sb-score-label { font-size: 8px !important; }
+  .sb-vs-label { font-size: 7px !important; margin-top: 1px !important; }
+  .sb-score-label { font-size: 7px !important; }
 }
 
 .rp-section {
@@ -6218,7 +6207,7 @@ function updateLandscapePanel() {
   rightPanel.style.minWidth = '0';
   rightPanel.style.gap = '6px';
   rightPanel.style.overflowY = 'auto';
-  rightPanel.style.maxHeight = '80vh';
+  rightPanel.style.maxHeight = 'none';
 
   try {
 
