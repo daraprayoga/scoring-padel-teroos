@@ -2262,7 +2262,8 @@ main { background: var(--rc-forest) !important; }
 /* ---- COURT CARD ---- */
 
 /* Viewer mode: hide action buttons */
-body.viewer-mode .sb-actions { display: none !important; }
+body.viewer-mode .sb-actions,
+body.viewer-mode #sbActions { display: none !important; }
 body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !important; }
 /* ===== LANDSCAPE RIGHT PANEL ===== */
 .sb-landscape-wrapper { display: contents; }
@@ -2351,24 +2352,40 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
     padding: 4px 10px 8px !important;
     gap: 5px !important;
   }
-  /* Score box 2x size */
-  .sb-score-box,
-  .sb-courts .sb-score-box,
-  #sbCourts .sb-score-box {
+  /* Score box - COMPACT for admin landscape */
+  .sb-score-box {
+    width: clamp(34px, 4.5vh, 52px) !important;
+    height: clamp(38px, 5.5vh, 60px) !important;
+    border-radius: 7px !important;
+  }
+  .sb-score-input {
+    font-size: clamp(16px, 2.5vh, 28px) !important;
+  }
+  .sb-player {
+    font-size: clamp(10px, 1.2vh, 14px) !important;
+    font-weight: 700 !important;
+    max-width: 85px !important;
+    line-height: 1.2 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Score box - BIG for viewer landscape */
+  body.viewer-mode .sb-score-box {
     width: clamp(72px, 10vh, 120px) !important;
     height: clamp(82px, 13vh, 140px) !important;
     border-radius: 12px !important;
   }
-  .sb-score-input,
-  .sb-courts .sb-score-input,
-  #sbCourts .sb-score-input {
+  body.viewer-mode .sb-score-input {
     font-size: clamp(34px, 7vh, 70px) !important;
   }
-  .sb-player {
-    font-size: clamp(13px, 1.6vh, 18px) !important;
-    font-weight: 800 !important;
-    max-width: 110px !important;
-    line-height: 1.3 !important;
+  body.viewer-mode .sb-player {
+    font-size: clamp(13px, 1.6vh, 20px) !important;
+    max-width: 120px !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    white-space: normal !important;
   }
   .sb-vs-label { font-size: 8px !important; margin-top: 2px !important; }
   .sb-score-label { font-size: 8px !important; }
@@ -2390,12 +2407,16 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   margin-bottom: 8px;
 }
 .rp-tournament-name {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 800;
   color: #2d6b4e;
   line-height: 1.2;
   margin-bottom: 3px;
   word-break: break-word;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  max-width: none;
 }
 .rp-tournament-meta {
   font-size: 10px;
@@ -3589,7 +3610,7 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
             </div>
           </div>
         </div>
-        <div class="sb-actions">
+        <div class="sb-actions" id="sbActions">
           <button class="ghost-btn sb-action-sm" data-action="delete">Delete Round</button>
           <button class="ghost-btn sb-action-sm" data-action="add">+ Add Round</button>
           <button class="ghost-btn sb-action-sm" id="openScheduleBtn" style="display:none;">📋 Schedule</button>
@@ -6212,9 +6233,14 @@ function updateLandscapePanel() {
     if (resting.length > 0) {
       sitoutEl.style.display = '';
       sitoutList.innerHTML = resting.map(id => {
-        const name = isTeam()
-          ? (state.pairNames && state.pairNames[id] ? state.pairNames[id] : `Pair ${id+1}`)
-          : (state.playerNames && state.playerNames[id] ? state.playerNames[id] : `P${id+1}`);
+        let name;
+        if (isTeam()) {
+          const raw = state.pairNames && state.pairNames[id] ? state.pairNames[id] : `Pair ${id+1}`;
+          // Format "A,B" → "A & B"
+          name = raw.includes(',') ? raw.split(',').map(s=>s.trim()).join(' & ') : raw;
+        } else {
+          name = state.playerNames && state.playerNames[id] ? state.playerNames[id] : `P${id+1}`;
+        }
         return `<div class="rp-sitout-item">${escapeHtml(name)}</div>`;
       }).join('');
     } else {
@@ -6429,8 +6455,12 @@ saveState = window.saveState;
     // Apply viewer UI restrictions
     const applyViewerUI = () => {
       // Hide action buttons entirely in viewer mode
-      const actionsEl = document.querySelector('.sb-actions');
-      if (actionsEl) actionsEl.style.display = 'none';
+      // Hide actions - multiple methods to ensure it works
+      const actionsEl = document.getElementById('sbActions') || document.querySelector('.sb-actions');
+      if (actionsEl) {
+        actionsEl.style.setProperty('display', 'none', 'important');
+        actionsEl.setAttribute('hidden', '');
+      }
       // Disable everything except fullscreen
       document.querySelectorAll('button, .nav-btn, .bottom-tab, input, label').forEach(el => {
         if (el.id === 'fullscreenBtn') return;
