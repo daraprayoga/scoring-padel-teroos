@@ -2270,11 +2270,13 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
 .sb-right-panel { display: none; }
 
 @media (orientation: landscape) and (min-width: 600px) {
-  /* HP Android landscape: main scrolls, everything else natural height */
-  main {
+  /* HP Android landscape: scroll at html/body level, not main */
+  html, body {
     overflow-y: auto !important;
-    overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch !important;
+  }
+  main {
+    overflow: visible !important;
     display: block !important;
   }
   #view-overview {
@@ -2301,6 +2303,9 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   .sb-topbar {
     padding: 4px 12px !important;
     flex-shrink: 0;
+    position: relative !important; /* sticky breaks click on Android in overflow:auto */
+    top: auto !important;
+    z-index: 1 !important;
   }
   .round-num { font-size: 20px !important; }
 
