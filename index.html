@@ -2261,7 +2261,7 @@ main { background: var(--rc-forest) !important; }
   #sbPageScore {
     display: flex !important;
     flex-direction: column;
-    height: calc(100vh - 52px);
+    height: var(--sb-page-h, calc(100vh - 120px));
     padding: 5px 10px !important;
     overflow: hidden;
     box-sizing: border-box;
@@ -6135,8 +6135,15 @@ function slugify(str) {
 
 // ===== LANDSCAPE RIGHT PANEL =====
 function updateLandscapePanel() {
-  // Only compute if landscape panel is visible
-  if (window.innerWidth <= window.innerHeight || window.innerWidth < 600) return;
+  // Activate when width > height (landscape) AND min-width 600
+  const isLandscape = window.innerWidth > window.innerHeight && window.innerWidth >= 600;
+  const rightPanel = document.getElementById('sbRightPanel');
+  if (!rightPanel) return;
+  // Let CSS handle display — only remove inline style override
+  rightPanel.style.removeProperty('display');
+  if (!isLandscape) return;
+
+  try {
 
   // Tournament info
   const nameEl = document.getElementById('rpTournamentName');
@@ -6196,6 +6203,7 @@ function updateLandscapePanel() {
       nextEl.style.display = 'none';
     }
   }
+  } catch(e) { console.warn('Landscape panel error:', e); }
 }
 
 // QR Code via img tag (no CORS issue)
@@ -6238,6 +6246,17 @@ window.addEventListener('resize', () => {
 });
 
 function renderLandscapePanel() {
+  // Calculate exact remaining height for sbPageScore
+  const header = document.querySelector('header');
+  const topbarWrap = document.querySelector('.topbar-wrap') || header;
+  const sbTopbar = document.querySelector('.sb-topbar');
+  const sbActions = document.querySelector('.sb-actions');
+  const headerH = topbarWrap ? topbarWrap.getBoundingClientRect().bottom : 56;
+  const sbTopbarH = sbTopbar ? sbTopbar.getBoundingClientRect().height : 40;
+  const sbActionsH = sbActions ? sbActions.getBoundingClientRect().height : 36;
+  const totalUsed = headerH + sbTopbarH + sbActionsH + 16; // 16px padding buffer
+  const remaining = Math.max(200, window.innerHeight - totalUsed);
+  document.documentElement.style.setProperty('--sb-page-h', remaining + 'px');
   updateLandscapePanel();
 }
 
@@ -6355,13 +6374,14 @@ saveState = window.saveState;
     const banner = document.createElement('div');
     banner.id = 'viewerBanner';
     banner.style.cssText = `
-      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
-      background: #2d6b4e; border-bottom: 2px solid #1a4a35;
-      text-align: center; padding: 7px 16px; font-size: 11px; font-weight: 800;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 9998;
+      background: #2d6b4e;
+      text-align: center; padding: 8px 16px; font-size: 12px; font-weight: 800;
       letter-spacing: 2.5px; text-transform: uppercase; color: #f5f0e6;
-      box-shadow: 0 2px 12px rgba(45,107,78,0.3);
+      box-shadow: 0 2px 12px rgba(45,107,78,0.4);
+      pointer-events: none;
     `;
-    banner.textContent = '📺 Live View — Read Only';
+    banner.innerHTML = '📺 &nbsp; VIEW ONLY MODE &nbsp; — &nbsp; READ ONLY';
     document.body.insertBefore(banner, document.body.firstChild);
     document.querySelector('header').style.marginTop = '32px';
     document.getElementById('bottomNav') && (document.getElementById('bottomNav').style.display = 'none');
