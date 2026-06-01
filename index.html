@@ -55,8 +55,10 @@
     z-index: 9999;
     background: #f5c800;
     overflow: hidden;
-    height: calc(26px + env(safe-area-inset-top, 0px));
+    height: auto;
+    min-height: calc(26px + env(safe-area-inset-top, 0px));
     padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: 4px;
     display: flex;
     align-items: flex-end;
   }
@@ -6183,7 +6185,7 @@ function boot() {
   document.documentElement.style.setProperty('--beta-h', BANNER_H + 'px');
   // For iOS standalone mode, account for safe area inset top
   const safeTop = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sat') || '0') || 0;
-  document.body.style.paddingTop = BANNER_H + 'px';
+  document.body.style.paddingTop = 'calc(' + BANNER_H + 'px + env(safe-area-inset-top, 0px))';
   // Apply safe area to beta banner via CSS
   const betaBanner = document.getElementById('betaBanner');
   if (betaBanner) {
@@ -6232,7 +6234,13 @@ function updateLandscapePanel() {
   // Force display via JS — don't rely on CSS media query alone
   const isLandscape = window.innerWidth > window.innerHeight && window.innerWidth >= 600;
   if (!isLandscape) {
+    // Clear ALL landscape inline styles so portrait CSS takes over
+    rightPanel.style.cssText = '';
     rightPanel.style.display = 'none';
+    const _wrapper = document.querySelector('.sb-landscape-wrapper');
+    if (_wrapper) _wrapper.style.cssText = '';
+    const _leftPanel = document.querySelector('.sb-left-panel');
+    if (_leftPanel) _leftPanel.style.cssText = '';
     return;
   }
   // BULLETPROOF: force entire flex chain with !important inline styles
@@ -6502,13 +6510,14 @@ saveState = window.saveState;
       'background:#2d6b4e', 'color:#f5f0e6',
       'font-size:11px', 'font-weight:800', 'letter-spacing:2px',
       'text-transform:uppercase', 'text-align:center',
-      'padding:8px 16px', 'padding-top:calc(8px + env(safe-area-inset-top,0px))',
+      'padding:6px 16px 6px', 'padding-top:calc(6px + env(safe-area-inset-top,0px))',
       'box-shadow:0 2px 8px rgba(0,0,0,0.2)', 'pointer-events:none'
     ].join(';');
     viewerBanner.textContent = '📺  MODE NONTON  ·  VIEW ONLY';
     document.body.insertBefore(viewerBanner, document.body.firstChild);
     // Push content down
-    document.querySelector('header').style.marginTop = '36px';
+    // Push body content below fixed viewer banner
+    document.body.style.paddingTop = 'calc(36px + env(safe-area-inset-top, 0px))';
     document.getElementById('bottomNav') && (document.getElementById('bottomNav').style.display = 'none');
 
     // Viewer state: track which round viewer is on vs live round
