@@ -2266,7 +2266,7 @@ body.viewer-mode .sb-actions,
 body.viewer-mode #sbActions { display: none !important; }
 body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !important; }
 /* ===== LANDSCAPE RIGHT PANEL ===== */
-.sb-landscape-wrapper { display: contents; }
+.sb-landscape-wrapper { display: block; }
 .sb-right-panel { display: none; }
 
 @media (orientation: landscape) and (min-width: 600px) {
@@ -3549,7 +3549,7 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
       <!-- STICKY TOP BAR -->
       <div class="sb-topbar">
         <div class="sb-round-info">
-          <span class="sb-round-label">ROUND</span>
+          <span class="sb-round-label">ROUND</span><span style="font-size:8px;color:#b0b0b0;margin-left:4px;font-weight:700;">v37</span>
           <span class="sb-round-num" id="liveRoundNum">1</span>
           <span class="sb-round-sub" id="liveRoundMeta"></span>
         </div>
@@ -6216,21 +6216,12 @@ function updateLandscapePanel() {
     rightPanel.style.display = 'none';
     return;
   }
-  rightPanel.style.display = 'flex';
-  rightPanel.style.flexDirection = 'column';
-  rightPanel.style.flex = '1 1 40%';
-  rightPanel.style.minWidth = '0';
-  rightPanel.style.gap = '6px';
-  rightPanel.style.overflowY = 'auto';
-  rightPanel.style.maxHeight = '90vh';
-  rightPanel.style.paddingBottom = '16px';
-
-  // Force wrapper layout
+  // BULLETPROOF: force entire flex chain with !important inline styles
+  rightPanel.style.cssText = 'display:flex!important;flex-direction:column!important;flex:1 1 40%!important;min-width:200px!important;gap:6px!important;overflow-y:auto!important;max-height:90vh!important;padding-bottom:16px!important;';
   const wrapper = document.querySelector('.sb-landscape-wrapper');
   if (wrapper) {
     wrapper.style.cssText = 'display:flex!important;flex-direction:row!important;gap:10px!important;align-items:flex-start!important;width:100%!important;overflow:visible!important;';
   }
-  // Force left panel to take 57%
   const leftPanel = document.querySelector('.sb-left-panel');
   if (leftPanel) {
     leftPanel.style.cssText = 'flex:0 0 57%!important;min-width:0!important;display:flex!important;flex-direction:column!important;overflow:visible!important;';
