@@ -2310,11 +2310,11 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
     /* Key: sticky so it stays in view while left scrolls, own scroll for tall content */
     position: sticky;
     top: 0;
-    max-height: 100vh;
+    max-height: calc(var(--vh, 100vh) - 64px);
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 24px;
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
     box-sizing: border-box;
   }
   .sb-actions {
@@ -3552,7 +3552,7 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
       <!-- STICKY TOP BAR -->
       <div class="sb-topbar">
         <div class="sb-round-info">
-          <span class="sb-round-label">ROUND</span><span style="font-size:8px;color:#b0b0b0;margin-left:4px;font-weight:700;">v39</span>
+          <span class="sb-round-label">ROUND</span><span style="font-size:8px;color:#b0b0b0;margin-left:4px;font-weight:700;">v40</span>
           <span class="sb-round-num" id="liveRoundNum">1</span>
           <span class="sb-round-sub" id="liveRoundMeta"></span>
         </div>
@@ -6181,7 +6181,17 @@ function boot() {
 (function() {
   // Banner height handled purely via CSS using --sat (env(safe-area-inset-top))
   // body.paddingTop set via CSS class — no JS safe-area calculation needed
-  document.body.style.paddingTop = 'calc(26px + var(--sat))'
+  document.body.style.paddingTop = 'calc(26px + var(--sat))';
+  // Set --vh to real inner height (accounts for mobile browser chrome)
+  (function setVh() {
+    document.documentElement.style.setProperty('--vh', window.innerHeight + 'px');
+  })();
+  window.addEventListener('resize', () => {
+    document.documentElement.style.setProperty('--vh', window.innerHeight + 'px');
+  });
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => document.documentElement.style.setProperty('--vh', window.innerHeight + 'px'), 200);
+  })
 })();
 
 boot();
@@ -6243,10 +6253,9 @@ function updateLandscapePanel() {
 
   try {
 
-  // Ensure rp-sections are visible (not overridden by hidden)
-  rightPanel.querySelectorAll('.rp-section').forEach(s => {
-    s.style.removeProperty('display');
-  });
+  // Only ensure rp-tournament section is visible (QR + name)
+  const rpTournament = rightPanel.querySelector('.rp-tournament');
+  if (rpTournament) rpTournament.style.display = 'block';
 
   // Tournament info
   const nameEl = document.getElementById('rpTournamentName');
