@@ -3460,7 +3460,7 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
               <div class="value" id="courtsVal">4</div>
               <button data-step="1">+</button>
             </div>
-            <div class="control-hint">Range 1-7</div>
+            <div class="control-hint">Range 1-8</div>
           </div>
           <div class="control">
             <label>Players per Court</label>
@@ -3469,7 +3469,8 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
               <div class="value" id="pplCourtVal">8</div>
               <button data-step="1">+</button>
             </div>
-            <div class="control-hint">4, 6, 7, or 8</div>
+            <div class="control-hint">4, 6, 7, 8, 10, 12</div>
+            <div id="pplCourtWarn" style="display:none;color:#b45309;font-size:11px;font-weight:700;margin-top:4px;">⚠️ &gt;8 orang/court: antrian giliran bisa lama.</div>
           </div>
           <div class="control">
             <label>Total Players</label>
@@ -3494,7 +3495,7 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
               <div class="value" id="courtsValTeam">4</div>
               <button data-step="1">+</button>
             </div>
-            <div class="control-hint">Range 1-7</div>
+            <div class="control-hint">Range 1-8</div>
           </div>
           <div class="control">
             <label>Total Pairs</label>
@@ -3891,7 +3892,7 @@ function updateStepperVals() {
 
   document.getElementById('courtsValTeam').textContent = state.courts;
   document.getElementById('pairsVal').textContent = state.pairs;
-  document.getElementById('pairsHint').textContent = `Min = ${state.courts * 2} · Max = 32`;
+  document.getElementById('pairsHint').textContent = `Min = ${state.courts * 2} · Max = 50`;
 }
 
 function updateConfigVisibility() {
@@ -3938,7 +3939,7 @@ document.getElementById('courtsStepper').addEventListener('click', e => {
   if (e.target.tagName !== 'BUTTON') return;
   const step = parseInt(e.target.dataset.step);
   const newVal = state.courts + step;
-  if (newVal >= 1 && newVal <= 7) {
+  if (newVal >= 1 && newVal <= 8) {
     state.courts = newVal;
     syncPlayerCount();
     syncPairCount();
@@ -3952,7 +3953,7 @@ document.getElementById('courtsStepperTeam').addEventListener('click', e => {
   if (e.target.tagName !== 'BUTTON') return;
   const step = parseInt(e.target.dataset.step);
   const newVal = state.courts + step;
-  if (newVal >= 1 && newVal <= 7) {
+  if (newVal >= 1 && newVal <= 8) {
     state.courts = newVal;
     syncPlayerCount();
     syncPairCount();
@@ -3965,7 +3966,7 @@ document.getElementById('courtsStepperTeam').addEventListener('click', e => {
 document.getElementById('pplCourtStepper').addEventListener('click', e => {
   if (e.target.tagName !== 'BUTTON') return;
   const step = parseInt(e.target.dataset.step);
-  const allowed = [4, 6, 7, 8];
+  const allowed = [4, 6, 7, 8, 10, 12];
   const curIdx = allowed.indexOf(state.playersPerCourt);
   const newIdx = curIdx + (step > 0 ? 1 : -1);
   if (newIdx >= 0 && newIdx < allowed.length) {
@@ -3974,6 +3975,9 @@ document.getElementById('pplCourtStepper').addEventListener('click', e => {
     syncPlayerCount();
     renderPlayersList();
     updateStepperVals();
+    // Warning if >8 per court
+    const warnEl = document.getElementById('pplCourtWarn');
+    if (warnEl) warnEl.style.display = state.playersPerCourt > 8 ? '' : 'none';
   }
 });
 
@@ -3981,7 +3985,7 @@ document.getElementById('playersStepper').addEventListener('click', e => {
   if (e.target.tagName !== 'BUTTON') return;
   const step = parseInt(e.target.dataset.step);
   const min = state.courts * 4;
-  const max = 50;
+  const max = 100;
   const newVal = state.players + step;
   if (newVal >= min && newVal <= max) {
     state.players = newVal;
@@ -3996,7 +4000,7 @@ document.getElementById('pairsStepper').addEventListener('click', e => {
   if (e.target.tagName !== 'BUTTON') return;
   const step = parseInt(e.target.dataset.step);
   const min = state.courts * 2;
-  const max = 32;
+  const max = 50;
   const newVal = state.pairs + step;
   if (newVal >= min && newVal <= max) {
     state.pairs = newVal;
@@ -6113,6 +6117,21 @@ document.getElementById('fullscreenBtn').addEventListener('click', () => {
 
 // ========== BOOT ==========
 function boot() {
+  // Viewer mode: skip localStorage entirely — state comes from Firebase only
+  if (IS_VIEWER) {
+    initSetup(); // build DOM normally
+    // Then show loading overlay on top
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'viewerLoading';
+    loadingDiv.style.cssText = 'position:fixed;inset:0;z-index:9990;background:rgba(245,240,230,0.97);'
+      + 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;';
+    loadingDiv.innerHTML = '<div style="font-size:32px">📺</div>'
+      + '<div style="font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#2d6b4e;">Menghubungkan...</div>'
+      + '<div style="font-size:11px;color:#4a8a6a;opacity:0.8;">Memuat data tournament</div>';
+    document.body.appendChild(loadingDiv);
+    return; // Firebase IIFE will take over
+  }
+
   const restored = loadState();
   state.redactMode = true; // always start redacted
   if (restored && state.started) {
@@ -6609,6 +6628,28 @@ saveState = window.saveState;
     // Initial pull
     await pullFromFirebase();
     lockToLive();
+
+    // Dismiss loading overlay
+    const loadingEl = document.getElementById('viewerLoading');
+    if (loadingEl) loadingEl.remove();
+
+    if (!state.started) {
+      // No data found for this room
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:9990;background:rgba(245,240,230,0.97);'
+        + 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;';
+      overlay.innerHTML = '<div style="font-size:32px">⏳</div>'
+        + '<div style="font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#2d6b4e;">Menunggu tournament...</div>'
+        + '<div style="font-size:11px;color:#4a8a6a;">Admin belum start atau room ID salah</div>';
+      document.body.appendChild(overlay);
+      // Retry every 5s
+      setInterval(async () => {
+        await pullFromFirebase();
+        if (state.started) { overlay.remove(); showView('overview'); renderAll(); applyViewerUI(); }
+      }, 5000);
+      return;
+    }
+
     renderAll();
 
     // Show nav
