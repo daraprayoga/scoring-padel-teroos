@@ -16,6 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap" rel="stylesheet">
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Cinzel:wght@700;900&display=swap');
   :root {
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
@@ -570,7 +571,6 @@
   .podium-backdrop {
     position: fixed;
     inset: 0;
-    padding-top: env(safe-area-inset-top, 0px);
     background: #f5f0e6;
     scrollbar-color: rgba(160,150,125,0.4) rgba(235,228,210,0.2);
     display: none;
@@ -620,7 +620,7 @@
     display: flex;
     justify-content: flex-end;
     padding: 16px 20px;
-    padding-top: calc(6px + env(safe-area-inset-top, 0px));
+    padding-top: max(20px, calc(6px + env(safe-area-inset-top, 0px)));
     flex-shrink: 0;
     position: relative;
     z-index: 5;
@@ -654,9 +654,12 @@
       padding: 10px 16px !important;
     }
     .podium-rank-num {
+    font-family: 'Cinzel', 'Cormorant Garamond', Georgia, serif;
       font-size: clamp(24px, 4vh, 48px) !important;
     }
     .podium-rank-name {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 600;
       font-size: clamp(14px, 2.5vh, 24px) !important;
     }
     .podium-rank-score {
@@ -1073,7 +1076,7 @@
   }
 
   .podium-name {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+    font-family: 'Cinzel', 'Cormorant Garamond', Georgia, serif;
     font-size: 22px;
     font-weight: 900;
     color: #0f2318;
@@ -2385,11 +2388,11 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
     text-overflow: ellipsis;
   }
   body.viewer-mode .sb-score-box {
-    width: clamp(36px, 5.5vw, 64px) !important;
-    height: clamp(40px, 6.5vw, 72px) !important;
+    width: clamp(36px, 4.5vw, 52px) !important;
+    height: clamp(40px, 5vw, 58px) !important;
     border-radius: 8px !important;
   }
-  body.viewer-mode .sb-score-input { font-size: clamp(16px, 3.5vw, 38px) !important; }
+  body.viewer-mode .sb-score-input { font-size: clamp(16px, 2.5vw, 28px) !important; }
   body.viewer-mode .sb-player {
     font-size: clamp(12px, 1.3vw, 16px) !important;
     max-width: 110px !important;
@@ -3068,6 +3071,47 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
 
 /* Push main content up so bottom nav doesn't cover it */
 main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
+
+@media (orientation: landscape) and (min-width: 600px) {
+  .podium-backdrop {
+    overflow: hidden;
+    scroll-snap-type: y mandatory;
+  }
+  .podium-page {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden;
+    padding: 0 !important;
+    box-sizing: border-box;
+  }
+  .podium-close-bar {
+    padding-top: max(16px, calc(4px + env(safe-area-inset-top, 0px))) !important;
+    padding-bottom: 4px !important;
+  }
+  .podium-stage {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .podium-rank-cards {
+    gap: 8px !important;
+    padding: 4px 16px !important;
+  }
+  .podium-rank-card {
+    padding: 8px 12px !important;
+  }
+  .podium-section-title {
+    font-size: clamp(16px, 2.5vh, 24px) !important;
+    margin-bottom: 6px !important;
+    margin-top: 4px !important;
+  }
+  .podium-rank-num { font-size: clamp(20px, 3.5vh, 36px) !important; }
+  .podium-rank-name { font-size: clamp(13px, 2vh, 20px) !important; }
+  .podium-rank-score { font-size: clamp(11px, 1.5vh, 16px) !important; }
+  .podium-winner-card { padding: 12px !important; }
+  .podium-winner-name { font-size: clamp(18px, 3vh, 32px) !important; }
+  .podium-crown { font-size: clamp(28px, 4vh, 48px) !important; }
+}
 </style>
 
 <!-- REVISI PODIUM & FOOTER V5 -->
