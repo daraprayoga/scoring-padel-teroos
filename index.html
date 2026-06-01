@@ -2274,52 +2274,48 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
 .sb-right-panel { display: none; }
 
 @media (orientation: landscape) and (min-width: 600px) {
-  /* Landscape: let page scroll normally, right panel scrolls independently */
-  html, body { overflow-x: hidden; }
-  main { overflow: visible; display: block; }
-  #view-overview { display: block; overflow: visible; }
-  #sbPageScore { display: block; overflow: visible; padding: 0 10px 6px !important; }
-
   .sb-topbar {
     position: relative !important;
     top: auto !important;
-    z-index: 1 !important;
     padding: 4px 12px !important;
   }
   .round-num { font-size: 20px !important; }
 
+  /* Admin: no right panel, courts fill full width */
   .sb-landscape-wrapper {
+    display: block !important;
+  }
+  .sb-left-panel {
+    width: 100%;
+  }
+  .sb-right-panel {
+    display: none !important;
+  }
+
+  /* Viewer: show right panel in split layout */
+  body.viewer-mode .sb-landscape-wrapper {
     display: flex !important;
     flex-direction: row;
     gap: 10px;
     align-items: flex-start;
-    width: 100%;
   }
-  .sb-left-panel {
+  body.viewer-mode .sb-left-panel {
     flex: 0 0 57%;
     min-width: 0;
-    display: flex;
-    flex-direction: column;
+    width: auto;
   }
-  .sb-right-panel {
+  body.viewer-mode .sb-right-panel {
+    display: flex !important;
     flex: 1 1 40%;
     min-width: 0;
-    display: flex !important;
     flex-direction: column;
     gap: 6px;
-    /* Key: sticky so it stays in view while left scrolls, own scroll for tall content */
-    position: sticky;
-    top: 0;
-    max-height: calc(var(--vh, 100vh) - 64px);
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 80px;
     box-sizing: border-box;
   }
+
   .sb-actions {
     padding: 6px 0 4px !important;
-    margin-top: 0 !important;
     gap: 4px !important;
     flex-wrap: wrap;
   }
@@ -2336,8 +2332,6 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   .court-status { font-size: 9px !important; padding: 1px 6px !important; }
   .sb-match-body { padding: 4px 10px 8px !important; gap: 5px !important; }
   .sb-action-sm { font-size: 11px !important; padding: 5px 10px !important; }
-
-  /* Admin score box */
   .sb-score-box {
     width: clamp(40px, 5vw, 58px) !important;
     height: clamp(44px, 6vw, 66px) !important;
@@ -2353,7 +2347,6 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  /* Viewer score box — intentionally smaller than admin for readability */
   body.viewer-mode .sb-score-box {
     width: clamp(50px, 8vw, 90px) !important;
     height: clamp(56px, 9vw, 102px) !important;
@@ -3552,7 +3545,7 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
       <!-- STICKY TOP BAR -->
       <div class="sb-topbar">
         <div class="sb-round-info">
-          <span class="sb-round-label">ROUND</span><span style="font-size:8px;color:#b0b0b0;margin-left:4px;font-weight:700;">v40</span>
+          <span class="sb-round-label">ROUND</span><span style="font-size:8px;color:#b0b0b0;margin-left:4px;font-weight:700;">0.50</span>
           <span class="sb-round-num" id="liveRoundNum">1</span>
           <span class="sb-round-sub" id="liveRoundMeta"></span>
         </div>
@@ -6242,6 +6235,7 @@ function updateLandscapePanel() {
   }
   // BULLETPROOF: force entire flex chain with !important inline styles
   rightPanel.style.display = 'flex'; // CSS landscape block handles sizing
+  // padding-bottom handled by CSS
   const wrapper = document.querySelector('.sb-landscape-wrapper');
   if (wrapper) {
     // wrapper layout handled by CSS landscape block
@@ -6253,9 +6247,10 @@ function updateLandscapePanel() {
 
   try {
 
-  // Only ensure rp-tournament section is visible (QR + name)
-  const rpTournament = rightPanel.querySelector('.rp-tournament');
-  if (rpTournament) rpTournament.style.display = 'block';
+  // Show all rp-sections (remove any hidden state), let logic hide sitout/next
+  rightPanel.querySelectorAll('.rp-section').forEach(s => {
+    s.style.display = 'block';
+  });
 
   // Tournament info
   const nameEl = document.getElementById('rpTournamentName');
@@ -6766,4 +6761,5 @@ saveState = window.saveState;
 })();
 </script>
 </body>
+</html>
 </html>
