@@ -2274,74 +2274,50 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
 .sb-right-panel { display: none; }
 
 @media (orientation: landscape) and (min-width: 600px) {
-  /* Full-height fixed layout — panels scroll independently */
-  html, body {
-    height: 100%;
-    overflow: hidden;
-  }
-  main {
-    height: 100%;
-    overflow: hidden;
-    display: block;
-  }
-  #view-overview {
-    height: 100%;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-  #sbPageScore {
-    flex: 1;
-    min-height: 0;
-    display: flex !important;
-    flex-direction: column;
-    overflow: hidden;
-    padding: 0 10px 0 !important;
-    box-sizing: border-box;
-  }
+  /* Landscape: let page scroll normally, right panel scrolls independently */
+  html, body { overflow-x: hidden; }
+  main { overflow: visible; display: block; }
+  #view-overview { display: block; overflow: visible; }
+  #sbPageScore { display: block; overflow: visible; padding: 0 10px 6px !important; }
+
   .sb-topbar {
     position: relative !important;
     top: auto !important;
     z-index: 1 !important;
     padding: 4px 12px !important;
-    flex-shrink: 0;
   }
   .round-num { font-size: 20px !important; }
-  /* Side-by-side — wrapper fills remaining height */
+
   .sb-landscape-wrapper {
-    flex: 1;
-    min-height: 0;
     display: flex !important;
     flex-direction: row;
     gap: 10px;
-    align-items: stretch;
-    overflow: hidden;
+    align-items: flex-start;
+    width: 100%;
   }
-  /* Left panel scrolls courts */
   .sb-left-panel {
     flex: 0 0 57%;
     min-width: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
   }
-  /* Right panel scrolls its own content */
   .sb-right-panel {
     flex: 1 1 40%;
     min-width: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
     display: flex !important;
     flex-direction: column;
     gap: 6px;
+    /* Key: sticky so it stays in view while left scrolls, own scroll for tall content */
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
     padding-bottom: 24px;
+    box-sizing: border-box;
   }
-  /* Actions bar sticks to bottom of left column */
   .sb-actions {
-    flex-shrink: 0;
     padding: 6px 0 4px !important;
     margin-top: 0 !important;
     gap: 4px !important;
@@ -2360,6 +2336,7 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   .court-status { font-size: 9px !important; padding: 1px 6px !important; }
   .sb-match-body { padding: 4px 10px 8px !important; gap: 5px !important; }
   .sb-action-sm { font-size: 11px !important; padding: 5px 10px !important; }
+
   /* Admin score box */
   .sb-score-box {
     width: clamp(40px, 5vw, 58px) !important;
@@ -2376,7 +2353,7 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  /* Viewer score box — 30% smaller than old */
+  /* Viewer score box — intentionally smaller than admin for readability */
   body.viewer-mode .sb-score-box {
     width: clamp(50px, 8vw, 90px) !important;
     height: clamp(56px, 9vw, 102px) !important;
@@ -3575,7 +3552,7 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
       <!-- STICKY TOP BAR -->
       <div class="sb-topbar">
         <div class="sb-round-info">
-          <span class="sb-round-label">ROUND</span><span style="font-size:8px;color:#b0b0b0;margin-left:4px;font-weight:700;">v38</span>
+          <span class="sb-round-label">ROUND</span><span style="font-size:8px;color:#b0b0b0;margin-left:4px;font-weight:700;">v39</span>
           <span class="sb-round-num" id="liveRoundNum">1</span>
           <span class="sb-round-sub" id="liveRoundMeta"></span>
         </div>
