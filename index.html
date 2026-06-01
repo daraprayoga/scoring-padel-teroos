@@ -3728,6 +3728,10 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
 </div>
 
 <script>
+const _urlParams = new URLSearchParams(window.location.search);
+const _roomParam = _urlParams.get('room');
+const IS_VIEWER = !!_roomParam;
+
 const state = {
   tournamentName: '',
   format: 'ind_mexicano', // ind_mexicano | ind_americano | mixicano | team_mexicano | team_americano
@@ -6209,9 +6213,6 @@ const FB_CONFIG = {
 };
 
 // Detect viewer mode
-const _urlParams = new URLSearchParams(window.location.search);
-const _roomParam = _urlParams.get('room');
-const IS_VIEWER = !!_roomParam;
 
 let _fbApp = null, _fbDb = null, _fbSyncInterval = null, _currentRoomId = null;
 
