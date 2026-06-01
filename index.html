@@ -2267,64 +2267,87 @@ main { background: var(--rc-forest) !important; }
 
 /* Viewer mode: hide action buttons */
 body.viewer-mode .sb-actions,
-body.viewer-mode #sbActions { display: none !important; }
+/* sbActions visibility in viewer handled by JS (applyViewerUI) */
 body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !important; }
 /* ===== LANDSCAPE RIGHT PANEL ===== */
 .sb-landscape-wrapper { display: block; }
 .sb-right-panel { display: none; }
 
 @media (orientation: landscape) and (min-width: 600px) {
-  /* Natural scroll at html/body level */
-  html { overflow-x: hidden; }
-  body { overflow-x: hidden; }
-  main { overflow: visible; display: block; }
-  #view-overview { display: block; overflow: visible; }
-  #sbPageScore { display: block; overflow: visible; padding: 0 10px 6px !important; }
-
+  /* Full-height fixed layout — panels scroll independently */
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+  main {
+    height: 100%;
+    overflow: hidden;
+    display: block;
+  }
+  #view-overview {
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  #sbPageScore {
+    flex: 1;
+    min-height: 0;
+    display: flex !important;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0 10px 0 !important;
+    box-sizing: border-box;
+  }
   .sb-topbar {
     position: relative !important;
     top: auto !important;
     z-index: 1 !important;
     padding: 4px 12px !important;
+    flex-shrink: 0;
   }
   .round-num { font-size: 20px !important; }
-
-  /* Side-by-side layout */
+  /* Side-by-side — wrapper fills remaining height */
   .sb-landscape-wrapper {
+    flex: 1;
+    min-height: 0;
     display: flex !important;
     flex-direction: row;
     gap: 10px;
-    align-items: flex-start;
-    width: 100%;
+    align-items: stretch;
+    overflow: hidden;
   }
+  /* Left panel scrolls courts */
   .sb-left-panel {
     flex: 0 0 57%;
     min-width: 0;
-    display: flex;
-    flex-direction: column;
-  }
-  /* Right panel: fixed height + own scroll */
-  .sb-right-panel {
-    flex: 1 1 40%;
-    min-width: 0;
-    display: flex !important;
-    flex-direction: column;
-    gap: 6px;
-    max-height: calc(100vh - 70px);
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Right panel scrolls its own content */
+  .sb-right-panel {
+    flex: 1 1 40%;
+    min-width: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    display: flex !important;
+    flex-direction: column;
+    gap: 6px;
     padding-bottom: 24px;
   }
+  /* Actions bar sticks to bottom of left column */
   .sb-actions {
+    flex-shrink: 0;
     padding: 6px 0 4px !important;
     margin-top: 0 !important;
     gap: 4px !important;
     flex-wrap: wrap;
   }
   .sb-rest { display: none !important; }
-
   .sb-courts {
     display: grid !important;
     grid-template-columns: 1fr 1fr;
@@ -2337,7 +2360,6 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   .court-status { font-size: 9px !important; padding: 1px 6px !important; }
   .sb-match-body { padding: 4px 10px 8px !important; gap: 5px !important; }
   .sb-action-sm { font-size: 11px !important; padding: 5px 10px !important; }
-
   /* Admin score box */
   .sb-score-box {
     width: clamp(40px, 5vw, 58px) !important;
@@ -2354,8 +2376,7 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
-  /* Viewer score box — smaller */
+  /* Viewer score box — 30% smaller than old */
   body.viewer-mode .sb-score-box {
     width: clamp(52px, 7vw, 88px) !important;
     height: clamp(58px, 8vw, 100px) !important;
@@ -6225,17 +6246,11 @@ function updateLandscapePanel() {
   // Force display via JS — don't rely on CSS media query alone
   const isLandscape = window.innerWidth > window.innerHeight && window.innerWidth >= 600;
   if (!isLandscape) {
-    // Clear ALL landscape inline styles — portrait CSS takes over
-    rightPanel.style.cssText = 'display:none';
+    rightPanel.style.display = 'none';
     const _wrapper = document.querySelector('.sb-landscape-wrapper');
     if (_wrapper) _wrapper.style.cssText = '';
     const _leftPanel = document.querySelector('.sb-left-panel');
     if (_leftPanel) _leftPanel.style.cssText = '';
-    // Also reset courts grid
-    const _courts = document.getElementById('sbCourts');
-    if (_courts) _courts.style.cssText = '';
-    // Reset score boxes
-    document.querySelectorAll('.sb-score-box, .sb-score-input, .sb-player').forEach(el => el.style.cssText = '');
     return;
   }
   // BULLETPROOF: force entire flex chain with !important inline styles
