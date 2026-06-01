@@ -3114,328 +3114,255 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
 }
 </style>
 
-<!-- REVISI PODIUM & FOOTER V5 -->
+
 <style>
-  /* Compact Box di Mode Portrait */
-  .podium-slot .podium-card { 
-    min-height: auto !important; 
-    margin-top: 0 !important;
-    justify-content: center !important;
-    padding: 16px 14px !important;
-    gap: 8px !important;
-  }
-  
-  @media (orientation: landscape) {
-    /* Kembalikan berjenjang di Mode Landscape */
-    .podium-slot.first .podium-card { 
-      min-height: 180px !important; 
-      margin-top: 0 !important; 
-      justify-content: flex-start !important;
-    }
-    .podium-slot.second .podium-card { 
-      min-height: 155px !important; 
-      margin-top: 25px !important; 
-      justify-content: flex-start !important;
-    }
-    .podium-slot.third .podium-card { 
-      min-height: 135px !important; 
-      margin-top: 45px !important; 
-      justify-content: flex-start !important;
-    }
+/* ===== PODIUM TV-FIT & FONT FIX v3 ===== */
 
-    /* FIX FULL STANDINGS HINT OVERLAP (Page 1) */
-    .podium-page-1 {
-      height: auto !important;
-      min-height: 100vh !important;
-      max-height: none !important;
-      overflow: visible !important;
-    }
-    .podium-page-1 .podium-scroll-hint {
-      position: relative !important;
-      bottom: auto !important;
-      left: auto !important;
-      transform: none !important;
-      margin-top: 20px !important;
-      margin-bottom: 20px !important;
-    }
-    
-    /* FIX OVERLAP: Reset flex basis & height buat page-2 */
-    .podium-page-2 {
-      height: auto !important;
-      min-height: 100vh !important;
-      flex: 1 0 auto !important;
-      justify-content: flex-start !important;
-      padding-top: 60px !important; /* Tambah padding atas biar ga mepet banget */
-      padding-bottom: 40px !important;
-      display: flex !important;
-      flex-direction: column !important;
-      gap: 20px !important; /* Fix gap biar judul ga nabrak */
-    }
-    
-    /* Fix overlap judul */
-    .podium-page-2 .podium-monogram {
-        margin-bottom: 0 !important;
-    }
-    .podium-page-2 .podium-standings-header {
-        margin-bottom: 10px !important;
-    }
+/* Font unification — semua text di podium card pakai Cormorant */
+.podium-place-label {
+  font-family: 'Cormorant Garamond', Georgia, serif !important;
+  font-style: italic !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  letter-spacing: 1px !important;
+  text-transform: none !important;
+}
+.podium-name {
+  font-family: 'Cormorant Garamond', Georgia, serif !important;
+  font-weight: 900 !important;
+  font-style: normal !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase !important;
+}
+.podium-slot.first .podium-name { font-size: 22px !important; }
+.podium-slot.second .podium-name,
+.podium-slot.third .podium-name { font-size: 18px !important; }
+.podium-rank-label {
+  font-family: 'Cormorant Garamond', Georgia, serif !important;
+  font-style: italic !important;
+  font-weight: 700 !important;
+}
+.podium-stat-val {
+  font-family: 'Cormorant Garamond', Georgia, serif !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.3px !important;
+}
 
-    /* Biar tabel bisa full stretch tanpa motong content */
-    .podium-standings-table-wrap {
-      flex: 1 1 auto !important;
-      height: auto !important;
-      overflow: visible !important;
-      margin-bottom: 30px !important;
-    }
-
-    /* Posisikan footer nempel di bawah tapi statis */
-    .podium-standings-footer {
-      margin-top: auto !important;
-      position: relative !important;
-      flex-shrink: 0 !important;
-    }
+/* ===== LANDSCAPE + TV FIT ===== */
+@media (orientation: landscape) {
+  .podium-backdrop {
+    overflow-y: auto !important;
+    scroll-snap-type: none !important;
   }
 
-  .podium-results-page {
-    justify-content: flex-start !important;
+  /* ---- PAGE 1: Final Podium ---- */
+  .podium-page-1 {
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
+    height: 100dvh !important;
+    padding: 6px 28px 10px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 2px !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
   }
-  
-  .podium-results-footer {
-    margin-top: 24px !important;
-    margin-bottom: 24px !important;
+
+  .podium-monogram {
+    margin-bottom: 0 !important;
     flex-shrink: 0 !important;
   }
-</style>
+  .podium-monogram-name { font-size: 15px !important; }
+  .podium-monogram-sub { font-size: 7px !important; letter-spacing: 3px !important; }
 
-<!-- REVISI PODIUM & FOOTER V5 -->
-<style>
-  /* Compact Box di Mode Portrait */
-  .podium-slot .podium-card { 
-    min-height: auto !important; 
-    margin-top: 0 !important;
-    justify-content: center !important;
-    padding: 16px 14px !important;
-    gap: 8px !important;
-  }
-  
-  @media (orientation: landscape) {
-    /* Kembalikan berjenjang di Mode Landscape */
-    .podium-slot.first .podium-card { 
-      min-height: 180px !important; 
-      margin-top: 0 !important; 
-      justify-content: flex-start !important;
-    }
-    .podium-slot.second .podium-card { 
-      min-height: 155px !important; 
-      margin-top: 25px !important; 
-      justify-content: flex-start !important;
-    }
-    .podium-slot.third .podium-card { 
-      min-height: 135px !important; 
-      margin-top: 45px !important; 
-      justify-content: flex-start !important;
-    }
-
-    /* FIX FULL STANDINGS HINT OVERLAP (Page 1) */
-    .podium-page-1 {
-      height: auto !important;
-      min-height: 100vh !important;
-      max-height: none !important;
-      overflow: visible !important;
-    }
-    .podium-page-1 .podium-scroll-hint {
-      position: relative !important;
-      bottom: auto !important;
-      left: auto !important;
-      transform: none !important;
-      margin-top: 20px !important;
-      margin-bottom: 20px !important;
-    }
-    
-    /* FIX OVERLAP: Reset flex basis & height buat page-2 */
-    .podium-page-2 {
-      height: auto !important;
-      min-height: 100vh !important;
-      flex: 1 0 auto !important;
-      justify-content: flex-start !important;
-      padding-top: 60px !important; /* Tambah padding atas biar ga mepet banget */
-      padding-bottom: 40px !important;
-      display: flex !important;
-      flex-direction: column !important;
-      gap: 20px !important; /* Fix gap biar judul ga nabrak */
-    }
-    
-    /* Fix overlap judul */
-    .podium-page-2 .podium-monogram {
-        margin-bottom: 0 !important;
-    }
-    .podium-page-2 .podium-standings-header {
-        margin-bottom: 10px !important;
-    }
-
-    /* Biar tabel bisa full stretch tanpa motong content */
-    .podium-standings-table-wrap {
-      flex: 1 1 auto !important;
-      height: auto !important;
-      overflow: visible !important;
-      margin-bottom: 30px !important;
-    }
-
-    /* Posisikan footer nempel di bawah tapi statis */
-    .podium-standings-footer {
-      margin-top: auto !important;
-      position: relative !important;
-      flex-shrink: 0 !important;
-    }
-  }
-
-  .podium-results-page {
-    justify-content: flex-start !important;
-  }
-  
-  .podium-results-footer {
-    margin-top: 24px !important;
-    margin-bottom: 24px !important;
+  .podium-header {
+    margin-bottom: 0 !important;
     flex-shrink: 0 !important;
   }
-</style>
+  .podium-header h1 {
+    font-size: clamp(22px, 4.5vh, 48px) !important;
+    margin-bottom: 1px !important;
+    letter-spacing: -1.5px !important;
+  }
+  .podium-header .subtitle { font-size: 8px !important; letter-spacing: 3px !important; }
 
-<!-- REVISI PODIUM & FOOTER V5 -->
-<style>
-  /* Compact Box di Mode Portrait */
-  .podium-slot .podium-card { 
-    min-height: auto !important; 
-    margin-top: 0 !important;
-    justify-content: center !important;
-    padding: 16px 14px !important;
+  .podium-stage {
+    flex-direction: row !important;
     gap: 8px !important;
-  }
-  
-  @media (orientation: landscape) {
-    /* Kembalikan berjenjang di Mode Landscape */
-    .podium-slot.first .podium-card { 
-      min-height: 180px !important; 
-      margin-top: 0 !important; 
-      justify-content: flex-start !important;
-    }
-    .podium-slot.second .podium-card { 
-      min-height: 155px !important; 
-      margin-top: 25px !important; 
-      justify-content: flex-start !important;
-    }
-    .podium-slot.third .podium-card { 
-      min-height: 135px !important; 
-      margin-top: 45px !important; 
-      justify-content: flex-start !important;
-    }
-
-    /* FIX FULL STANDINGS HINT OVERLAP (Page 1) */
-    .podium-page-1 {
-      height: auto !important;
-      min-height: 100vh !important;
-      max-height: none !important;
-      overflow: visible !important;
-    }
-    .podium-page-1 .podium-scroll-hint {
-      position: relative !important;
-      bottom: auto !important;
-      left: auto !important;
-      transform: none !important;
-      margin-top: 20px !important;
-      margin-bottom: 20px !important;
-    }
-    
-    /* FIX OVERLAP: Reset flex basis & height buat page-2 */
-    .podium-page-2 {
-      height: auto !important;
-      min-height: 100vh !important;
-      flex: 1 0 auto !important;
-      justify-content: flex-start !important;
-      padding-top: 60px !important; /* Tambah padding atas biar ga mepet banget */
-      padding-bottom: 40px !important;
-      display: flex !important;
-      flex-direction: column !important;
-      gap: 20px !important; /* Fix gap biar judul ga nabrak */
-    }
-    
-    /* Fix overlap judul */
-    .podium-page-2 .podium-monogram {
-        margin-bottom: 0 !important;
-    }
-    .podium-page-2 .podium-standings-header {
-        margin-bottom: 10px !important;
-    }
-
-    /* Biar tabel bisa full stretch tanpa motong content */
-    .podium-standings-table-wrap {
-      flex: 1 1 auto !important;
-      height: auto !important;
-      overflow: visible !important;
-      margin-bottom: 30px !important;
-    }
-
-    /* Posisikan footer nempel di bawah tapi statis */
-    .podium-standings-footer {
-      margin-top: auto !important;
-      position: relative !important;
-      flex-shrink: 0 !important;
-    }
+    width: 100% !important;
+    max-width: 860px !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    margin-bottom: 0 !important;
+    align-items: flex-end !important;
   }
 
-  .podium-results-page {
+  .podium-slot { flex: 1 !important; max-width: none !important; }
+  .podium-slot.first { order: 2 !important; }
+  .podium-slot.second { order: 1 !important; }
+  .podium-slot.third { order: 3 !important; }
+
+  .podium-slot.first .podium-card {
+    min-height: clamp(100px, 16vh, 155px) !important;
+    margin-top: 0 !important;
     justify-content: flex-start !important;
   }
-  
-  .podium-results-footer {
-    margin-top: 24px !important;
-    margin-bottom: 24px !important;
+  .podium-slot.second .podium-card {
+    min-height: clamp(85px, 13vh, 130px) !important;
+    margin-top: clamp(16px, 3.5vh, 36px) !important;
+    justify-content: flex-start !important;
+  }
+  .podium-slot.third .podium-card {
+    min-height: clamp(70px, 11vh, 110px) !important;
+    margin-top: clamp(28px, 6vh, 58px) !important;
+    justify-content: flex-start !important;
+  }
+
+  .podium-card {
+    padding: clamp(8px, 1.5vh, 14px) clamp(8px, 1.5vw, 14px) !important;
+    gap: clamp(3px, 0.8vh, 6px) !important;
+    border-radius: 12px !important;
+  }
+
+  .podium-icon { margin-bottom: 2px !important; }
+  .podium-icon svg { width: 28px !important; height: 28px !important; }
+  .podium-slot.first .podium-icon svg { width: 36px !important; height: 36px !important; }
+
+  .podium-rank-label {
+    font-size: clamp(14px, 2.2vh, 22px) !important;
+    margin-bottom: 4px !important;
+  }
+
+  .podium-place-label {
+    font-size: clamp(9px, 1.3vh, 12px) !important;
+    margin-bottom: 1px !important;
+  }
+  .podium-slot.first .podium-name {
+    font-size: clamp(13px, 2vh, 19px) !important;
+  }
+  .podium-slot.second .podium-name,
+  .podium-slot.third .podium-name {
+    font-size: clamp(12px, 1.8vh, 17px) !important;
+  }
+
+  .podium-stats {
+    gap: 3px !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    margin-top: 2px !important;
+  }
+  .podium-stat-block { padding: clamp(3px, 0.8vh, 6px) 3px !important; border-radius: 4px !important; }
+  .podium-stat-val { font-size: clamp(11px, 1.8vh, 16px) !important; }
+  .podium-stat-key { font-size: 6px !important; letter-spacing: 1px !important; }
+
+  /* Footer compact, always visible */
+  .podium-page-1 .podium-footer {
+    flex-shrink: 0 !important;
+    padding-top: 5px !important;
+    margin-top: 0 !important;
+    border-top: 1px solid rgba(45,107,78,0.12) !important;
+    width: 100% !important;
+    max-width: 860px !important;
+  }
+  .podium-footer-brand { font-size: 13px !important; margin-bottom: 1px !important; }
+  .podium-footer-tag { font-size: 7px !important; }
+  .podium-social-row { font-size: 9px !important; margin-top: 2px !important; gap: 10px !important; }
+
+  /* Hide scroll hint on landscape page 1 */
+  .podium-page-1 .podium-scroll-hint { display: none !important; }
+
+  /* ---- PAGE 2: Full Standings ---- */
+  .podium-page-2 {
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
+    height: 100dvh !important;
+    padding: 6px 28px 10px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 4px !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .podium-standings-header {
     flex-shrink: 0 !important;
   }
-</style>
-
-<style>
-  /* Base Reset */
-  * { box-sizing: border-box; }
-  body { margin: 0; padding: 0; overflow-x: hidden; }
-
-  /* Container utama biar elemen gak tumpuk */
-  .podium-page-1, .podium-page-2 {
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    padding: 20px;
+  .podium-standings-header h2 {
+    font-size: clamp(24px, 5vh, 48px) !important;
+    margin-bottom: 2px !important;
+    letter-spacing: -1px !important;
+  }
+  .podium-standings-sub {
+    font-size: 8px !important;
+    letter-spacing: 3px !important;
   }
 
-  /* Khusus Landscape: Flex vertical rapi */
-  @media (orientation: landscape) {
-    .podium-page-2 {
-      justify-content: flex-start;
-      padding-top: 20px;
-    }
-    
-    /* Wrapper elemen di landscape */
-    .podium-content-wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      width: 100%;
-      max-width: 600px;
-      gap: 10px;
-    }
-
-    /* Paksa elemen berurutan */
-    .podium-monogram { order: 1; margin: 0; }
-    .podium-standings-header { order: 2; margin: 0; }
-    .podium-standings-table-wrap { order: 3; width: 100%; }
-    .podium-standings-footer { order: 4; margin-top: 10px; }
-    
-    /* Scroll hint di landscape kita hidden aja atau taro di paling bawah biar ga overlap */
-    .podium-scroll-hint { display: none !important; }
+  /* Hide the monogram on page 2 — it's redundant when standings-sub already has name+date */
+  .podium-page-2 .podium-monogram {
+    display: none !important;
   }
+
+  .podium-standings-table-wrap {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    width: 100% !important;
+    max-width: 900px !important;
+    padding: 10px 16px !important;
+    border-radius: 14px !important;
+    box-sizing: border-box !important;
+  }
+
+  .podium-standings-table th { padding: 6px 6px !important; font-size: 8px !important; }
+  .podium-standings-table td { padding: 5px 6px !important; font-size: 11px !important; }
+  .podium-standings-table .rank-cell { font-size: 13px !important; }
+  .podium-standings-table .name-cell { font-size: 11px !important; letter-spacing: 0.3px !important; }
+  .podium-standings-table .pts-cell { font-size: 13px !important; }
+
+  /* Standings footer */
+  .podium-standings-footer {
+    flex-shrink: 0 !important;
+    padding-top: 5px !important;
+    border-top: 1px solid rgba(45,107,78,0.1) !important;
+    width: 100% !important;
+    max-width: 900px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+  .podium-standings-footer .podium-footer-brand { font-size: 13px !important; }
+  .podium-standings-footer .podium-footer-tag { font-size: 7px !important; }
+  .podium-standings-footer .podium-social-row { font-size: 9px !important; margin-top: 2px !important; gap: 10px !important; }
+
+  /* ---- Results pages ---- */
+  .podium-results-page {
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
+    height: 100dvh !important;
+    padding: 8px 28px 10px !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    justify-content: space-between !important;
+  }
+
+  .podium-results-header h2 { font-size: 24px !important; }
+  .podium-results-header .results-sub { font-size: 8px !important; }
+  .result-row { padding: 4px 8px !important; }
+  .result-row-team { font-size: 11px !important; }
+  .result-row-num { font-size: 18px !important; }
+  .result-row-label { font-size: 7px !important; }
+
+  /* Close bar */
+  .podium-close-bar {
+    padding-top: max(8px, calc(4px + env(safe-area-inset-top, 0px))) !important;
+    padding-bottom: 4px !important;
+    padding-right: 16px !important;
+  }
+}
+
 </style>
 
 </head>
@@ -5908,13 +5835,9 @@ function showPodium() {
     `;
     standingsPagesHtml += `
     <div class="podium-page podium-page-2 ${densityClass}">
-      <div class="podium-monogram">
-        <div class="podium-monogram-name">${escapeHtml(title)}</div>
-        <div class="podium-monogram-sub">${formatLabel(state.format)} · ${date}</div>
-      </div>
       <div class="podium-standings-header">
         <h2>Full Standings${pageLabel}</h2>
-        <div class="podium-standings-sub">${standings.length} ${isTeam() ? 'pairs' : 'players'}</div>
+        <div class="podium-standings-sub">${escapeHtml(title)} · ${date} · ${standings.length} ${isTeam() ? 'pairs' : 'players'}</div>
       </div>
       <div class="podium-standings-table-wrap">
         ${standingsTableHtml}
