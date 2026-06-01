@@ -3116,27 +3116,31 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
 
 
 <style>
-/* ===== PODIUM TV-FIT & FONT FIX v3 ===== */
+/* ===== PODIUM TV-FIT FINAL v4 ===== */
 
-/* Font unification — semua text di podium card pakai Cormorant */
+/* Font unification */
 .podium-place-label {
   font-family: 'Cormorant Garamond', Georgia, serif !important;
   font-style: italic !important;
   font-weight: 700 !important;
-  font-size: 13px !important;
-  letter-spacing: 1px !important;
+  font-size: 12px !important;
+  letter-spacing: 0.5px !important;
   text-transform: none !important;
 }
 .podium-name {
   font-family: 'Cormorant Garamond', Georgia, serif !important;
   font-weight: 900 !important;
   font-style: normal !important;
-  letter-spacing: 0.5px !important;
+  letter-spacing: 0.3px !important;
   text-transform: uppercase !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  hyphens: auto !important;
+  line-height: 1.1 !important;
 }
-.podium-slot.first .podium-name { font-size: 22px !important; }
+.podium-slot.first .podium-name { font-size: clamp(13px, 2vw, 20px) !important; }
 .podium-slot.second .podium-name,
-.podium-slot.third .podium-name { font-size: 18px !important; }
+.podium-slot.third .podium-name { font-size: clamp(12px, 1.8vw, 17px) !important; }
 .podium-rank-label {
   font-family: 'Cormorant Garamond', Georgia, serif !important;
   font-style: italic !important;
@@ -3145,139 +3149,172 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
 .podium-stat-val {
   font-family: 'Cormorant Garamond', Georgia, serif !important;
   font-weight: 700 !important;
-  letter-spacing: -0.3px !important;
 }
 
-/* ===== LANDSCAPE + TV FIT ===== */
+/* ===== LANDSCAPE LAYOUT ===== */
 @media (orientation: landscape) {
+
+  /* Backdrop: snap-scroll, no overflow */
   .podium-backdrop {
-    overflow-y: auto !important;
-    scroll-snap-type: none !important;
+    overflow-y: scroll !important;
+    overflow-x: hidden !important;
+    scroll-snap-type: y mandatory !important;
+    scroll-behavior: smooth !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Every page: exactly one screen, no overflow */
+  .podium-page {
+    width: 100% !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    scroll-snap-align: start !important;
+    scroll-snap-stop: always !important;
   }
 
   /* ---- PAGE 1: Final Podium ---- */
   .podium-page-1 {
+    height: 100dvh !important;
     min-height: 100dvh !important;
     max-height: 100dvh !important;
-    height: 100dvh !important;
-    padding: 6px 28px 10px !important;
+    padding: 4px 20px 8px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: space-between !important;
-    gap: 2px !important;
+    gap: 0 !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
   }
 
-  .podium-monogram {
+  /* Header: compact */
+  .podium-page-1 .podium-header {
     margin-bottom: 0 !important;
     flex-shrink: 0 !important;
+    text-align: center !important;
   }
-  .podium-monogram-name { font-size: 15px !important; }
-  .podium-monogram-sub { font-size: 7px !important; letter-spacing: 3px !important; }
-
-  .podium-header {
-    margin-bottom: 0 !important;
-    flex-shrink: 0 !important;
-  }
-  .podium-header h1 {
-    font-size: clamp(22px, 4.5vh, 48px) !important;
+  .podium-page-1 .podium-header h1 {
+    font-size: clamp(20px, 4vh, 44px) !important;
     margin-bottom: 1px !important;
-    letter-spacing: -1.5px !important;
+    letter-spacing: -1px !important;
+    line-height: 1 !important;
   }
-  .podium-header .subtitle { font-size: 8px !important; letter-spacing: 3px !important; }
+  .podium-page-1 .podium-header .subtitle {
+    font-size: clamp(7px, 1vh, 10px) !important;
+    letter-spacing: 2px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
+  }
 
+  /* Stage: flex row, MUST NOT overflow horizontally */
   .podium-stage {
     flex-direction: row !important;
-    gap: 8px !important;
+    gap: clamp(6px, 1vw, 12px) !important;
     width: 100% !important;
-    max-width: 860px !important;
-    flex: 1 1 auto !important;
+    max-width: 100% !important;
+    flex: 1 1 0 !important;
     min-height: 0 !important;
+    min-width: 0 !important;
     margin-bottom: 0 !important;
     align-items: flex-end !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
   }
 
-  .podium-slot { flex: 1 !important; max-width: none !important; }
+  .podium-slot {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
   .podium-slot.first { order: 2 !important; }
   .podium-slot.second { order: 1 !important; }
   .podium-slot.third { order: 3 !important; }
 
+  /* Cards: height via vh, margin for staggering */
   .podium-slot.first .podium-card {
-    min-height: clamp(100px, 16vh, 155px) !important;
+    min-height: clamp(90px, 14vh, 150px) !important;
+    max-height: clamp(110px, 18vh, 180px) !important;
     margin-top: 0 !important;
     justify-content: flex-start !important;
   }
   .podium-slot.second .podium-card {
-    min-height: clamp(85px, 13vh, 130px) !important;
-    margin-top: clamp(16px, 3.5vh, 36px) !important;
+    min-height: clamp(75px, 11vh, 125px) !important;
+    max-height: clamp(90px, 15vh, 155px) !important;
+    margin-top: clamp(14px, 3vh, 32px) !important;
     justify-content: flex-start !important;
   }
   .podium-slot.third .podium-card {
-    min-height: clamp(70px, 11vh, 110px) !important;
-    margin-top: clamp(28px, 6vh, 58px) !important;
+    min-height: clamp(62px, 9vh, 105px) !important;
+    max-height: clamp(75px, 12vh, 130px) !important;
+    margin-top: clamp(24px, 5vh, 52px) !important;
     justify-content: flex-start !important;
   }
 
   .podium-card {
-    padding: clamp(8px, 1.5vh, 14px) clamp(8px, 1.5vw, 14px) !important;
-    gap: clamp(3px, 0.8vh, 6px) !important;
-    border-radius: 12px !important;
+    padding: clamp(6px, 1.2vh, 12px) clamp(6px, 1vw, 12px) !important;
+    gap: clamp(2px, 0.5vh, 5px) !important;
+    border-radius: 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
   }
 
+  /* Icon: small */
   .podium-icon { margin-bottom: 2px !important; }
-  .podium-icon svg { width: 28px !important; height: 28px !important; }
-  .podium-slot.first .podium-icon svg { width: 36px !important; height: 36px !important; }
+  .podium-icon svg { width: 24px !important; height: 24px !important; }
+  .podium-slot.first .podium-icon svg { width: 30px !important; height: 30px !important; }
 
+  /* Rank label */
   .podium-rank-label {
-    font-size: clamp(14px, 2.2vh, 22px) !important;
-    margin-bottom: 4px !important;
+    font-size: clamp(12px, 2vh, 20px) !important;
+    margin-bottom: 3px !important;
   }
 
+  /* Place label */
   .podium-place-label {
-    font-size: clamp(9px, 1.3vh, 12px) !important;
+    font-size: clamp(8px, 1.1vh, 11px) !important;
     margin-bottom: 1px !important;
   }
-  .podium-slot.first .podium-name {
-    font-size: clamp(13px, 2vh, 19px) !important;
-  }
-  .podium-slot.second .podium-name,
-  .podium-slot.third .podium-name {
-    font-size: clamp(12px, 1.8vh, 17px) !important;
-  }
 
+  /* Stats row */
   .podium-stats {
-    gap: 3px !important;
+    gap: 2px !important;
     grid-template-columns: repeat(4, 1fr) !important;
     margin-top: 2px !important;
   }
-  .podium-stat-block { padding: clamp(3px, 0.8vh, 6px) 3px !important; border-radius: 4px !important; }
-  .podium-stat-val { font-size: clamp(11px, 1.8vh, 16px) !important; }
-  .podium-stat-key { font-size: 6px !important; letter-spacing: 1px !important; }
+  .podium-stat-block {
+    padding: clamp(2px, 0.5vh, 5px) 2px !important;
+    border-radius: 4px !important;
+  }
+  .podium-stat-val { font-size: clamp(10px, 1.6vh, 15px) !important; }
+  .podium-stat-key { font-size: 5px !important; letter-spacing: 0.8px !important; }
 
-  /* Footer compact, always visible */
+  /* Footer: always visible, never cut */
   .podium-page-1 .podium-footer {
     flex-shrink: 0 !important;
-    padding-top: 5px !important;
+    padding-top: 4px !important;
     margin-top: 0 !important;
     border-top: 1px solid rgba(45,107,78,0.12) !important;
     width: 100% !important;
-    max-width: 860px !important;
   }
-  .podium-footer-brand { font-size: 13px !important; margin-bottom: 1px !important; }
-  .podium-footer-tag { font-size: 7px !important; }
-  .podium-social-row { font-size: 9px !important; margin-top: 2px !important; gap: 10px !important; }
+  .podium-footer-brand { font-size: 12px !important; margin-bottom: 1px !important; }
+  .podium-footer-tag { font-size: 6px !important; }
+  .podium-social-row { font-size: 8px !important; margin-top: 2px !important; gap: 8px !important; }
 
-  /* Hide scroll hint on landscape page 1 */
+  /* Scroll hint: hidden */
   .podium-page-1 .podium-scroll-hint { display: none !important; }
 
   /* ---- PAGE 2: Full Standings ---- */
   .podium-page-2 {
+    height: 100dvh !important;
     min-height: 100dvh !important;
     max-height: 100dvh !important;
-    height: 100dvh !important;
-    padding: 6px 28px 10px !important;
+    padding: 6px 24px 10px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
@@ -3286,80 +3323,69 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
     overflow: hidden !important;
     box-sizing: border-box !important;
   }
-
-  .podium-standings-header {
-    flex-shrink: 0 !important;
-  }
+  .podium-page-2 .podium-monogram { display: none !important; }
+  .podium-standings-header { flex-shrink: 0 !important; text-align: center !important; }
   .podium-standings-header h2 {
-    font-size: clamp(24px, 5vh, 48px) !important;
+    font-size: clamp(22px, 4.5vh, 48px) !important;
     margin-bottom: 2px !important;
     letter-spacing: -1px !important;
   }
   .podium-standings-sub {
-    font-size: 8px !important;
-    letter-spacing: 3px !important;
+    font-size: clamp(7px, 1vh, 9px) !important;
+    letter-spacing: 2px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
   }
-
-  /* Hide the monogram on page 2 — it's redundant when standings-sub already has name+date */
-  .podium-page-2 .podium-monogram {
-    display: none !important;
-  }
-
   .podium-standings-table-wrap {
-    flex: 1 1 auto !important;
+    flex: 1 1 0 !important;
     min-height: 0 !important;
     overflow: hidden !important;
     width: 100% !important;
-    max-width: 900px !important;
-    padding: 10px 16px !important;
-    border-radius: 14px !important;
+    padding: 8px 14px !important;
+    border-radius: 12px !important;
     box-sizing: border-box !important;
   }
-
-  .podium-standings-table th { padding: 6px 6px !important; font-size: 8px !important; }
-  .podium-standings-table td { padding: 5px 6px !important; font-size: 11px !important; }
-  .podium-standings-table .rank-cell { font-size: 13px !important; }
-  .podium-standings-table .name-cell { font-size: 11px !important; letter-spacing: 0.3px !important; }
-  .podium-standings-table .pts-cell { font-size: 13px !important; }
-
-  /* Standings footer */
+  .podium-standings-table th { padding: 5px 5px !important; font-size: 7px !important; }
+  .podium-standings-table td { padding: 4px 5px !important; font-size: 10px !important; }
+  .podium-standings-table .rank-cell { font-size: 12px !important; }
+  .podium-standings-table .pts-cell { font-size: 12px !important; }
   .podium-standings-footer {
     flex-shrink: 0 !important;
-    padding-top: 5px !important;
+    padding-top: 4px !important;
     border-top: 1px solid rgba(45,107,78,0.1) !important;
     width: 100% !important;
-    max-width: 900px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
   }
-  .podium-standings-footer .podium-footer-brand { font-size: 13px !important; }
-  .podium-standings-footer .podium-footer-tag { font-size: 7px !important; }
-  .podium-standings-footer .podium-social-row { font-size: 9px !important; margin-top: 2px !important; gap: 10px !important; }
+  .podium-standings-footer .podium-footer-brand { font-size: 11px !important; }
+  .podium-standings-footer .podium-footer-tag { font-size: 6px !important; }
+  .podium-standings-footer .podium-social-row { font-size: 8px !important; margin-top: 2px !important; gap: 8px !important; }
 
   /* ---- Results pages ---- */
   .podium-results-page {
+    height: 100dvh !important;
     min-height: 100dvh !important;
     max-height: 100dvh !important;
-    height: 100dvh !important;
-    padding: 8px 28px 10px !important;
+    padding: 8px 24px 10px !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
     justify-content: space-between !important;
   }
-
-  .podium-results-header h2 { font-size: 24px !important; }
-  .podium-results-header .results-sub { font-size: 8px !important; }
-  .result-row { padding: 4px 8px !important; }
-  .result-row-team { font-size: 11px !important; }
-  .result-row-num { font-size: 18px !important; }
-  .result-row-label { font-size: 7px !important; }
+  .podium-results-header h2 { font-size: 22px !important; }
+  .podium-results-header .results-sub { font-size: 7px !important; }
+  .result-row { padding: 3px 6px !important; }
+  .result-row-team { font-size: 10px !important; }
+  .result-row-num { font-size: 16px !important; }
+  .result-row-label { font-size: 6px !important; }
 
   /* Close bar */
   .podium-close-bar {
-    padding-top: max(8px, calc(4px + env(safe-area-inset-top, 0px))) !important;
-    padding-bottom: 4px !important;
-    padding-right: 16px !important;
+    padding-top: max(6px, calc(2px + env(safe-area-inset-top, 0px))) !important;
+    padding-bottom: 2px !important;
+    padding-right: 14px !important;
   }
 }
 
@@ -5852,13 +5878,9 @@ function showPodium() {
 
   content.innerHTML = `
     <div class="podium-page podium-page-1">
-      <div class="podium-monogram">
-        <div class="podium-monogram-name">${escapeHtml(title)}</div>
-        <div class="podium-monogram-sub">Final Standings · ${date}</div>
-      </div>
       <div class="podium-header">
         <h1>Final Podium</h1>
-        <div class="subtitle">${formatLabel(state.format)} · ${modeLabel(state.mode)}</div>
+        <div class="subtitle">${escapeHtml(title)} · ${formatLabel(state.format)} · ${date}</div>
       </div>
       <div class="podium-stage">
         ${slotsHtml}
