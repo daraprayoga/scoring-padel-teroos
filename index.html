@@ -17,6 +17,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap" rel="stylesheet">
 <style>
   :root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
     --primary: #f5f0e6;
     --primary-light: #ede8dc;
     --primary-dark: #e8e2d4;
@@ -54,11 +56,11 @@
     top: 0; left: 0; right: 0;
     z-index: 9999;
     background: #f5c800;
-    overflow: hidden;
+    overflow: visible;
     height: auto;
-    min-height: calc(26px + env(safe-area-inset-top, 0px));
-    padding-top: env(safe-area-inset-top, 0px);
-    padding-bottom: 4px;
+    min-height: calc(26px + var(--sat));
+    padding-top: var(--sat);
+    padding-bottom: 5px;
     display: flex;
     align-items: flex-end;
   }
@@ -6181,18 +6183,9 @@ function boot() {
 
 // Beta banner offset — push all content below the fixed banner + iOS status bar
 (function() {
-  const BANNER_H = 26;
-  document.documentElement.style.setProperty('--beta-h', BANNER_H + 'px');
-  // For iOS standalone mode, account for safe area inset top
-  const safeTop = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sat') || '0') || 0;
-  document.body.style.paddingTop = 'calc(' + BANNER_H + 'px + env(safe-area-inset-top, 0px))';
-  // Apply safe area to beta banner via CSS
-  const betaBanner = document.getElementById('betaBanner');
-  if (betaBanner) {
-    betaBanner.style.paddingTop = 'env(safe-area-inset-top, 0px)';
-    betaBanner.style.height = 'calc(26px + env(safe-area-inset-top, 0px))';
-    document.body.style.paddingTop = 'calc(26px + env(safe-area-inset-top, 0px))';
-  }
+  // Banner height handled purely via CSS using --sat (env(safe-area-inset-top))
+  // body.paddingTop set via CSS class — no JS safe-area calculation needed
+  document.body.style.paddingTop = 'calc(26px + var(--sat))'
 })();
 
 boot();
@@ -6234,17 +6227,21 @@ function updateLandscapePanel() {
   // Force display via JS — don't rely on CSS media query alone
   const isLandscape = window.innerWidth > window.innerHeight && window.innerWidth >= 600;
   if (!isLandscape) {
-    // Clear ALL landscape inline styles so portrait CSS takes over
-    rightPanel.style.cssText = '';
-    rightPanel.style.display = 'none';
+    // Clear ALL landscape inline styles — portrait CSS takes over
+    rightPanel.style.cssText = 'display:none';
     const _wrapper = document.querySelector('.sb-landscape-wrapper');
     if (_wrapper) _wrapper.style.cssText = '';
     const _leftPanel = document.querySelector('.sb-left-panel');
     if (_leftPanel) _leftPanel.style.cssText = '';
+    // Also reset courts grid
+    const _courts = document.getElementById('sbCourts');
+    if (_courts) _courts.style.cssText = '';
+    // Reset score boxes
+    document.querySelectorAll('.sb-score-box, .sb-score-input, .sb-player').forEach(el => el.style.cssText = '');
     return;
   }
   // BULLETPROOF: force entire flex chain with !important inline styles
-  rightPanel.style.cssText = 'display:flex!important;flex-direction:column!important;flex:1 1 40%!important;min-width:200px!important;gap:6px!important;overflow-y:auto!important;max-height:90vh!important;padding-bottom:16px!important;';
+  rightPanel.style.cssText = 'display:flex!important;flex-direction:column!important;flex:1 1 40%!important;min-width:200px!important;gap:6px!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;position:sticky!important;top:0!important;max-height:100vh!important;padding-bottom:20px!important;box-sizing:border-box!important;';
   const wrapper = document.querySelector('.sb-landscape-wrapper');
   if (wrapper) {
     wrapper.style.cssText = 'display:flex!important;flex-direction:row!important;gap:10px!important;align-items:flex-start!important;width:100%!important;overflow:visible!important;';
@@ -6515,9 +6512,10 @@ saveState = window.saveState;
     ].join(';');
     viewerBanner.textContent = '📺  MODE NONTON  ·  VIEW ONLY';
     document.body.insertBefore(viewerBanner, document.body.firstChild);
-    // Push content down
-    // Push body content below fixed viewer banner
-    document.body.style.paddingTop = 'calc(36px + env(safe-area-inset-top, 0px))';
+    // Match body padding to actual rendered banner height
+    requestAnimationFrame(() => {
+      document.body.style.paddingTop = (viewerBanner.offsetHeight || 28) + 'px';
+    });
     document.getElementById('bottomNav') && (document.getElementById('bottomNav').style.display = 'none');
 
     // Viewer state: track which round viewer is on vs live round
