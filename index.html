@@ -2366,6 +2366,9 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   }
   .sb-vs-label { font-size: 7px !important; }
   .sb-score-label { font-size: 7px !important; }
+
+  .sb-right-panel { display: flex !important; flex: 1 1 40% !important; min-width: 0 !important; }
+  .sb-right-panel { display: flex !important; flex: 1 1 40% !important; min-width: 0 !important; }
 }
 
 .rp-section {
@@ -4992,6 +4995,21 @@ function renderAll() {
   // Persist state after every render
   if (state.started) saveState();
 
+  // Bottom nav visibility — sync every render
+  const _bnEl = document.getElementById('bottomNav');
+  if (_bnEl) _bnEl.style.display = state.started ? 'flex' : 'none';
+
+  // Tournament name in footer
+  const _tnEl = document.getElementById('tournamentNameDisplay');
+  if (_tnEl) {
+    if (state.started) {
+      _tnEl.textContent = state.tournamentName || '—';
+      _tnEl.style.cssText = 'display:block!important;font-size:11px!important;font-weight:600!important;color:#4a8a6a!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;max-width:200px!important;background:none!important;border:none!important;padding:0!important;visibility:visible!important;opacity:1!important;';
+    } else {
+      _tnEl.style.display = 'none';
+    }
+  }
+
   // Landscape panel
   if (state.started) renderLandscapePanel();
 }
@@ -6237,11 +6255,19 @@ function updateLandscapePanel() {
   // Tournament info
   const nameEl = document.getElementById('rpTournamentName');
   const metaEl = document.getElementById('rpTournamentMeta');
-  if (nameEl) nameEl.textContent = state.tournamentName || 'padel.teroos';
+  if (nameEl) {
+    nameEl.textContent = state.tournamentName || 'padel.teroos';
+    nameEl.style.cssText = 'display:block!important;font-size:15px!important;font-weight:800!important;color:#2d6b4e!important;line-height:1.3!important;margin-bottom:3px!important;word-break:break-word!important;visibility:visible!important;opacity:1!important;';
+  }
   if (metaEl) {
-    const fmt = formatLabel(state.format);
-    const round = state.rounds.length;
-    metaEl.textContent = `${fmt} · Round ${round}`;
+    try {
+      const fmt = formatLabel(state.format);
+      const round = state.rounds.length;
+      metaEl.textContent = `${fmt} · Round ${round}`;
+    } catch(e2) {
+      metaEl.textContent = `Round ${state.rounds ? state.rounds.length : 1}`;
+    }
+    metaEl.style.cssText = 'display:block!important;font-size:10px!important;font-weight:700!important;color:#4a8a6a!important;letter-spacing:1.2px!important;text-transform:uppercase!important;margin-bottom:10px!important;visibility:visible!important;opacity:1!important;';
   }
 
   // QR Code — same link as 📺 TV button
@@ -6347,18 +6373,6 @@ window.addEventListener('resize', () => {
 });
 
 function renderLandscapePanel() {
-  const isLandscape = window.innerWidth > window.innerHeight && window.innerWidth >= 600;
-  const wrapper = document.querySelector('.sb-landscape-wrapper');
-  if (wrapper) {
-    if (isLandscape) {
-      wrapper.style.display = 'flex';
-      wrapper.style.flexDirection = 'row';
-      wrapper.style.gap = '10px';
-      wrapper.style.overflow = 'visible';
-    } else {
-      wrapper.style.display = '';
-    }
-  }
   updateLandscapePanel();
 }
 
