@@ -3960,6 +3960,8 @@ document.getElementById('courtsStepperTeam').addEventListener('click', e => {
   const newVal = state.courts + step;
   if (newVal >= 1 && newVal <= 8) {
     state.courts = newVal;
+    state.playersPerCourt = 8; // reset to default 8 per court
+    state.manualPlayerCount = false;
     syncPlayerCount();
     syncPairCount();
     renderPlayersList();
@@ -4917,8 +4919,8 @@ function renderAll() {
   if (badgeRow) badgeRow.style.display = state.started ? 'flex' : 'none';
 
   const tnDisplay = document.getElementById('tournamentNameDisplay');
-  if (state.started && state.tournamentName) {
-    if (tnDisplay) { tnDisplay.style.display = 'block'; tnDisplay.textContent = state.tournamentName; }
+  if (state.started) {
+    if (tnDisplay) { tnDisplay.style.display = 'block'; tnDisplay.textContent = state.tournamentName || '—'; }
   } else {
     if (tnDisplay) tnDisplay.style.display = 'none';
   }
@@ -6223,14 +6225,15 @@ function updateLandscapePanel() {
   rightPanel.style.maxHeight = '90vh';
   rightPanel.style.paddingBottom = '16px';
 
-  // Ensure wrapper is flex
+  // Force wrapper layout
   const wrapper = document.querySelector('.sb-landscape-wrapper');
   if (wrapper) {
-    wrapper.style.display = 'flex';
-    wrapper.style.flexDirection = 'row';
-    wrapper.style.gap = '10px';
-    wrapper.style.alignItems = 'flex-start';
-    wrapper.style.width = '100%';
+    wrapper.style.cssText = 'display:flex!important;flex-direction:row!important;gap:10px!important;align-items:flex-start!important;width:100%!important;overflow:visible!important;';
+  }
+  // Force left panel to take 57%
+  const leftPanel = document.querySelector('.sb-left-panel');
+  if (leftPanel) {
+    leftPanel.style.cssText = 'flex:0 0 57%!important;min-width:0!important;display:flex!important;flex-direction:column!important;overflow:visible!important;';
   }
 
   try {
