@@ -2274,32 +2274,44 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
 .sb-right-panel { display: none; }
 
 @media (orientation: landscape) and (min-width: 600px) {
-  html { overflow-y: auto; }
-  body { overflow-y: auto; min-height: 100vh; }
-  main { overflow: visible; display: block; }
-  #view-overview { display: block; overflow: visible; }
-  #sbPageScore { display: block; overflow: visible; padding: 6px 10px 10px !important; }
+  html, body { overflow: hidden; height: 100%; }
+  main { overflow: hidden; display: block; height: 100%; }
+  #view-overview { display: block; overflow: hidden; height: 100%; }
+  #sbPageScore {
+    display: flex !important;
+    flex-direction: column;
+    overflow: hidden;
+    height: 100%;
+    padding: 0 10px 0 !important;
+    box-sizing: border-box;
+  }
 
   .sb-topbar {
     position: relative !important;
     top: auto !important;
     z-index: 1 !important;
     padding: 4px 12px !important;
+    flex-shrink: 0;
   }
   .round-num { font-size: 20px !important; }
 
   .sb-landscape-wrapper {
-    display: flex;
+    display: flex !important;
     flex-direction: row;
     gap: 10px;
-    align-items: flex-start;
+    align-items: stretch;
     width: 100%;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
   }
   .sb-left-panel {
     flex: 0 0 57%;
     min-width: 0;
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .sb-right-panel {
     flex: 1 1 40%;
@@ -2309,10 +2321,14 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
     gap: 6px;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    max-height: calc(100vh - 60px);
     padding-bottom: 20px;
-    position: sticky;
-    top: 0;
+  }
+  .sb-actions {
+    padding: 6px 0 4px !important;
+    margin-top: 0 !important;
+    gap: 4px !important;
+    flex-wrap: wrap;
+    flex-shrink: 0;
   }
   .sb-rest { display: none !important; }
 
@@ -2327,16 +2343,9 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   .sb-court-name { font-size: 9px !important; letter-spacing: 1px !important; }
   .court-status { font-size: 9px !important; padding: 1px 6px !important; }
   .sb-match-body { padding: 4px 10px 8px !important; gap: 5px !important; }
-
-  .sb-actions {
-    padding: 6px 0 4px !important;
-    margin-top: 0 !important;
-    gap: 4px !important;
-    flex-wrap: wrap;
-  }
   .sb-action-sm { font-size: 11px !important; padding: 5px 10px !important; }
 
-  /* Score box — use vw-based sizing, not vh (vh unreliable in mobile landscape) */
+  /* Admin score box - compact */
   .sb-score-box {
     width: clamp(40px, 5vw, 58px) !important;
     height: clamp(44px, 6vw, 66px) !important;
@@ -2353,16 +2362,16 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
     text-overflow: ellipsis;
   }
 
-  /* Score box big for viewer */
+  /* Viewer score box - 30% smaller than old design, but still bigger than admin */
   body.viewer-mode .sb-score-box {
-    width: clamp(80px, 10vw, 130px) !important;
-    height: clamp(90px, 12vw, 148px) !important;
-    border-radius: 12px !important;
+    width: clamp(52px, 7vw, 88px) !important;
+    height: clamp(58px, 8vw, 100px) !important;
+    border-radius: 10px !important;
   }
-  body.viewer-mode .sb-score-input { font-size: clamp(38px, 6vw, 72px) !important; }
+  body.viewer-mode .sb-score-input { font-size: clamp(26px, 4.5vw, 52px) !important; }
   body.viewer-mode .sb-player {
-    font-size: clamp(13px, 1.4vw, 20px) !important;
-    max-width: 130px !important;
+    font-size: clamp(12px, 1.3vw, 16px) !important;
+    max-width: 110px !important;
     overflow: visible !important;
     text-overflow: unset !important;
     white-space: normal !important;
@@ -4912,7 +4921,7 @@ function clearStoredState() {
 function renderAll() {
   // Actions: always explicitly set — no CSS dependency
   const actionsEl = document.getElementById('sbActions');
-  if (actionsEl) actionsEl.style.display = IS_VIEWER ? 'none' : '';
+  if (actionsEl && !IS_VIEWER) actionsEl.style.display = '';
   renderOverview();
   document.getElementById('formatBadge').textContent = state.started
     ? (state.ended ? `🏆 Final · ${formatLabel(state.format)}` : `${formatLabel(state.format)} · ${modeLabel(state.mode)}`)
@@ -6237,7 +6246,7 @@ function updateLandscapePanel() {
     return;
   }
   // BULLETPROOF: force entire flex chain with !important inline styles
-  rightPanel.style.cssText = 'display:flex!important;flex-direction:column!important;flex:1 1 40%!important;min-width:0!important;gap:6px!important;';
+  rightPanel.style.display = 'flex'; // CSS landscape block handles sizing
   const wrapper = document.querySelector('.sb-landscape-wrapper');
   if (wrapper) {
     wrapper.style.cssText = 'display:flex!important;flex-direction:row!important;gap:10px!important;align-items:flex-start!important;width:100%!important;overflow:visible!important;';
@@ -6508,10 +6517,11 @@ saveState = window.saveState;
     ].join(';');
     viewerBanner.textContent = '📺  MODE NONTON  ·  VIEW ONLY';
     document.body.insertBefore(viewerBanner, document.body.firstChild);
-    // Match body padding to actual rendered banner height
-    requestAnimationFrame(() => {
-      document.body.style.paddingTop = (viewerBanner.offsetHeight || 28) + 'px';
-    });
+    // Measure banner height after paint and set body padding exactly
+    setTimeout(() => {
+      const h = viewerBanner.getBoundingClientRect().height || 28;
+      document.body.style.paddingTop = h + 'px';
+    }, 0);
     document.getElementById('bottomNav') && (document.getElementById('bottomNav').style.display = 'none');
 
     // Viewer state: track which round viewer is on vs live round
@@ -6525,11 +6535,29 @@ saveState = window.saveState;
 
     // Apply viewer UI restrictions
     const applyViewerUI = () => {
-      // Hide action buttons entirely in viewer mode
-      // Actions are hidden by default (style="display:none" in HTML)
-      // Just ensure it stays hidden
+      // Show actions bar but ghost non-interactive buttons
       const actionsEl = document.getElementById('sbActions');
-      if (actionsEl) actionsEl.style.display = 'none';
+      if (actionsEl) {
+        actionsEl.style.display = '';
+        // Ghost ALL buttons first
+        actionsEl.querySelectorAll('button').forEach(btn => {
+          btn.style.opacity = '0.25';
+          btn.style.pointerEvents = 'none';
+          btn.style.cursor = 'not-allowed';
+          btn.style.filter = 'grayscale(0.5)';
+        });
+        // Enable only podium button if ended
+        if (state.ended) {
+          const podiumBtn = actionsEl.querySelector('[data-action="podium"]');
+          if (podiumBtn) {
+            podiumBtn.style.opacity = '1';
+            podiumBtn.style.pointerEvents = 'auto';
+            podiumBtn.style.cursor = 'pointer';
+            podiumBtn.style.filter = '';
+            podiumBtn.style.display = '';
+          }
+        }
+      }
       // Disable everything except fullscreen
       document.querySelectorAll('button, .nav-btn, .bottom-tab, input, label').forEach(el => {
         if (el.id === 'fullscreenBtn') return;
