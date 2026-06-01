@@ -2378,11 +2378,11 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   }
   /* Viewer score box — 30% smaller than old */
   body.viewer-mode .sb-score-box {
-    width: clamp(52px, 7vw, 88px) !important;
-    height: clamp(58px, 8vw, 100px) !important;
+    width: clamp(50px, 8vw, 90px) !important;
+    height: clamp(56px, 9vw, 102px) !important;
     border-radius: 10px !important;
   }
-  body.viewer-mode .sb-score-input { font-size: clamp(26px, 4.5vw, 52px) !important; }
+  body.viewer-mode .sb-score-input { font-size: clamp(24px, 5vw, 54px) !important; }
   body.viewer-mode .sb-player {
     font-size: clamp(12px, 1.3vw, 16px) !important;
     max-width: 110px !important;
@@ -6257,11 +6257,11 @@ function updateLandscapePanel() {
   rightPanel.style.display = 'flex'; // CSS landscape block handles sizing
   const wrapper = document.querySelector('.sb-landscape-wrapper');
   if (wrapper) {
-    wrapper.style.cssText = 'display:flex!important;flex-direction:row!important;gap:10px!important;align-items:flex-start!important;width:100%!important;overflow:visible!important;';
+    // wrapper layout handled by CSS landscape block
   }
   const leftPanel = document.querySelector('.sb-left-panel');
   if (leftPanel) {
-    leftPanel.style.cssText = 'flex:0 0 57%!important;min-width:0!important;display:flex!important;flex-direction:column!important;overflow:visible!important;';
+    // leftPanel layout handled by CSS landscape block
   }
 
   try {
