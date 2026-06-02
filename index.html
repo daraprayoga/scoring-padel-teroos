@@ -2346,6 +2346,18 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
     padding-bottom: 80px;
     box-sizing: border-box;
   }
+  /* Viewer mode: sbActions sticky at bottom so Podium button always visible */
+  body.viewer-mode #sbActions {
+    position: sticky !important;
+    bottom: 0 !important;
+    background: rgba(245,240,230,0.97) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    padding: 8px 12px !important;
+    margin: 0 -10px !important;
+    border-top: 1px solid rgba(45,107,78,0.10) !important;
+    z-index: 10 !important;
+  }
 
   .sb-actions {
     padding: 6px 0 4px !important;
@@ -2828,7 +2840,7 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   .sb-round-num { font-size: 22px; }
   .sb-tab { padding: 5px 12px; font-size: 12px; }
   .sb-nav-btn { padding: 5px 10px; font-size: 12px; }
-  .sb-page { padding: 8px 10px 120px; } /* extra bottom for bottom-nav */
+  .sb-page { padding: 8px 10px 80px; } /* extra bottom for bottom-nav */
   .sb-score-box { width: 52px; height: 58px; border-radius: 10px; }
   .sb-score-input { font-size: 30px; }
   .sb-player { font-size: 13px; font-weight: 800; max-width: 100px; }
@@ -6404,11 +6416,11 @@ saveState = window.saveState;
           btn.style.animation = 'podiumPulse 2s ease-in-out infinite';
         });
 
-        // Score tab only — Standings hidden in viewer mode
-        const _scoreTab = document.getElementById('tabScore');
-        if (_scoreTab) { _scoreTab.style.pointerEvents = 'auto'; _scoreTab.style.cursor = 'pointer'; _scoreTab.style.opacity = '1'; }
-        const _standingsTab = document.getElementById('tabStandings');
-        if (_standingsTab) { _standingsTab.style.display = 'none'; }
+        // Score tab only — Standings always hidden in viewer mode
+        const _scoreTab2 = document.getElementById('tabScore');
+        if (_scoreTab2) { _scoreTab2.style.pointerEvents = 'auto'; _scoreTab2.style.cursor = 'pointer'; _scoreTab2.style.opacity = '1'; }
+        const _stTab2 = document.getElementById('tabStandings');
+        if (_stTab2) { _stTab2.style.display = 'none'; }
 
         // Podium close button
         const closeBtn = document.getElementById('closePodium');
