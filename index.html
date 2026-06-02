@@ -5561,7 +5561,6 @@ function showPodium() {
             fill="rgba(201, 169, 97, 0.2)"/>
       <line x1="14" y1="48" x2="50" y2="48" stroke="#c9a961" stroke-width="4" stroke-linecap="round"/>
       <circle cx="8" cy="22" r="4" fill="#c9a961"/>
-      <circle cx="56" cy="22" r="4" fill="#c9a961"/>
       <circle cx="32" cy="14" r="4" fill="#c9a961"/>
     </svg>
   `;
@@ -6611,5 +6610,28 @@ saveState = window.saveState;
   }
 })();
 </script>
+<style>
+/* User revision: keep Final Podium subtitle centered on the 840px export axis (X:420). */
+.podium-page-1 .podium-header {
+  position: relative !important;
+}
+
+.podium-page-1 .podium-header .subtitle {
+  position: relative !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  display: block !important;
+  width: max-content !important;
+  max-width: min(90vw, 760px) !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  text-align: center !important;
+}
+
+.podium-slot.first .podium-rank-label::after {
+  content: none !important;
+  display: none !important;
+}
+</style>
 </body>
 </html>
