@@ -6673,8 +6673,17 @@ body.viewer-mode .sb-score-box.winner {
 }
 
 body.viewer-mode .sb-score-input {
-  color: #0f241b !important;
+  color: #0b1d16 !important;
+  -webkit-text-fill-color: #0b1d16 !important;
+  opacity: 1 !important;
+  filter: none !important;
   text-shadow: none !important;
+}
+
+body.viewer-mode .sb-score-input:disabled {
+  color: #0b1d16 !important;
+  -webkit-text-fill-color: #0b1d16 !important;
+  opacity: 1 !important;
 }
 
 body.viewer-mode .match-team-player,
@@ -6690,8 +6699,17 @@ body.viewer-mode .team-player {
 body.viewer-mode .match-score-input,
 body.viewer-mode .score-box {
   background: #f8f4ea !important;
-  color: #0f241b !important;
+  color: #0b1d16 !important;
+  -webkit-text-fill-color: #0b1d16 !important;
+  opacity: 1 !important;
   border-color: rgba(45,107,78,0.34) !important;
+}
+
+body.viewer-mode .match-score-input:disabled,
+body.viewer-mode .score-box:disabled {
+  color: #0b1d16 !important;
+  -webkit-text-fill-color: #0b1d16 !important;
+  opacity: 1 !important;
 }
 
 .podium-slot.first .podium-rank-label::after {
