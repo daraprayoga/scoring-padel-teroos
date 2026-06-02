@@ -1573,11 +1573,13 @@
 
     .podium-icon {
       margin: 0;
-      padding: 8px;
+      padding: 0 8px;
+      display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
       width: 44px;
+      align-self: stretch;
     }
     .podium-icon svg { width: 24px; height: 24px; }
     .podium-slot.first .podium-icon svg { width: 28px; height: 28px; }
@@ -1592,6 +1594,7 @@
       flex-direction: column;
       gap: 4px;
       overflow: hidden;
+      justify-content: center;
     }
     .podium-card::before { font-size: 90px; top: -16px; right: -6px; }
 
@@ -2291,7 +2294,7 @@ main { background: var(--rc-forest) !important; }
 
 /* Pages */
 .sb-page {
-  padding: 10px 12px 100px;
+  padding: 10px 12px 60px;
   max-width: 100%;
   box-sizing: border-box;
 }
@@ -2345,18 +2348,6 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
     gap: 6px;
     padding-bottom: 80px;
     box-sizing: border-box;
-  }
-  /* Viewer mode: sbActions sticky at bottom so Podium button always visible */
-  body.viewer-mode #sbActions {
-    position: sticky !important;
-    bottom: 0 !important;
-    background: rgba(245,240,230,0.97) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    padding: 8px 12px !important;
-    margin: 0 -10px !important;
-    border-top: 1px solid rgba(45,107,78,0.10) !important;
-    z-index: 10 !important;
   }
 
   .sb-actions {
@@ -2757,7 +2748,7 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 8px;
   padding-top: 4px;
 }
 .sb-action-sm {
@@ -2840,7 +2831,7 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   .sb-round-num { font-size: 22px; }
   .sb-tab { padding: 5px 12px; font-size: 12px; }
   .sb-nav-btn { padding: 5px 10px; font-size: 12px; }
-  .sb-page { padding: 8px 10px 80px; } /* extra bottom for bottom-nav */
+  .sb-page { padding: 8px 10px 60px; } /* extra bottom for bottom-nav */
   .sb-score-box { width: 52px; height: 58px; border-radius: 10px; }
   .sb-score-input { font-size: 30px; }
   .sb-player { font-size: 13px; font-weight: 800; max-width: 100px; }
@@ -6388,7 +6379,6 @@ saveState = window.saveState;
         el.style.cursor = 'default';
         el.style.pointerEvents = 'none';
       });
-      // Always hide Standings tab in viewer mode
       const _stTab = document.getElementById('tabStandings');
       if (_stTab) { _stTab.style.display = 'none'; }
 
@@ -6416,7 +6406,6 @@ saveState = window.saveState;
           btn.style.animation = 'podiumPulse 2s ease-in-out infinite';
         });
 
-        // Score tab only — Standings always hidden in viewer mode
         const _scoreTab2 = document.getElementById('tabScore');
         if (_scoreTab2) { _scoreTab2.style.pointerEvents = 'auto'; _scoreTab2.style.cursor = 'pointer'; _scoreTab2.style.opacity = '1'; }
         const _stTab2 = document.getElementById('tabStandings');
