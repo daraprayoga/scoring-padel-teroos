@@ -1577,9 +1577,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      align-self: stretch;
       flex-shrink: 0;
       width: 44px;
-      align-self: stretch;
     }
     .podium-icon svg { width: 24px; height: 24px; }
     .podium-slot.first .podium-icon svg { width: 28px; height: 28px; }
@@ -3407,6 +3407,14 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
           <div class="sb-left-panel">
             <div class="sb-courts" id="sbCourts"></div>
             <div class="sb-rest" id="sbRest" style="display:none;"></div>
+            <div class="sb-actions" id="sbActions" style="display:none;">
+              <button class="ghost-btn sb-action-sm" data-action="delete">Delete Round</button>
+              <button class="ghost-btn sb-action-sm" data-action="add">+ Add Round</button>
+              <button class="ghost-btn sb-action-sm" id="openScheduleBtn" style="display:none;">📋 Schedule</button>
+              <button class="ghost-btn sb-action-sm" id="openStatusBtn" style="display:none;">👥 Status</button>
+              <button class="end-game-btn sb-action-sm" data-action="end">🏆 End</button>
+              <button class="end-game-btn podium-btn sb-action-sm" data-action="podium" style="display:none;">🏆 Podium</button>
+            </div>
           </div>
           <div class="sb-right-panel" id="sbRightPanel">
             <!-- QR + Tournament Info -->
@@ -3430,14 +3438,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
             </div>
           </div>
         </div>
-        <div class="sb-actions" id="sbActions" style="display:none;">
-          <button class="ghost-btn sb-action-sm" data-action="delete">Delete Round</button>
-          <button class="ghost-btn sb-action-sm" data-action="add">+ Add Round</button>
-          <button class="ghost-btn sb-action-sm" id="openScheduleBtn" style="display:none;">📋 Schedule</button>
-          <button class="ghost-btn sb-action-sm" id="openStatusBtn" style="display:none;">👥 Status</button>
-          <button class="end-game-btn sb-action-sm" data-action="end">🏆 End</button>
-          <button class="end-game-btn podium-btn sb-action-sm" data-action="podium" style="display:none;">🏆 Podium</button>
-        </div>
+
       </div>
 
       <!-- STANDINGS PAGE -->
