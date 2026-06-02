@@ -1550,31 +1550,32 @@
     .podium-header h1 { font-size: 38px; letter-spacing: -1px; margin-bottom: 6px; }
     .podium-header .subtitle { font-size: 9px; letter-spacing: 2.5px; }
 
-    /* Portrait podium — 3 columns side by side, staggered like real podium */
+    /* Portrait: 3-column podium shape, same as real podium (1st tallest, 3rd shortest) */
     .podium-stage {
       flex-direction: row;
       align-items: flex-end;
       justify-content: center;
-      gap: 6px;
+      gap: 5px;
       max-width: 100%;
       margin-bottom: 10px;
     }
     .podium-slot {
       flex: 1 1 0;
       min-width: 0;
-      max-width: 35%;
+      max-width: 36%;
       flex-direction: column;
       align-items: center;
       justify-content: flex-end;
     }
+    /* Champion center, Runner-up left, Third right */
     .podium-slot.first  { order: 2; }
     .podium-slot.second { order: 1; }
     .podium-slot.third  { order: 3; }
 
-    /* Podium stagger: champion tallest, bronze shortest */
-    .podium-slot.first  .podium-card { min-height: 160px; margin-top: 0; }
-    .podium-slot.second .podium-card { min-height: 120px; margin-top: 20px; }
-    .podium-slot.third  .podium-card { min-height: 90px;  margin-top: 36px; }
+    /* Staggered heights: champion tallest, bronze shortest */
+    .podium-slot.first  .podium-card { min-height: 155px; margin-top: 0; }
+    .podium-slot.second .podium-card { min-height: 115px; margin-top: 0; }
+    .podium-slot.third  .podium-card { min-height: 85px;  margin-top: 0; }
 
     .podium-icon {
       display: flex;
@@ -1583,13 +1584,13 @@
       margin: 0 0 2px 0;
       padding: 0;
       width: auto;
-      height: 28px;
+      height: 26px;
       flex-shrink: 0;
     }
-    .podium-icon svg { width: 20px; height: 20px; }
-    .podium-slot.first .podium-icon svg { width: 24px; height: 24px; }
+    .podium-icon svg { width: 18px; height: 18px; }
+    .podium-slot.first .podium-icon svg { width: 22px; height: 22px; }
 
-    .podium-rank-label { display: block; font-size: 11px; margin-bottom: 2px; text-align: center; }
+    .podium-rank-label { display: block; font-size: 10px; margin-bottom: 2px; text-align: center; }
 
     .podium-card {
       width: 100%;
@@ -1618,10 +1619,10 @@
     .podium-slot.second .podium-place-label { color: #6a6a6a; }
     .podium-slot.third .podium-place-label { color: #8b5e20; }
 
-    .podium-name { font-size: 11px; margin-bottom: 2px; line-height: 1.1; word-break: break-word; }
-    .podium-slot.first .podium-name { font-size: 13px; }
+    .podium-name { font-size: 10px; margin-bottom: 1px; line-height: 1.1; word-break: break-word; }
+    .podium-slot.first .podium-name { font-size: 12px; }
 
-    .podium-stats { gap: 2px; grid-template-columns: repeat(2,1fr); }
+    .podium-stats { gap: 2px; grid-template-columns: repeat(2, 1fr); }
     .podium-stat-block { padding: 3px 2px; gap: 1px; border-radius: 4px; }
     .podium-stat-val { font-size: 10px; }
     .podium-stat-key { font-size: 5px; letter-spacing: 0.5px; }
@@ -3131,13 +3132,12 @@ main { padding-bottom: max(130px, env(safe-area-inset-bottom, 0px) + 120px); }
 .podium-slot.first .podium-card { box-shadow:0 3px 18px rgba(0,0,0,0.12),0 0 30px rgba(201,169,97,0.13) !important; }
 .podium-slot.first::before { background:radial-gradient(ellipse 58% 42% at 50% 54%,rgba(201,169,97,0.10) 0%,transparent 70%) !important; filter:blur(34px) !important; inset:-48px -22px !important; }
 body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
-
 @media (orientation:landscape) {
   .podium-page { justify-content:flex-start !important; padding:0 24px !important; }
   .podium-stage { flex:0 0 auto !important; margin-bottom:0 !important; }
-  .podium-slot.first  .podium-card { min-height:0 !important; max-height:none !important; margin-top:0 !important; }
+  .podium-slot.first .podium-card { min-height:0 !important; max-height:none !important; margin-top:0 !important; }
   .podium-slot.second .podium-card { min-height:0 !important; max-height:none !important; }
-  .podium-slot.third  .podium-card { min-height:0 !important; max-height:none !important; }
+  .podium-slot.third .podium-card { min-height:0 !important; max-height:none !important; }
   .podium-icon { margin-bottom:0 !important; }
   .podium-icon svg { width:24px !important; height:24px !important; filter:none !important; }
   .podium-slot.first .podium-icon svg { width:30px !important; height:30px !important; }
@@ -3148,23 +3148,19 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
   .podium-page-1 .podium-header { flex-shrink:0 !important; width:100% !important; text-align:center !important; padding:0 0 clamp(4px,0.8vh,10px) 0 !important; margin:0 !important; }
   .podium-page-1 .podium-header h1 { font-size:clamp(32px,6.5vh,72px) !important; margin-bottom:4px !important; letter-spacing:-1.5px !important; line-height:1 !important; }
   .podium-page-1 .podium-header .subtitle { font-size:clamp(8px,1.1vh,11px) !important; letter-spacing:2px !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; max-width:90vw !important; opacity:0.65 !important; }
-  /* Stage: align-items:flex-end (bottoms align), slots use justify-content:flex-end (label+card at bottom of slot) */
   .podium-stage { flex:0 0 auto !important; display:flex !important; flex-direction:row !important; align-items:flex-end !important; justify-content:center !important; width:100% !important; gap:clamp(10px,1.6vw,24px) !important; padding-bottom:0 !important; overflow:visible !important; box-sizing:border-box !important; margin:0 !important; }
-  /* Slots: justify-content:flex-end so icon+label sit tight above card, no floating gap */
   .podium-slot { flex:1 1 0 !important; min-width:0 !important; max-width:30% !important; display:flex !important; flex-direction:column !important; align-items:center !important; justify-content:flex-end !important; overflow:visible !important; box-sizing:border-box !important; }
-  .podium-slot.first  { order:2 !important; }
-  .podium-slot.second { order:1 !important; }
-  .podium-slot.third  { order:3 !important; }
+  .podium-slot.first { order:2 !important; } .podium-slot.second { order:1 !important; } .podium-slot.third { order:3 !important; }
   .podium-icon { height:clamp(28px,3.5vh,40px) !important; display:flex !important; align-items:center !important; justify-content:center !important; margin-bottom:2px !important; flex-shrink:0 !important; }
   .podium-icon svg { width:22px !important; height:22px !important; filter:none !important; }
   .podium-slot.first .podium-icon svg { width:28px !important; height:28px !important; filter:drop-shadow(0 0 8px rgba(201,169,97,0.5)) !important; }
   .podium-place-label { display:block !important; font-size:clamp(10px,1.4vh,15px) !important; margin-bottom:3px !important; text-align:center !important; }
   .podium-slot .podium-card { width:100% !important; box-sizing:border-box !important; padding:clamp(14px,2.8vh,32px) clamp(10px,1.4vw,18px) !important; gap:clamp(6px,1.1vh,12px) !important; border-radius:14px !important; justify-content:flex-start !important; margin-top:0 !important; }
-  .podium-slot.first  .podium-card { min-height:clamp(160px,28vh,260px) !important; }
+  .podium-slot.first .podium-card { min-height:clamp(160px,28vh,260px) !important; }
   .podium-slot.second .podium-card { min-height:clamp(120px,21vh,195px) !important; }
-  .podium-slot.third  .podium-card { min-height:clamp(90px,15vh,140px) !important; }
+  .podium-slot.third .podium-card { min-height:clamp(90px,15vh,140px) !important; }
   .podium-rank-label { font-size:clamp(14px,2.6vh,28px) !important; margin-bottom:4px !important; }
-  .podium-slot.first  .podium-name { font-size:clamp(15px,2.8vw,30px) !important; margin-bottom:4px !important; }
+  .podium-slot.first .podium-name { font-size:clamp(15px,2.8vw,30px) !important; margin-bottom:4px !important; }
   .podium-slot.second .podium-name, .podium-slot.third .podium-name { font-size:clamp(13px,2.1vw,22px) !important; margin-bottom:4px !important; }
   .podium-stats { gap:5px !important; grid-template-columns:repeat(4,1fr) !important; margin-top:6px !important; }
   .podium-stat-block { padding:clamp(6px,1.3vh,15px) 4px !important; border-radius:7px !important; background:rgba(255,255,255,0.80) !important; border:1px solid rgba(45,107,78,0.22) !important; }
