@@ -3349,12 +3349,12 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
               <div class="value" id="pairsVal">8</div>
               <button data-step="1">+</button>
             </div>
-            <div class="control-hint" id="pairsHint">Min = courts × 2</div>
+            <div class="control-hint" id="pairsHint">Default = courts × 4</div>
           </div>
           <div class="control">
             <label>Info</label>
             <div style="background: var(--primary-dark); padding: 12px; border-radius: 10px; font-size: 11px; color: var(--cream-dim); line-height: 1.5;">
-              4 players per court (= 2 pairs).<br>
+              Default setup: 4 pairs per court.<br>
               Extra pairs rotate sitting out.
             </div>
           </div>
@@ -3586,6 +3586,7 @@ const state = {
   playerNames: [],
   // Team
   pairs: 8, // total pairs
+  manualPairCount: false,
   pairNames: [], // [[p1Name, p2Name], ...]
   started: false,
   ended: false,
@@ -3668,6 +3669,8 @@ function syncPlayerNames() {
 
 function syncPairCount() {
   const min = state.courts * 2;
+  const defaultPairs = state.courts * 4;
+  if (!state.manualPairCount) state.pairs = defaultPairs;
   if (state.pairs < min) state.pairs = min;
   syncPairNames();
 }
@@ -3742,7 +3745,10 @@ function updateStepperVals() {
 
   document.getElementById('courtsValTeam').textContent = state.courts;
   document.getElementById('pairsVal').textContent = state.pairs;
-  document.getElementById('pairsHint').textContent = `Min = ${state.courts * 2} · Max = 50`;
+  const defaultPairs = state.courts * 4;
+  document.getElementById('pairsHint').textContent = state.manualPairCount
+    ? `Manual · default = ${defaultPairs} · min = ${state.courts * 2}`
+    : `Default: ${state.courts} × 4 = ${defaultPairs}`;
 }
 
 function updateConfigVisibility() {
@@ -3772,6 +3778,17 @@ document.querySelectorAll('.format-card').forEach(card => {
     document.querySelectorAll('.format-card').forEach(c => c.classList.remove('selected'));
     card.classList.add('selected');
     state.format = card.dataset.format;
+    if (isTeam()) {
+      state.manualPairCount = false;
+      syncPairCount();
+      renderPairsList();
+    } else {
+      state.manualPlayerCount = false;
+      state.playersPerCourt = 8;
+      syncPlayerCount();
+      renderPlayersList();
+    }
+    updateStepperVals();
     updateConfigVisibility();
   });
 });
@@ -3793,6 +3810,7 @@ document.getElementById('courtsStepper').addEventListener('click', e => {
     state.courts = newVal;
     state.playersPerCourt = 8; // reset to default 8 per court
     state.manualPlayerCount = false;
+    state.manualPairCount = false;
     const warnEl = document.getElementById('pplCourtWarn');
     if (warnEl) warnEl.style.display = 'none';
     syncPlayerCount();
@@ -3811,6 +3829,7 @@ document.getElementById('courtsStepperTeam').addEventListener('click', e => {
     state.courts = newVal;
     state.playersPerCourt = 8; // reset to default 8 per court
     state.manualPlayerCount = false;
+    state.manualPairCount = false;
     syncPlayerCount();
     syncPairCount();
     renderPlayersList();
@@ -3860,6 +3879,7 @@ document.getElementById('pairsStepper').addEventListener('click', e => {
   const newVal = state.pairs + step;
   if (newVal >= min && newVal <= max) {
     state.pairs = newVal;
+    state.manualPairCount = true;
     syncPairNames();
     renderPairsList();
     updateStepperVals();
@@ -6632,8 +6652,22 @@ saveState = window.saveState;
 </script>
 <style>
 /* User revision: keep Final Podium subtitle centered on the 840px export axis (X:420). */
+.podium-page-1 {
+  --podium-name-size: clamp(20px, 3vw, 32px);
+  --podium-name-size-secondary: clamp(17px, 2.6vw, 28px);
+  --podium-title-size: clamp(40px, 6vw, 64px);
+  --podium-label-size: clamp(16px, 2.4vw, 25.6px);
+  --podium-label-size-secondary: clamp(13.6px, 2.08vw, 22.4px);
+}
+
 .podium-page-1 .podium-header {
   position: relative !important;
+}
+
+.podium-page-1 .podium-header h1 {
+  font-size: var(--podium-title-size) !important;
+  line-height: 0.95 !important;
+  margin-bottom: 0.18em !important;
 }
 
 .podium-page-1 .podium-header .subtitle {
@@ -6641,6 +6675,8 @@ saveState = window.saveState;
   left: 50% !important;
   transform: translateX(-50%) !important;
   display: block !important;
+  font-size: var(--podium-label-size) !important;
+  line-height: 1.12 !important;
   width: max-content !important;
   max-width: min(90vw, 760px) !important;
   margin-left: 0 !important;
@@ -6648,11 +6684,15 @@ saveState = window.saveState;
   text-align: center !important;
 }
 
+.podium-page-1 .podium-header .subtitle span {
+  font-size: inherit !important;
+}
+
 .podium-slot .podium-card .podium-name {
   font-family: 'Cormorant Garamond', Georgia, serif !important;
   font-style: italic !important;
   font-weight: 700 !important;
-  font-size: clamp(17px, 2.6vw, 28px) !important;
+  font-size: var(--podium-name-size-secondary) !important;
   line-height: 1.05 !important;
   letter-spacing: 0 !important;
   text-transform: none !important;
@@ -6660,7 +6700,16 @@ saveState = window.saveState;
 }
 
 .podium-slot.first .podium-card .podium-name {
-  font-size: clamp(20px, 3vw, 32px) !important;
+  font-size: var(--podium-name-size) !important;
+}
+
+.podium-slot .podium-rank-label {
+  font-size: var(--podium-label-size-secondary) !important;
+  line-height: 1.05 !important;
+}
+
+.podium-slot.first .podium-rank-label {
+  font-size: var(--podium-label-size) !important;
 }
 
 body.viewer-mode .sb-team {
