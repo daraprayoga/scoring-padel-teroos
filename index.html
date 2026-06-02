@@ -3107,7 +3107,7 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
 
 <style>
 
-/* ===== PODIUM TV-FIT v0.59 ===== */
+/* ===== PODIUM TV-FIT v0.60 ===== */
 
 /* Font unification */
 .podium-place-label { font-family:'Cormorant Garamond',Georgia,serif !important; font-style:italic !important; font-weight:700 !important; font-size:13px !important; text-transform:none !important; }
@@ -3124,6 +3124,16 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
 body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
 
 @media (orientation:landscape) {
+
+  /* ── Reset base CSS yang interfere ── */
+  /* Base sets podium-page justify-content:center — override ke flex-start */
+  .podium-page { justify-content:flex-start !important; padding:0 24px !important; }
+  /* Base sets podium-stage margin-bottom:40px — kill it */
+  .podium-stage { margin-bottom:0 !important; }
+  /* Base sets podium-slot flex:1 and min-height on cards — kill min-heights */
+  .podium-slot.first .podium-card  { min-height:0 !important; margin-top:0 !important; }
+  .podium-slot.second .podium-card { min-height:0 !important; }
+  .podium-slot.third .podium-card  { min-height:0 !important; }
 
   /* Backdrop */
   .podium-backdrop { overflow-y:scroll !important; overflow-x:hidden !important; scroll-snap-type:y mandatory !important; scroll-behavior:smooth !important; height:100dvh !important; }
@@ -3452,7 +3462,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
       <!-- STICKY TOP BAR -->
       <div class="sb-topbar">
         <div class="sb-round-info">
-          <span class="sb-round-label">ROUND</span><span style="font-size:8px;color:#b0b0b0;margin-left:4px;font-weight:700;">0.59</span>
+          <span class="sb-round-label">ROUND</span><span style="font-size:8px;color:#b0b0b0;margin-left:4px;font-weight:700;">0.60</span>
           <span class="sb-round-num" id="liveRoundNum">1</span>
           <span class="sb-round-sub" id="liveRoundMeta"></span>
         </div>
