@@ -6376,6 +6376,9 @@ saveState = window.saveState;
         el.style.cursor = 'default';
         el.style.pointerEvents = 'none';
       });
+      // Always hide Standings tab in viewer mode
+      const _stTab = document.getElementById('tabStandings');
+      if (_stTab) { _stTab.style.display = 'none'; }
 
       // Re-enable prev/next nav with gold highlight
       document.querySelectorAll('[data-action="prev"], [data-action="next"]').forEach(btn => {
@@ -6401,11 +6404,11 @@ saveState = window.saveState;
           btn.style.animation = 'podiumPulse 2s ease-in-out infinite';
         });
 
-        // Score tab only (Standings hidden in viewer mode)
-        const scoreTab = document.getElementById('tabScore');
-        if (scoreTab) { scoreTab.style.pointerEvents = 'auto'; scoreTab.style.cursor = 'pointer'; scoreTab.style.opacity = '1'; }
-        const standingsTab = document.getElementById('tabStandings');
-        if (standingsTab) { standingsTab.style.display = 'none'; }
+        // Score tab only — Standings hidden in viewer mode
+        const _scoreTab = document.getElementById('tabScore');
+        if (_scoreTab) { _scoreTab.style.pointerEvents = 'auto'; _scoreTab.style.cursor = 'pointer'; _scoreTab.style.opacity = '1'; }
+        const _standingsTab = document.getElementById('tabStandings');
+        if (_standingsTab) { _standingsTab.style.display = 'none'; }
 
         // Podium close button
         const closeBtn = document.getElementById('closePodium');
