@@ -3107,7 +3107,7 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
 
 <style>
 
-/* ===== PODIUM TV-FIT v0.58 ===== */
+/* ===== PODIUM TV-FIT v0.59 ===== */
 
 /* Font unification */
 .podium-place-label { font-family:'Cormorant Garamond',Georgia,serif !important; font-style:italic !important; font-weight:700 !important; font-size:13px !important; text-transform:none !important; }
@@ -3139,27 +3139,32 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
     padding:0 24px !important; gap:0 !important; position:relative !important;
   }
 
-  /* PAGE 1 specific overrides on top of .podium-page */
+  /* PAGE 1
+     flex-start. Header nempel ke atas.
+     Stage flex-shrink:0 — natural height, nempel langsung di bawah header.
+     Footer margin-top:auto — didorong ke paling bawah.
+     Gap kosong ada di BAWAH footer, bukan antara header dan cards.
+  */
   .podium-page-1 {
     justify-content:flex-start !important;
     padding:0 24px !important; gap:0 !important;
   }
 
-  /* Header: small padding at top, tight below */
+  /* Header: padding top kecil, langsung diikuti stage */
   .podium-page-1 .podium-header {
     flex-shrink:0 !important; width:100% !important; text-align:center !important;
-    padding:clamp(12px,2.5vh,28px) 0 clamp(4px,0.8vh,10px) !important; margin:0 !important;
+    padding:clamp(12px,2.5vh,28px) 0 clamp(6px,1.2vh,14px) !important; margin:0 !important;
   }
   .podium-page-1 .podium-header h1 { font-size:clamp(32px,6.5vh,72px) !important; margin-bottom:4px !important; letter-spacing:-1.5px !important; line-height:1 !important; }
   .podium-page-1 .podium-header .subtitle { font-size:clamp(8px,1.1vh,11px) !important; letter-spacing:2px !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; max-width:90vw !important; opacity:0.65 !important; }
 
-  /* Stage: flex:1 fills remaining space; cards hang from bottom */
+  /* Stage: natural height (shrinks to content), TIDAK flex:1 */
   .podium-stage {
-    flex:1 1 0 !important; min-height:0 !important; height:auto !important;
+    flex-shrink:0 !important;
     display:flex !important; flex-direction:row !important;
     align-items:flex-end !important; justify-content:center !important;
     width:100% !important; gap:clamp(10px,1.6vw,24px) !important;
-    padding-bottom:clamp(6px,1.2vh,14px) !important;
+    padding-bottom:clamp(8px,1.5vh,18px) !important;
     overflow:visible !important; box-sizing:border-box !important; margin:0 !important;
   }
 
@@ -3172,23 +3177,23 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
   .podium-slot.second { order:1 !important; }
   .podium-slot.third  { order:3 !important; }
 
-  /* Icon: same row height for all slots → icons align horizontally */
+  /* Icon: fixed height, center aligned → semua icon sejajar horizontal */
   .podium-icon {
-    height:clamp(28px,4vh,44px) !important;
-    display:flex !important; align-items:flex-end !important; justify-content:center !important;
+    height:clamp(30px,4.5vh,48px) !important;
+    display:flex !important; align-items:center !important; justify-content:center !important;
     margin-bottom:2px !important;
   }
   .podium-icon svg { width:24px !important; height:24px !important; }
   .podium-slot.first .podium-icon svg { width:30px !important; height:30px !important; }
 
-  /* Place label: same fixed height so baseline aligns */
+  /* Place label */
   .podium-place-label {
     display:block !important;
     font-size:clamp(10px,1.4vh,15px) !important; margin-bottom:3px !important;
     text-align:center !important;
   }
 
-  /* Cards */
+  /* Cards: generous padding */
   .podium-slot .podium-card {
     width:100% !important; box-sizing:border-box !important;
     padding:clamp(14px,2.8vh,32px) clamp(10px,1.4vw,18px) !important;
@@ -3196,7 +3201,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
     justify-content:flex-start !important; margin-top:0 !important;
     min-height:0 !important; max-height:none !important;
   }
-  /* Stagger via margin-top on card inside slot */
+  /* Stagger: 2nd dan 3rd drop down, bottom edges align */
   .podium-slot.second .podium-card { margin-top:clamp(18px,4vh,46px) !important; }
   .podium-slot.third  .podium-card { margin-top:clamp(32px,7.5vh,86px) !important; }
 
@@ -3210,11 +3215,12 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
   .podium-stat-val   { font-size:clamp(16px,3vh,28px) !important; }
   .podium-stat-key   { font-size:8px !important; letter-spacing:0.9px !important; margin-top:3px !important; }
 
-  /* Footer: pushed to bottom by stage flex:1 */
+  /* Footer: margin-top:auto → didorong ke bawah, nempel ke cards lewat gap natural */
   .podium-page-1 .podium-footer {
-    flex-shrink:0 !important; width:100% !important; text-align:center !important;
-    padding:clamp(8px,1.4vh,16px) 0 !important;
-    border-top:1px solid rgba(45,107,78,0.09) !important; margin:0 !important; position:static !important;
+    flex-shrink:0 !important; margin-top:auto !important;
+    width:100% !important; text-align:center !important;
+    padding:clamp(8px,1.4vh,16px) 0 clamp(8px,1.4vh,16px) !important;
+    border-top:1px solid rgba(45,107,78,0.09) !important; position:static !important;
   }
   .podium-footer-brand { font-size:14px !important; font-weight:700 !important; margin-bottom:2px !important; }
   .podium-footer-tag   { font-size:9px !important; letter-spacing:1.5px !important; }
@@ -3446,7 +3452,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
       <!-- STICKY TOP BAR -->
       <div class="sb-topbar">
         <div class="sb-round-info">
-          <span class="sb-round-label">ROUND</span><span style="font-size:8px;color:#b0b0b0;margin-left:4px;font-weight:700;">0.58</span>
+          <span class="sb-round-label">ROUND</span><span style="font-size:8px;color:#b0b0b0;margin-left:4px;font-weight:700;">0.59</span>
           <span class="sb-round-num" id="liveRoundNum">1</span>
           <span class="sb-round-sub" id="liveRoundMeta"></span>
         </div>
