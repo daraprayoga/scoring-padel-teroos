@@ -748,7 +748,7 @@
   .podium-page-1 .podium-footer .podium-footer-tag { display: block; }
 
   /* Landscape: TV-FIT handles this */
-  @media (orientation: landscape) { /* intentionally cleared */ }
+  @media (orientation: landscape) { /* cleared */ }
   .podium-scroll-hint {
     position: absolute;
     bottom: 18px;
@@ -1037,7 +1037,7 @@
     gap: 10px;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.06);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.05);
   }
 
   /* Subtle rank number watermark inside card */
@@ -1091,7 +1091,8 @@
     z-index: 1;
   }
   .podium-stat-block {
-    background: rgba(245, 233, 208, 0.08);
+    background: rgba(255,255,255,0.75);
+    border: 1px solid rgba(45,107,78,0.18);
     border-radius: 6px;
     padding: 10px 6px 8px;
     display: flex;
@@ -1100,7 +1101,8 @@
     gap: 4px;
   }
   .podium-stat-block.dark {
-    background: rgba(15,35,24,0.08);
+    background: rgba(45,107,78,0.12);
+    border-color: rgba(45,107,78,0.25);
   }
   .podium-stat-val {
     font-size: 20px;
@@ -1939,7 +1941,7 @@ main { background: var(--rc-forest) !important; }
   box-shadow: 0 0 16px rgba(45,107,78,0.15), 0 4px 16px rgba(45,107,78,0.1) !important;
   transition: all 0.25s var(--transition-smooth) !important;
 }
-.start-btn:hover { border-color: rgba(201,169,97,0.75) !important; box-shadow: 0 0 50px rgba(201,169,97,0.3), 0 8px 28px rgba(0,0,0,0.5), var(--rc-inset) !important; transform: translateY(-2px); }
+.start-btn:hover { border-color: rgba(201,169,97,0.75) !important; box-shadow: 0 0 24px rgba(201,169,97,0.14), 0 2px 8px rgba(0,0,0,0.08), var(--rc-inset) !important; transform: translateY(-2px); }
 .start-btn:active { transform: scale(0.97) !important; }
 
 /* ---------- End game / podium button ---------- */
@@ -2237,7 +2239,7 @@ main { background: var(--rc-forest) !important; }
 .sb-tabs {
   display: flex;
   background: rgba(45,107,78,0.06);
-  border: 1px solid rgba(45,107,78,0.12);
+  border: 1px solid rgba(240,235,224,0.08);
   border-radius: 12px;
   padding: 3px;
   gap: 2px;
@@ -2539,7 +2541,7 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
 
 .sb-court-card {
   background: var(--rc-panel);
-  border: 1px solid var(--rc-border);
+  border: 1px solid rgba(240,235,224,0.08);
   border-radius: 22px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0,0,0,0.07);
@@ -2826,7 +2828,7 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   .sb-round-num { font-size: 22px; }
   .sb-tab { padding: 5px 12px; font-size: 12px; }
   .sb-nav-btn { padding: 5px 10px; font-size: 12px; }
-  .sb-page { padding: 8px 10px 120px; } /* extra bottom for bottom-nav */
+  .sb-page { padding: 8px 10px 90px; } /* extra bottom for bottom-nav */
   .sb-score-box { width: 52px; height: 58px; border-radius: 10px; }
   .sb-score-input { font-size: 30px; }
   .sb-player { font-size: 13px; font-weight: 800; max-width: 100px; }
@@ -2857,6 +2859,7 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
 .podium-results-header {
   text-align: center;
   flex-shrink: 0;
+  margin-top: 4px;
   margin-bottom: 8px;
 }
 .podium-results-header h2 {
@@ -2960,9 +2963,10 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   line-height: 1;
 }
 .podium-results-footer {
-  margin-top: auto;
+  margin-top: 6px;
   flex-shrink: 0;
   padding-top: 8px;
+  padding-bottom: 4px;
   text-align: center;
 }
 @media (max-width: 640px) {
@@ -3061,7 +3065,7 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
 }
 
 /* Push main content up so bottom nav doesn't cover it */
-main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
+main { padding-bottom: max(80px, env(safe-area-inset-bottom, 0px) + 70px); }
 
 @media (orientation: landscape) and (min-width: 600px) {
   .podium-backdrop {
@@ -3107,7 +3111,7 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
 
 <style>
 
-/* ===== PODIUM TV-FIT v0.65 ===== */
+/* ===== PODIUM TV-FIT v0.66 ===== */
 
 /* Font unification */
 .podium-place-label { font-family:'Cormorant Garamond',Georgia,serif !important; font-style:italic !important; font-weight:700 !important; font-size:13px !important; text-transform:none !important; }
@@ -3115,40 +3119,35 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
 .podium-rank-label { font-family:'Cormorant Garamond',Georgia,serif !important; font-style:italic !important; font-weight:700 !important; }
 .podium-stat-val { font-family:'Cormorant Garamond',Georgia,serif !important; font-weight:700 !important; }
 
-/* Gold glow */
+/* Stat blocks — higher contrast for TV readability */
+.podium-stat-block { background:rgba(255,255,255,0.75) !important; border:1px solid rgba(45,107,78,0.20) !important; }
+.podium-stat-block.dark { background:rgba(45,107,78,0.14) !important; border-color:rgba(45,107,78,0.28) !important; }
+
+/* Gold glow — soft */
 .podium-card { box-shadow:0 2px 14px rgba(0,0,0,0.09) !important; }
-.podium-slot.first .podium-card { box-shadow:0 3px 18px rgba(0,0,0,0.15),0 0 44px rgba(201,169,97,0.13),0 0 14px rgba(201,169,97,0.07) !important; }
-.podium-slot.first::before { background:radial-gradient(ellipse 58% 42% at 50% 54%,rgba(201,169,97,0.11) 0%,transparent 70%) !important; filter:blur(34px) !important; inset:-48px -22px !important; }
+.podium-slot.first .podium-card { box-shadow:0 3px 18px rgba(0,0,0,0.12),0 0 30px rgba(201,169,97,0.13) !important; }
+.podium-slot.first::before { background:radial-gradient(ellipse 58% 42% at 50% 54%,rgba(201,169,97,0.10) 0%,transparent 70%) !important; filter:blur(34px) !important; inset:-48px -22px !important; }
 
 /* Hide viewer banner when podium open */
 body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
 
 @media (orientation:landscape) {
 
-  /* ── Reset ALL base CSS that creates the gap ── */
+  /* ── Reset ALL base CSS ── */
   .podium-page { justify-content:flex-start !important; padding:0 24px !important; }
   .podium-stage { flex:0 0 auto !important; margin-bottom:0 !important; }
-  /* Kill base min-heights and margins on cards */
-  .podium-slot.first .podium-card  { min-height:0 !important; max-height:none !important; margin-top:0 !important; margin-bottom:0 !important; }
+  .podium-slot.first  .podium-card { min-height:0 !important; max-height:none !important; margin-top:0 !important; }
   .podium-slot.second .podium-card { min-height:0 !important; max-height:none !important; }
-  .podium-slot.third .podium-card  { min-height:0 !important; max-height:none !important; }
-  /* Kill base icon sizes (64px/84px) — these inflate stage height dramatically */
+  .podium-slot.third  .podium-card { min-height:0 !important; max-height:none !important; }
   .podium-icon { margin-bottom:0 !important; }
   .podium-icon svg { width:24px !important; height:24px !important; filter:none !important; }
   .podium-slot.first .podium-icon svg { width:30px !important; height:30px !important; }
-  /* Kill podium-bar heights */
   .podium-slot .podium-bar { display:none !important; }
-  /* Kill base podium-page padding that adds space */
-  .podium-page-1 { padding-top:0 !important; }
-  /* Kill base header margin */
-  .podium-page-1 .podium-header { margin-bottom:0 !important; }
-  /* Kill base stage margin */
-  .podium-page-1 .podium-stage { margin-bottom:0 !important; margin-top:0 !important; }
 
   /* Backdrop */
   .podium-backdrop { overflow-y:scroll !important; overflow-x:hidden !important; scroll-snap-type:y mandatory !important; scroll-behavior:smooth !important; height:100dvh !important; }
 
-  /* Every podium page = exactly one screen */
+  /* Every page = one screen */
   .podium-page {
     height:100dvh !important; min-height:100dvh !important; max-height:100dvh !important;
     width:100vw !important; max-width:100vw !important;
@@ -3156,93 +3155,54 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
     scroll-snap-align:start !important; scroll-snap-stop:always !important;
     display:flex !important; flex-direction:column !important;
     align-items:center !important; justify-content:flex-start !important;
-    padding:0 24px !important; gap:0 !important; position:relative !important;
-  }
-
-  /* PAGE 1
-     flex-start. Header nempel ke atas.
-     Stage flex-shrink:0 — natural height, nempel langsung di bawah header.
-     Footer margin-top:auto — didorong ke paling bawah.
-     Gap kosong ada di BAWAH footer, bukan antara header dan cards.
-  */
-  .podium-page-1 {
-    justify-content:center !important;
     padding:0 24px !important; gap:0 !important;
   }
 
-  /* Header: padding top kecil, langsung diikuti stage */
-  .podium-page-1 .podium-header {
-    flex-shrink:0 !important; width:100% !important; text-align:center !important;
-    padding:clamp(12px,2.5vh,28px) 0 clamp(6px,1.2vh,14px) !important; margin:0 !important;
-  }
+  /* PAGE 1 — centered vertically */
+  .podium-page-1 { justify-content:center !important; padding:0 24px !important; gap:0 !important; }
+
+  .podium-page-1 .podium-header { flex-shrink:0 !important; width:100% !important; text-align:center !important; padding:0 0 clamp(4px,0.8vh,10px) 0 !important; margin:0 !important; }
   .podium-page-1 .podium-header h1 { font-size:clamp(32px,6.5vh,72px) !important; margin-bottom:4px !important; letter-spacing:-1.5px !important; line-height:1 !important; }
   .podium-page-1 .podium-header .subtitle { font-size:clamp(8px,1.1vh,11px) !important; letter-spacing:2px !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; max-width:90vw !important; opacity:0.65 !important; }
 
-  /* Stage: natural height, align-items:flex-start so icons align at top */
   .podium-stage {
     flex:0 0 auto !important;
     display:flex !important; flex-direction:row !important;
     align-items:flex-end !important; justify-content:center !important;
     width:100% !important; gap:clamp(10px,1.6vw,24px) !important;
-    padding-bottom:0 !important;
-    overflow:visible !important; box-sizing:border-box !important; margin:0 !important;
+    padding-bottom:0 !important; overflow:visible !important; box-sizing:border-box !important; margin:0 !important;
   }
 
-  .podium-slot {
-    flex:1 1 0 !important; min-width:0 !important; max-width:30% !important;
-    display:flex !important; flex-direction:column !important;
-    align-items:center !important; overflow:visible !important; box-sizing:border-box !important;
-  }
+  .podium-slot { flex:1 1 0 !important; min-width:0 !important; max-width:30% !important; display:flex !important; flex-direction:column !important; align-items:center !important; overflow:visible !important; box-sizing:border-box !important; }
   .podium-slot.first  { order:2 !important; }
   .podium-slot.second { order:1 !important; }
   .podium-slot.third  { order:3 !important; }
 
-  /* Icon: compact fixed height, all icons center-aligned = visually level */
-  .podium-icon {
-    height:clamp(28px,3.5vh,40px) !important;
-    display:flex !important; align-items:center !important; justify-content:center !important;
-    margin-bottom:2px !important; flex-shrink:0 !important;
-  }
+  /* Icon: fixed height, center-aligned → sejajar horizontal */
+  .podium-icon { height:clamp(28px,3.5vh,40px) !important; display:flex !important; align-items:center !important; justify-content:center !important; margin-bottom:2px !important; flex-shrink:0 !important; }
   .podium-icon svg { width:22px !important; height:22px !important; filter:none !important; }
   .podium-slot.first .podium-icon svg { width:28px !important; height:28px !important; filter:drop-shadow(0 0 8px rgba(201,169,97,0.5)) !important; }
 
-  /* Place label */
-  .podium-place-label {
-    display:block !important;
-    font-size:clamp(10px,1.4vh,15px) !important; margin-bottom:3px !important;
-    text-align:center !important;
-  }
+  .podium-place-label { display:block !important; font-size:clamp(10px,1.4vh,15px) !important; margin-bottom:3px !important; text-align:center !important; }
 
-  /* Cards: generous padding */
-  .podium-slot .podium-card {
-    width:100% !important; box-sizing:border-box !important;
-    padding:clamp(14px,2.8vh,32px) clamp(10px,1.4vw,18px) !important;
-    gap:clamp(6px,1.1vh,12px) !important; border-radius:14px !important;
-    justify-content:flex-start !important; margin-top:0 !important;
-    min-height:0 !important; max-height:none !important;
-  }
-  /* Podium height stagger: champion tallest, bronze shortest, bottoms aligned */
+  /* Cards: podium shape — champion tallest, bronze shortest */
+  .podium-slot .podium-card { width:100% !important; box-sizing:border-box !important; padding:clamp(14px,2.8vh,32px) clamp(10px,1.4vw,18px) !important; gap:clamp(6px,1.1vh,12px) !important; border-radius:14px !important; justify-content:flex-start !important; margin-top:0 !important; }
   .podium-slot.first  .podium-card { min-height:clamp(160px,28vh,260px) !important; margin-top:0 !important; }
   .podium-slot.second .podium-card { min-height:clamp(120px,21vh,195px) !important; margin-top:clamp(20px,4vh,46px) !important; }
-  .podium-slot.third  .podium-card { min-height:clamp(90px,15vh,140px)  !important; margin-top:clamp(38px,8vh,90px)  !important; }
+  .podium-slot.third  .podium-card { min-height:clamp(90px,15vh,140px)  !important; margin-top:clamp(38px,8vh,90px) !important; }
 
   .podium-rank-label  { font-size:clamp(14px,2.6vh,28px) !important; margin-bottom:3px !important; }
   .podium-slot.first  .podium-name { font-size:clamp(15px,2.8vw,30px) !important; margin-bottom:4px !important; }
-  .podium-slot.second .podium-name,
-  .podium-slot.third  .podium-name { font-size:clamp(13px,2.1vw,22px) !important; margin-bottom:4px !important; }
+  .podium-slot.second .podium-name, .podium-slot.third .podium-name { font-size:clamp(13px,2.1vw,22px) !important; margin-bottom:4px !important; }
 
+  /* Stat blocks in landscape: extra contrast for TV */
   .podium-stats { gap:5px !important; grid-template-columns:repeat(4,1fr) !important; margin-top:6px !important; }
-  .podium-stat-block { padding:clamp(6px,1.3vh,15px) 4px !important; border-radius:7px !important; }
-  .podium-stat-val   { font-size:clamp(16px,3vh,28px) !important; }
-  .podium-stat-key   { font-size:8px !important; letter-spacing:0.9px !important; margin-top:3px !important; }
+  .podium-stat-block { padding:clamp(6px,1.3vh,15px) 4px !important; border-radius:7px !important; background:rgba(255,255,255,0.80) !important; border:1px solid rgba(45,107,78,0.22) !important; }
+  .podium-stat-block.dark { background:rgba(45,107,78,0.16) !important; border-color:rgba(45,107,78,0.30) !important; }
+  .podium-stat-val { font-size:clamp(16px,3vh,28px) !important; }
+  .podium-stat-key { font-size:8px !important; letter-spacing:0.9px !important; margin-top:3px !important; }
 
-  /* Footer: tight below stage */
-  .podium-page-1 .podium-footer {
-    flex-shrink:0 !important; margin-top:clamp(6px,1.2vh,16px) !important;
-    width:100% !important; text-align:center !important;
-    padding:clamp(8px,1.4vh,16px) 0 clamp(8px,1.4vh,16px) !important;
-    border-top:1px solid rgba(45,107,78,0.09) !important; position:static !important;
-  }
+  .podium-page-1 .podium-footer { flex-shrink:0 !important; margin-top:clamp(6px,1.2vh,16px) !important; width:100% !important; text-align:center !important; padding:clamp(8px,1.4vh,16px) 0 clamp(8px,1.4vh,16px) !important; border-top:1px solid rgba(45,107,78,0.09) !important; position:static !important; }
   .podium-footer-brand { font-size:14px !important; font-weight:700 !important; margin-bottom:2px !important; }
   .podium-footer-tag   { font-size:9px !important; letter-spacing:1.5px !important; }
   .podium-social-row   { font-size:11px !important; margin-top:4px !important; gap:12px !important; }
@@ -3473,7 +3433,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
       <!-- STICKY TOP BAR -->
       <div class="sb-topbar">
         <div class="sb-round-info">
-          <span class="sb-round-label">ROUND</span><span style="font-size:8px;color:#b0b0b0;margin-left:4px;font-weight:700;">0.65</span>
+          <span class="sb-round-label">ROUND</span><span style="font-size:8px;color:#b0b0b0;margin-left:4px;font-weight:700;">0.66</span>
           <span class="sb-round-num" id="liveRoundNum">1</span>
           <span class="sb-round-sub" id="liveRoundMeta"></span>
         </div>
@@ -5236,7 +5196,7 @@ function showSwapModal(currentId, triggerEl) {
     if (opt.id === currentId) return; // skip self
     const btn = document.createElement('button');
     btn.style.cssText = `
-      background: rgba(255,255,255,0.03); border: 1px solid rgba(45,107,78,0.12);
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(240,235,224,0.08);
       border-radius: 12px; padding: 12px 16px; text-align:left; cursor:pointer;
       color: #f0ebe0; font-size:14px; font-weight:700; text-transform:uppercase;
       letter-spacing:0.3px; transition: all 0.15s; width:100%;
@@ -6434,11 +6394,7 @@ saveState = window.saveState;
     viewerBanner.textContent = '📺  MODE NONTON  ·  VIEW ONLY';
     document.body.insertBefore(viewerBanner, document.body.firstChild);
     const _podMod = document.getElementById('podiumModal');
-    if (_podMod) {
-      new MutationObserver(() => {
-        viewerBanner.style.display = _podMod.classList.contains('show') ? 'none' : '';
-      }).observe(_podMod, { attributes:true, attributeFilter:['class'] });
-    }
+    if (_podMod) { new MutationObserver(() => { viewerBanner.style.display = _podMod.classList.contains('show') ? 'none' : ''; }).observe(_podMod, { attributes:true, attributeFilter:['class'] }); }
     // Measure banner height after paint and set body padding exactly
     setTimeout(() => {
       const h = viewerBanner.getBoundingClientRect().height || 28;
