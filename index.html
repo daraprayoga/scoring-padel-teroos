@@ -4832,7 +4832,12 @@ function renderAll() {
   if (statusBtn) statusBtn.style.display = state.started ? '' : 'none';
 
   // Score inputs always editable (even after end — user may need to correct scores)
-  document.querySelectorAll('.sb-score-input').forEach(inp => {
+  document.querySelectorAll('.sb-score-input, .score-box, .match-score-input, input[data-source][data-match][data-team]').forEach(inp => {
+    inp.type = 'tel';
+    inp.inputMode = 'numeric';
+    inp.pattern = '[0-9]*';
+    inp.autocomplete = 'off';
+    inp.enterKeyHint = 'done';
     inp.disabled = false;
     inp.readOnly = false;
     inp.style.cursor = '';
@@ -4937,12 +4942,12 @@ function renderOverview() {
         <div class="sb-score-center">
           <div class="sb-score-row">
             <div class="sb-score-box ${winner === 'A' ? 'winner' : ''}">
-              <input class="sb-score-input" type="text" inputmode="numeric" pattern="[0-9]*"
+              <input class="sb-score-input" type="tel" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="done"
                      value="${m.scoreA}" data-match="${i}" data-team="A">
             </div>
             <div class="sb-score-sep">:</div>
             <div class="sb-score-box ${winner === 'B' ? 'winner' : ''}">
-              <input class="sb-score-input" type="text" inputmode="numeric" pattern="[0-9]*"
+              <input class="sb-score-input" type="tel" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="done"
                      value="${m.scoreB}" data-match="${i}" data-team="B">
             </div>
           </div>
@@ -6502,6 +6507,19 @@ saveState = window.saveState;
     };
     showPodium = window.showPodium;
 
+    let _viewerAutoPodiumKey = null;
+    const maybeAutoOpenPodium = () => {
+      if (!state.ended) {
+        _viewerAutoPodiumKey = null;
+        return;
+      }
+      const endedKey = state.endedAt ? new Date(state.endedAt).toISOString() : 'ended';
+      if (_viewerAutoPodiumKey === endedKey) return;
+      _viewerAutoPodiumKey = endedKey;
+      showPodium();
+      applyViewerUI();
+    };
+
     // Override handleRoundAction for viewer — allow prev/next + podium
     const _origHandleRoundAction = handleRoundAction;
     window.handleRoundAction = function(action) {
@@ -6548,7 +6566,7 @@ saveState = window.saveState;
       // Retry every 5s
       setInterval(async () => {
         await pullFromFirebase();
-        if (state.started) { overlay.remove(); showView('overview'); renderAll(); applyViewerUI(); }
+        if (state.started) { overlay.remove(); showView('overview'); renderAll(); applyViewerUI(); maybeAutoOpenPodium(); }
       }, 5000);
       return;
     }
@@ -6563,6 +6581,7 @@ saveState = window.saveState;
     }
 
     applyViewerUI();
+    maybeAutoOpenPodium();
 
     // Poll every 3 seconds — only follow live round if viewer hasn't navigated away
     _fbSyncInterval = setInterval(async () => {
@@ -6580,6 +6599,7 @@ saveState = window.saveState;
       }
       renderAll();
       applyViewerUI();
+      maybeAutoOpenPodium();
     }, 3000);
 
   } else {
