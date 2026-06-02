@@ -96,7 +96,7 @@
     justify-content: space-between;
     flex-shrink: 0;
     max-width: 100vw;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+    box-shadow: 0 1px 6px rgba(0,0,0,0.08);
     z-index: 100;
   }
   .brand { display: flex; align-items: center; gap: 10px; }
@@ -803,7 +803,7 @@
     padding: 18px 22px;
     width: 100%;
     max-width: 1100px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
     flex: 0 0 auto;
     overflow: hidden;
   }
@@ -1037,7 +1037,7 @@
     gap: 10px;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.06);
   }
 
   /* Subtle rank number watermark inside card */
@@ -1124,8 +1124,8 @@
     background: rgba(245, 233, 208, 0.10);
     border-color: rgba(201, 169, 97, 0.55);
     box-shadow:
-      0 12px 48px rgba(0,0,0,0.45),
-      0 0 100px rgba(201, 169, 97, 0.35),
+      0 3px 12px rgba(0,0,0,0.09),
+      0 0 40px rgba(201, 169, 97, 0.16),
       0 0 40px rgba(201, 169, 97, 0.25),
       inset 0 1px 0 rgba(255,255,255,0.15);
   }
@@ -1725,7 +1725,7 @@ header {
   backdrop-filter: blur(20px) !important;
   -webkit-backdrop-filter: blur(20px) !important;
   border-bottom: 1px solid rgba(45,107,78,0.15) !important;
-  box-shadow: 0 1px 0 rgba(201,169,97,0.12), 0 4px 30px rgba(0,0,0,0.5) !important;
+  box-shadow: 0 1px 0 rgba(201,169,97,0.12), 0 2px 8px rgba(0,0,0,0.08) !important;
 }
 
 /* ---------- Format badge ---------- */
@@ -1823,7 +1823,7 @@ main { background: var(--rc-forest) !important; }
   transition: opacity 0.25s;
   pointer-events: none;
 }
-.format-card:hover { border-color: var(--rc-border-lit) !important; transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.5) !important; }
+.format-card:hover { border-color: var(--rc-border-lit) !important; transform: translateY(-2px); box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important; }
 .format-card:hover::after { opacity: 1; }
 .format-card:active { transform: scale(0.97) !important; }
 .format-card.selected {
@@ -2096,7 +2096,7 @@ main { background: var(--rc-forest) !important; }
   background: rgba(245,240,230,0.98) !important;
   border: 1px solid var(--rc-border) !important;
   border-radius: 20px !important;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.03) !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08), 0 0 0 1px rgba(45,107,78,0.08) !important;
   backdrop-filter: blur(30px) !important;
   -webkit-backdrop-filter: blur(30px) !important;
   animation: modalPop 0.3s var(--transition-spring) both;
@@ -3107,7 +3107,7 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
 
 <style>
 
-/* ===== PODIUM TV-FIT v0.64 ===== */
+/* ===== PODIUM TV-FIT v0.65 ===== */
 
 /* Font unification */
 .podium-place-label { font-family:'Cormorant Garamond',Georgia,serif !important; font-style:italic !important; font-weight:700 !important; font-size:13px !important; text-transform:none !important; }
@@ -3166,7 +3166,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
      Gap kosong ada di BAWAH footer, bukan antara header dan cards.
   */
   .podium-page-1 {
-    justify-content:flex-start !important;
+    justify-content:center !important;
     padding:0 24px !important; gap:0 !important;
   }
 
@@ -3182,7 +3182,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
   .podium-stage {
     flex:0 0 auto !important;
     display:flex !important; flex-direction:row !important;
-    align-items:flex-start !important; justify-content:center !important;
+    align-items:flex-end !important; justify-content:center !important;
     width:100% !important; gap:clamp(10px,1.6vw,24px) !important;
     padding-bottom:0 !important;
     overflow:visible !important; box-sizing:border-box !important; margin:0 !important;
@@ -3221,17 +3221,10 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
     justify-content:flex-start !important; margin-top:0 !important;
     min-height:0 !important; max-height:none !important;
   }
-  /* Stagger: champion card taller via extra padding-bottom, 2nd/3rd shorter
-     All cards start at same Y (icon+label height), champion just extends further down */
-  .podium-slot.second .podium-card { 
-    padding-bottom:clamp(10px,2vh,22px) !important;
-  }
-  .podium-slot.third .podium-card { 
-    padding-bottom:clamp(6px,1.2vh,14px) !important;
-  }
-  .podium-slot.first .podium-card { 
-    padding-bottom:clamp(22px,4.5vh,52px) !important;
-  }
+  /* Podium height stagger: champion tallest, bronze shortest, bottoms aligned */
+  .podium-slot.first  .podium-card { min-height:clamp(160px,28vh,260px) !important; margin-top:0 !important; }
+  .podium-slot.second .podium-card { min-height:clamp(120px,21vh,195px) !important; margin-top:clamp(20px,4vh,46px) !important; }
+  .podium-slot.third  .podium-card { min-height:clamp(90px,15vh,140px)  !important; margin-top:clamp(38px,8vh,90px)  !important; }
 
   .podium-rank-label  { font-size:clamp(14px,2.6vh,28px) !important; margin-bottom:3px !important; }
   .podium-slot.first  .podium-name { font-size:clamp(15px,2.8vw,30px) !important; margin-bottom:4px !important; }
@@ -3480,7 +3473,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
       <!-- STICKY TOP BAR -->
       <div class="sb-topbar">
         <div class="sb-round-info">
-          <span class="sb-round-label">ROUND</span><span style="font-size:8px;color:#b0b0b0;margin-left:4px;font-weight:700;">0.64</span>
+          <span class="sb-round-label">ROUND</span><span style="font-size:8px;color:#b0b0b0;margin-left:4px;font-weight:700;">0.65</span>
           <span class="sb-round-num" id="liveRoundNum">1</span>
           <span class="sb-round-sub" id="liveRoundMeta"></span>
         </div>
@@ -5821,7 +5814,7 @@ function showToast(msg) {
     font-size: 12px; font-weight: 700; letter-spacing: 0.3px;
     backdrop-filter: blur(20px); z-index: 500;
     max-width: calc(100vw - 40px); text-align: center;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
     animation: toastIn 0.2s ease both;
   `;
   document.body.appendChild(t);
