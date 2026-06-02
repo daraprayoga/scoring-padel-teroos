@@ -6643,6 +6643,57 @@ saveState = window.saveState;
   font-size: clamp(20px, 3vw, 32px) !important;
 }
 
+body.viewer-mode .sb-team {
+  min-width: 0 !important;
+}
+
+body.viewer-mode .sb-player {
+  font-size: clamp(10px, 1.15vw, 15px) !important;
+  line-height: 1.08 !important;
+  max-width: clamp(92px, 13vw, 150px) !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  overflow-wrap: anywhere !important;
+  word-break: normal !important;
+  text-overflow: clip !important;
+}
+
+body.viewer-mode .sb-score-box {
+  background: #f8f4ea !important;
+  border-color: rgba(45,107,78,0.34) !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.9),
+    0 6px 14px rgba(45,107,78,0.10),
+    inset 0 -1px 0 rgba(45,107,78,0.14) !important;
+}
+
+body.viewer-mode .sb-score-box.winner {
+  background: #e5efe7 !important;
+  border-color: rgba(45,107,78,0.58) !important;
+}
+
+body.viewer-mode .sb-score-input {
+  color: #0f241b !important;
+  text-shadow: none !important;
+}
+
+body.viewer-mode .match-team-player,
+body.viewer-mode .team-player {
+  font-size: clamp(11px, 2.8vw, 14px) !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  overflow-wrap: anywhere !important;
+  text-overflow: clip !important;
+  line-height: 1.12 !important;
+}
+
+body.viewer-mode .match-score-input,
+body.viewer-mode .score-box {
+  background: #f8f4ea !important;
+  color: #0f241b !important;
+  border-color: rgba(45,107,78,0.34) !important;
+}
+
 .podium-slot.first .podium-rank-label::after {
   content: none !important;
   display: none !important;
