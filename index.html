@@ -3107,7 +3107,7 @@ main { padding-bottom: max(100px, env(safe-area-inset-bottom, 0px) + 90px); }
 
 <style>
 
-/* ===== PODIUM TV-FIT v0.62 ===== */
+/* ===== PODIUM TV-FIT v0.63 ===== */
 
 /* Font unification */
 .podium-place-label { font-family:'Cormorant Garamond',Georgia,serif !important; font-style:italic !important; font-weight:700 !important; font-size:13px !important; text-transform:none !important; }
@@ -3129,7 +3129,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
   .podium-page { justify-content:flex-start !important; padding:0 24px !important; }
   .podium-stage { flex:0 0 auto !important; margin-bottom:0 !important; }
   /* Kill base min-heights and margins on cards */
-  .podium-slot.first .podium-card  { min-height:0 !important; max-height:none !important; margin-top:0 !important; }
+  .podium-slot.first .podium-card  { min-height:0 !important; max-height:none !important; margin-top:0 !important; margin-bottom:0 !important; }
   .podium-slot.second .podium-card { min-height:0 !important; max-height:none !important; }
   .podium-slot.third .podium-card  { min-height:0 !important; max-height:none !important; }
   /* Kill base icon sizes (64px/84px) — these inflate stage height dramatically */
@@ -3178,13 +3178,13 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
   .podium-page-1 .podium-header h1 { font-size:clamp(32px,6.5vh,72px) !important; margin-bottom:4px !important; letter-spacing:-1.5px !important; line-height:1 !important; }
   .podium-page-1 .podium-header .subtitle { font-size:clamp(8px,1.1vh,11px) !important; letter-spacing:2px !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; max-width:90vw !important; opacity:0.65 !important; }
 
-  /* Stage: natural height — flex:0 0 auto kills the flex:1 from base 600px block */
+  /* Stage: natural height, align-items:flex-start so icons align at top */
   .podium-stage {
     flex:0 0 auto !important;
     display:flex !important; flex-direction:row !important;
-    align-items:flex-end !important; justify-content:center !important;
+    align-items:flex-start !important; justify-content:center !important;
     width:100% !important; gap:clamp(10px,1.6vw,24px) !important;
-    padding-bottom:clamp(8px,1.5vh,18px) !important;
+    padding-bottom:0 !important;
     overflow:visible !important; box-sizing:border-box !important; margin:0 !important;
   }
 
@@ -3221,9 +3221,17 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
     justify-content:flex-start !important; margin-top:0 !important;
     min-height:0 !important; max-height:none !important;
   }
-  /* Stagger: 2nd dan 3rd drop down, bottom edges align */
-  .podium-slot.second .podium-card { margin-top:clamp(18px,4vh,46px) !important; }
-  .podium-slot.third  .podium-card { margin-top:clamp(32px,7.5vh,86px) !important; }
+  /* Stagger: champion card taller via extra padding-bottom, 2nd/3rd shorter
+     All cards start at same Y (icon+label height), champion just extends further down */
+  .podium-slot.second .podium-card { 
+    padding-bottom:clamp(10px,2vh,22px) !important;
+  }
+  .podium-slot.third .podium-card { 
+    padding-bottom:clamp(6px,1.2vh,14px) !important;
+  }
+  .podium-slot.first .podium-card { 
+    padding-bottom:clamp(22px,4.5vh,52px) !important;
+  }
 
   .podium-rank-label  { font-size:clamp(14px,2.6vh,28px) !important; margin-bottom:3px !important; }
   .podium-slot.first  .podium-name { font-size:clamp(15px,2.8vw,30px) !important; margin-bottom:4px !important; }
@@ -3235,9 +3243,9 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
   .podium-stat-val   { font-size:clamp(16px,3vh,28px) !important; }
   .podium-stat-key   { font-size:8px !important; letter-spacing:0.9px !important; margin-top:3px !important; }
 
-  /* Footer: margin-top:auto → didorong ke bawah, nempel ke cards lewat gap natural */
+  /* Footer: tight below stage */
   .podium-page-1 .podium-footer {
-    flex-shrink:0 !important; margin-top:auto !important;
+    flex-shrink:0 !important; margin-top:clamp(6px,1.2vh,16px) !important;
     width:100% !important; text-align:center !important;
     padding:clamp(8px,1.4vh,16px) 0 clamp(8px,1.4vh,16px) !important;
     border-top:1px solid rgba(45,107,78,0.09) !important; position:static !important;
@@ -3472,7 +3480,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
       <!-- STICKY TOP BAR -->
       <div class="sb-topbar">
         <div class="sb-round-info">
-          <span class="sb-round-label">ROUND</span><span style="font-size:8px;color:#b0b0b0;margin-left:4px;font-weight:700;">0.62</span>
+          <span class="sb-round-label">ROUND</span><span style="font-size:8px;color:#b0b0b0;margin-left:4px;font-weight:700;">0.63</span>
           <span class="sb-round-num" id="liveRoundNum">1</span>
           <span class="sb-round-sub" id="liveRoundMeta"></span>
         </div>
