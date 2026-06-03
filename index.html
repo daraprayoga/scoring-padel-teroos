@@ -83,9 +83,6 @@
     0%   { transform: translateX(0); }
     100% { transform: translateX(-50%); }
   }
-  @media (prefers-reduced-motion: reduce) {
-    .beta-ticker { animation: none; justify-content: center; }
-  }
 
   /* Podium backdrop covers beta banner */
   header {
@@ -126,26 +123,6 @@
   .setup-title { text-align: center; margin-bottom: 2px; }
   .setup-title h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
   .setup-title p { color: var(--cream-dim); font-size: 13px; margin-top: 4px; }
-  .setup-hero { padding: 14px 0 4px; }
-  .setup-hero-mark {
-    font-family: 'Cormorant Garamond', Georgia, serif;
-    font-style: italic;
-    font-weight: 700;
-    font-size: 34px;
-    line-height: 1;
-    color: #2d6b4e;
-    letter-spacing: -0.5px;
-  }
-  .setup-hero-mark span { color: var(--gold); }
-  .setup-hero-rule {
-    width: 54px;
-    height: 2px;
-    margin: 12px auto 14px;
-    background: linear-gradient(90deg, transparent, var(--gold), transparent);
-    opacity: 0.8;
-  }
-  .setup-hero h1 { font-size: 22px; }
-  .setup-hero p em { color: var(--gold); font-style: italic; font-weight: 700; }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
   .card-title { font-size: 13px; font-weight: 800; color: var(--green-bright); letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 10px; }
 
@@ -181,15 +158,15 @@
   .player-num { font-size: 13px; color: var(--green-bright); font-weight: 700; width: 20px; flex-shrink: 0; }
   .player-input input { flex: 1 1 0; min-width: 0; background: transparent; border: none; color: var(--cream); padding: 8px 0; font-size: 14px; outline: none; -webkit-user-select: text; user-select: text; }
 
-  .gender-toggle { display: flex; gap: 4px; flex-shrink: 0; }
+  .gender-toggle { display: flex; gap: 3px; flex-shrink: 0; }
   .gender-btn {
-    min-width: 38px; height: 38px;
+    width: 26px; height: 26px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 6px;
     background: transparent;
     color: var(--cream-dim);
-    font-size: 13px;
-    font-weight: 800;
+    font-size: 11px;
+    font-weight: 700;
     cursor: pointer;
     padding: 0;
     line-height: 1;
@@ -245,7 +222,7 @@
   .team-players { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .team-player { font-size: 13px; font-weight: 700; color: var(--cream); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .score-box { width: 54px; height: 44px; text-align: center; font-size: 22px; font-weight: 800; color: var(--cream); font-variant-numeric: tabular-nums; background: var(--surface-light); border: 1px solid var(--green-light); border-radius: 10px; outline: none; -webkit-user-select: text; user-select: text; padding: 0; line-height: 1; }
-  .score-box:focus { border-color: var(--green-bright); background: #ffffff; color: #0f2318; }
+  .score-box:focus { border-color: var(--green-bright); background: var(--green); }
   .vs-divider { text-align: center; font-size: 12px; color: var(--cream-dim); font-weight: 700; letter-spacing: 2px; padding: 0; }
   .court-status { position: absolute; top: 12px; right: 12px; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; }
   .status-ok { background: var(--green-bright); color: var(--cream); }
@@ -347,7 +324,7 @@
   .match-team-player { font-size: 14px; font-weight: 700; color: var(--cream); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; position: relative; }
   .match-team.winner .match-team-player { color: var(--gold-bright); }
   .match-score-input { width: 48px; height: 36px; text-align: center; font-size: 18px; font-weight: 800; color: var(--cream); font-variant-numeric: tabular-nums; background: var(--surface-light); border: 1px solid var(--green-light); border-radius: 8px; outline: none; padding: 0; -webkit-user-select: text; user-select: text; line-height: 1; }
-  .match-score-input:focus { border-color: var(--green-bright); background: #ffffff; color: #0f2318; }
+  .match-score-input:focus { border-color: var(--green-bright); background: var(--green); }
   .match-score-input.winner { color: var(--gold-bright); border-color: var(--gold); }
   .match-vs { text-align: center; font-size: 11px; color: var(--cream-dim); font-weight: 700; }
 
@@ -898,10 +875,8 @@
   }
   .podium-standings-table tr.rank-gold .rank-cell { color: #d9b971; }
   .podium-standings-table tr.rank-gold .name-cell { color: #d9b971; }
-  .podium-standings-table tr.rank-silver .rank-cell { color: #8a8a8a; }
-  .podium-standings-table tr.rank-silver .name-cell { color: #8a8a8a; }
+  .podium-standings-table tr.rank-silver .rank-cell { color: #d4d4d4; }
   .podium-standings-table tr.rank-bronze .rank-cell { color: #cd9d6e; }
-  .podium-standings-table tr.rank-bronze .name-cell { color: #cd9d6e; }
 
   /* Density modes — auto-tighten when many players */
   .density-roomy .podium-standings-table th { padding: 10px 8px; font-size: 10px; }
@@ -990,7 +965,7 @@
   /* Stage: glass cards horizontal */
   .podium-stage {
     display: flex;
-    align-items: flex-end;
+    align-items: stretch;
     justify-content: center;
     gap: 14px;
     max-width: 980px;
@@ -1044,13 +1019,9 @@
     filter: drop-shadow(0 0 18px rgba(201, 169, 97, 0.7)) drop-shadow(0 4px 8px rgba(0,0,0,0.4));
   }
   .podium-slot.second .podium-icon svg {
-    width: 70px;
-    height: 70px;
     filter: drop-shadow(0 0 12px rgba(192, 192, 192, 0.4)) drop-shadow(0 3px 6px rgba(0,0,0,0.3));
   }
   .podium-slot.third .podium-icon svg {
-    width: 56px;
-    height: 56px;
     filter: drop-shadow(0 0 12px rgba(205, 127, 50, 0.4)) drop-shadow(0 3px 6px rgba(0,0,0,0.3));
   }
 
@@ -1083,11 +1054,10 @@
     font-style: italic;
     font-size: 220px;
     font-weight: 400;
-    color: rgba(45, 107, 78, 0.07);
+    color: rgba(245, 233, 208, 0.05);
     line-height: 1;
     pointer-events: none;
   }
-  .podium-slot.first .podium-card::before { color: rgba(201, 169, 97, 0.12); }
 
   .podium-place-label {
     font-size: 15px;
@@ -1616,10 +1586,8 @@
       height: 26px;
       flex-shrink: 0;
     }
-    .podium-icon svg { width: 16px; height: 16px; }
-    .podium-slot.second .podium-icon svg { width: 19px; height: 19px; }
-    .podium-slot.third .podium-icon svg { width: 19px; height: 19px; }
-    .podium-slot.first .podium-icon svg { width: 23px; height: 23px; }
+    .podium-icon svg { width: 18px; height: 18px; }
+    .podium-slot.first .podium-icon svg { width: 22px; height: 22px; }
 
     .podium-rank-label { display: block; font-size: 10px; margin-bottom: 2px; text-align: center; }
 
@@ -2012,9 +1980,9 @@ main { background: var(--rc-forest) !important; }
   box-shadow: var(--rc-inset);
 }
 .score-box:focus, .match-score-input:focus {
-  background: #ffffff !important;
-  box-shadow: 0 0 0 2px rgba(201,169,97,0.55), var(--rc-inset) !important;
-  color: #0f2318 !important;
+  background: #243d2e !important;
+  box-shadow: 0 0 0 1px rgba(201,169,97,0.35), var(--rc-inset) !important;
+  color: var(--rc-cream) !important;
   outline: none !important;
 }
 
@@ -2084,7 +2052,7 @@ main { background: var(--rc-forest) !important; }
 #standingBody tr:nth-child(7) { animation-delay: 0.15s; }
 #standingBody tr:nth-child(8) { animation-delay: 0.17s; }
 #standingBody tr:hover { background: rgba(45,107,78,0.06) !important; }
-.player-name-cell { color: var(--rc-cream) !important; font-weight: 700; text-transform: none; letter-spacing: 0; }
+.player-name-cell { color: var(--rc-cream) !important; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
 .standing-table .num { color: var(--rc-cream-dim) !important; }
 .sort-active { color: var(--rc-gold) !important; font-weight: 800; }
 .points-cell { color: var(--rc-cream) !important; font-weight: 800; }
@@ -2590,26 +2558,6 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
 }
 .sb-court-card.complete { border-color: rgba(201,169,97,0.25); }
 
-/* Round-change entrance: staggered fade/slide for court cards */
-@keyframes sbCardIn {
-  from { opacity: 0; transform: translateY(14px) scale(0.985); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-.sb-courts.round-enter .sb-court-card {
-  animation: sbCardIn 0.4s var(--transition-smooth, cubic-bezier(0.4,0,0.2,1)) both;
-}
-.sb-courts.round-enter .sb-court-card:nth-child(1) { animation-delay: 0.02s; }
-.sb-courts.round-enter .sb-court-card:nth-child(2) { animation-delay: 0.08s; }
-.sb-courts.round-enter .sb-court-card:nth-child(3) { animation-delay: 0.14s; }
-.sb-courts.round-enter .sb-court-card:nth-child(4) { animation-delay: 0.20s; }
-.sb-courts.round-enter .sb-court-card:nth-child(5) { animation-delay: 0.26s; }
-.sb-courts.round-enter .sb-court-card:nth-child(6) { animation-delay: 0.32s; }
-.sb-courts.round-enter .sb-court-card:nth-child(7) { animation-delay: 0.38s; }
-.sb-courts.round-enter .sb-court-card:nth-child(8) { animation-delay: 0.44s; }
-@media (prefers-reduced-motion: reduce) {
-  .sb-courts.round-enter .sb-court-card { animation: none; }
-}
-
 .sb-court-header {
   padding: 8px 14px;
   display: flex;
@@ -2745,14 +2693,14 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
 /* Player name in card — editable */
 .sb-player {
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 800;
   color: #2d6b4e;
-  letter-spacing: 0;
-  text-transform: none;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 140px;
+  max-width: 120px;
   cursor: pointer;
   border-bottom: 1px solid transparent;
   transition: border-color 0.15s, color 0.15s;
@@ -2864,32 +2812,13 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
 #standingBody .player-name-cell {
   font-size: 13px;
   font-weight: 700;
-  text-transform: none;
-  letter-spacing: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
   text-align: left;
   text-overflow: ellipsis;
 }
 #standingBody .num { text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; overflow: visible; }
 #standingBody .points-cell { font-size: 15px; font-weight: 900; text-align: right; }
-
-/* Top-3 row treatment â subtle podium-colored left accent + tint */
-#standingBody tr.standing-top3 td:first-child {
-  position: relative;
-}
-#standingBody tr.standing-top3 td:first-child::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 4px; bottom: 4px;
-  width: 3px;
-  border-radius: 0 2px 2px 0;
-}
-#standingBody tr.standing-rank-1 { background: linear-gradient(90deg, rgba(201,169,97,0.12), transparent 60%); }
-#standingBody tr.standing-rank-2 { background: linear-gradient(90deg, rgba(150,150,150,0.10), transparent 60%); }
-#standingBody tr.standing-rank-3 { background: linear-gradient(90deg, rgba(205,127,50,0.10), transparent 60%); }
-#standingBody tr.standing-rank-1 td:first-child::before { background: linear-gradient(180deg, #d9b971, #8b6914); }
-#standingBody tr.standing-rank-2 td:first-child::before { background: linear-gradient(180deg, #c0c0c0, #707070); }
-#standingBody tr.standing-rank-3 td:first-child::before { background: linear-gradient(180deg, #cd7f32, #7a4a1a); }
-#standingBody tr.standing-rank-1 .points-cell { color: var(--rc-gold) !important; }
 .rank { width: 28px; height: 28px; border-radius: 8px; font-size: 12px !important; }
 
 /* Phone tweaks for sb */
@@ -2927,7 +2856,6 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: flex-start;
   gap: 0;
   padding: 12px 12px 10px;
@@ -2966,10 +2894,6 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   flex-shrink: 0;
   flex: 0 0 auto;
   overflow: hidden;
-  width: 100%;
-  max-width: 1100px;
-  margin-left: auto;
-  margin-right: auto;
 }
 .result-row {
   display: grid;
@@ -3227,8 +3151,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
   .podium-slot { flex:1 1 0 !important; min-width:0 !important; max-width:30% !important; display:flex !important; flex-direction:column !important; align-items:center !important; justify-content:flex-end !important; overflow:visible !important; box-sizing:border-box !important; }
   .podium-slot.first { order:2 !important; } .podium-slot.second { order:1 !important; } .podium-slot.third { order:3 !important; }
   .podium-icon { height:clamp(28px,3.5vh,40px) !important; display:flex !important; align-items:center !important; justify-content:center !important; margin-bottom:2px !important; flex-shrink:0 !important; }
-  .podium-icon svg { width:20px !important; height:20px !important; filter:none !important; }
-  .podium-slot.second .podium-icon svg { width:24px !important; height:24px !important; }
+  .podium-icon svg { width:22px !important; height:22px !important; filter:none !important; }
   .podium-slot.first .podium-icon svg { width:28px !important; height:28px !important; filter:drop-shadow(0 0 8px rgba(201,169,97,0.5)) !important; }
   .podium-place-label { display:block !important; font-size:clamp(10px,1.4vh,15px) !important; margin-bottom:3px !important; text-align:center !important; }
   .podium-slot .podium-card { width:100% !important; box-sizing:border-box !important; padding:clamp(14px,2.8vh,32px) clamp(10px,1.4vw,18px) !important; gap:clamp(6px,1.1vh,12px) !important; border-radius:14px !important; justify-content:flex-start !important; margin-top:0 !important; }
@@ -3267,7 +3190,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
   .podium-results-header { flex-shrink:0 !important; text-align:center !important; width:100% !important; margin-bottom:clamp(8px,1.6vh,18px) !important; }
   .podium-results-header h2 { font-size:clamp(26px,5.5vh,56px) !important; margin-bottom:4px !important; }
   .podium-results-header .results-sub { font-size:clamp(8px,1.1vh,10px) !important; letter-spacing:2px !important; }
-  .podium-results-list { flex-shrink:0 !important; overflow:hidden !important; display:flex !important; flex-direction:column !important; gap:0 !important; width:100% !important; max-width:1100px !important; margin-left:auto !important; margin-right:auto !important; box-sizing:border-box !important; padding:clamp(10px,1.5vh,18px) clamp(16px,2vw,28px) !important; background:rgba(255,255,255,0.6) !important; border:1px solid rgba(45,107,78,0.15) !important; border-radius:14px !important; }
+  .podium-results-list { flex-shrink:0 !important; overflow:hidden !important; display:flex !important; flex-direction:column !important; gap:0 !important; width:100% !important; box-sizing:border-box !important; padding:clamp(10px,1.5vh,18px) clamp(16px,2vw,28px) !important; background:rgba(255,255,255,0.6) !important; border:1px solid rgba(45,107,78,0.15) !important; border-radius:14px !important; }
   .result-row { padding:clamp(6px,1vh,12px) 0 !important; border-radius:0 !important; background:transparent !important; border:none !important; border-bottom:1px solid rgba(45,107,78,0.08) !important; grid-template-columns:60px 1fr auto !important; gap:14px !important; }
   .result-row:last-child { border-bottom:none !important; }
   .result-row-label { font-size:clamp(9px,1.2vh,13px) !important; }
@@ -3321,11 +3244,9 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
   <!-- SETUP -->
   <div class="view active" id="view-setup">
     <div class="setup-wrap">
-      <div class="setup-title setup-hero">
-        <div class="setup-hero-mark">padel<span>.</span>teroos</div>
-        <div class="setup-hero-rule"></div>
+      <div class="setup-title">
         <h1>Tournament Setup</h1>
-        <p>Atur format, mode, dan pemain — lalu mulai. <em>Main asik, skill naik!</em></p>
+        <p>Configure format, mode, and players or pairs.</p>
       </div>
 
       <div class="card">
@@ -3457,7 +3378,6 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start Tournament</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.67 · beta</div>
     </div>
   </div>
 
@@ -3473,7 +3393,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
       <!-- STICKY TOP BAR -->
       <div class="sb-topbar">
         <div class="sb-round-info">
-          <span class="sb-round-label">ROUND</span>
+          <span class="sb-round-label">ROUND</span><span style="font-size:8px;color:#b0b0b0;margin-left:4px;font-weight:700;">0.67</span>
           <span class="sb-round-num" id="liveRoundNum">1</span>
           <span class="sb-round-sub" id="liveRoundMeta"></span>
         </div>
@@ -3514,7 +3434,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
             </div>
             <!-- Sitting Out -->
             <div class="rp-section rp-sitout" id="rpSitout" style="display:none;">
-              <div class="rp-section-title">⏸ SITTING OUT</div>
+              <div class="rp-section-title">⏸ ISTIRAHAT</div>
               <div class="rp-sitout-list" id="rpSitoutList"></div>
             </div>
             <!-- Next Round Preview -->
@@ -3837,6 +3757,13 @@ function updateConfigVisibility() {
   document.getElementById('configTeam').style.display = teamMode ? 'block' : 'none';
   document.getElementById('individualPlayersCard').style.display = teamMode ? 'none' : 'block';
   document.getElementById('teamPairsCard').style.display = teamMode ? 'block' : 'none';
+  // ind_americano: pplCourt is always 4 (fixed by round-robin schedule), hide the stepper
+  const isIndAm = state.format === 'ind_americano';
+  const pplCtrl = document.getElementById('pplCourtStepper') && document.getElementById('pplCourtStepper').closest('.control');
+  if (pplCtrl) pplCtrl.style.display = isIndAm ? 'none' : '';
+  if (isIndAm) {
+    document.getElementById('playersHint').textContent = `Auto: ${state.courts} × 4 = ${state.courts * 4} (fixed)`;
+  }
   // Re-render player list so gender toggles show/hide based on format
   if (!teamMode) renderPlayersList();
 }
@@ -3848,6 +3775,18 @@ function initSetup() {
   renderPairsList();
   updateStepperVals();
   updateConfigVisibility();
+
+  // Sync mode card selected state from state.mode
+  document.querySelectorAll('.mode-card').forEach(c => {
+    c.classList.toggle('selected', c.dataset.mode === state.mode);
+  });
+  // Sync format card selected state from state.format
+  document.querySelectorAll('.format-card').forEach(c => {
+    c.classList.toggle('selected', c.dataset.format === state.format);
+  });
+  // Sync tournament name input
+  const nameInp = document.getElementById('tournamentNameInput');
+  if (nameInp) nameInp.value = state.tournamentName || '';
 
   document.getElementById('tournamentNameInput').addEventListener('input', e => { state.tournamentName = e.target.value; });
 }
@@ -3864,7 +3803,7 @@ document.querySelectorAll('.format-card').forEach(card => {
       renderPairsList();
     } else {
       state.manualPlayerCount = false;
-      state.playersPerCourt = 8;
+      state.playersPerCourt = (state.format === 'ind_americano') ? 4 : 8;
       syncPlayerCount();
       renderPlayersList();
     }
@@ -3888,7 +3827,7 @@ document.getElementById('courtsStepper').addEventListener('click', e => {
   const newVal = state.courts + step;
   if (newVal >= 1 && newVal <= 8) {
     state.courts = newVal;
-    state.playersPerCourt = 8; // reset to default 8 per court
+    state.playersPerCourt = (state.format === 'ind_americano') ? 4 : 8;
     state.manualPlayerCount = false;
     state.manualPairCount = false;
     const warnEl = document.getElementById('pplCourtWarn');
@@ -4855,6 +4794,13 @@ function renderAll() {
   // Actions: always explicitly set — no CSS dependency
   const actionsEl = document.getElementById('sbActions');
   if (actionsEl && !IS_VIEWER) actionsEl.style.display = '';
+
+  // Sync UI controls from state (guards against desync after localStorage restore)
+  const sortSel = document.getElementById('sortSelector');
+  if (sortSel && sortSel.value !== (state.sortBy || 'wins')) sortSel.value = state.sortBy || 'wins';
+  const blurSw = document.getElementById('blurSwitch');
+  if (blurSw) blurSw.classList.toggle('on', !!state.redactMode);
+
   renderOverview();
   document.getElementById('formatBadge').textContent = state.started
     ? (state.ended ? `🏆 Final · ${formatLabel(state.format)}` : `${formatLabel(state.format)} · ${modeLabel(state.mode)}`)
@@ -4995,10 +4941,7 @@ function renderOverview() {
   const courts = document.getElementById('sbCourts');
   courts.innerHTML = '';
   const courtCount = round.matches.length;
-  // Only animate cards when the round actually changes (avoids viewer-poll flicker)
-  const roundChanged = window._lastRenderedRound !== state.currentRoundIdx;
-  window._lastRenderedRound = state.currentRoundIdx;
-  courts.className = `sb-courts courts-count-${courtCount}` + (roundChanged ? ' round-enter' : '');
+  courts.className = `sb-courts courts-count-${courtCount}`;
   round.matches.forEach((m, i) => {
     const winner = matchWinner(m);
     const complete = isMatchComplete(m);
@@ -5400,7 +5343,6 @@ function updateStandingTable() {
   standings.forEach((s, i) => {
     const tr = document.createElement('tr');
     const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
-    if (i < 3) tr.className = `standing-top3 standing-rank-${i+1}`;
     const wrPct = s.games > 0 ? Math.round(s.winRate * 100) : 0;
     const bonusMarker = s.bonus ? `<span class="bonus-marker" title="+${s.bonusPoints} pts for ${s.missedGames} missed game${s.missedGames>1?'s':''}">&nbsp;+${s.bonusPoints}</span>` : '';
     if (s.bonus) anyBonus = true;
@@ -6111,6 +6053,8 @@ function boot() {
   }
 
   const restored = loadState();
+  // Normalize: ind_americano always uses pplCourt=4 regardless of saved state
+  if (state.format === 'ind_americano') state.playersPerCourt = 4;
   state.redactMode = true; // always start redacted
   if (restored && state.started) {
     initSetup();
@@ -6812,17 +6756,6 @@ body.viewer-mode .sb-player {
   text-overflow: clip !important;
 }
 
-/* Viewer mode on phone portrait: names were flooring at 10px (the vw-based
-   clamp is tuned for landscape). Bump to a readable size that scales with width. */
-@media (max-width: 640px) and (orientation: portrait) {
-  body.viewer-mode .sb-player {
-    font-size: clamp(14px, 4.2vw, 18px) !important;
-    line-height: 1.15 !important;
-    max-width: clamp(110px, 34vw, 170px) !important;
-    font-weight: 800 !important;
-  }
-}
-
 body.viewer-mode .sb-score-box {
   background: #f8f4ea !important;
   border-color: rgba(45,107,78,0.34) !important;
@@ -6890,32 +6823,7 @@ body.viewer-mode .score-box:disabled {
   content: none !important;
   display: none !important;
 }
-
-/* ===== REDACT FIX — must always win over rank-colored cells =====
-   Some standings cells set a !important color with specificity equal to the
-   base redact rule but appear LATER in source (e.g.
-   #standingBody tr.standing-rank-1 .points-cell, sort-active), so they leaked
-   through when redact was on — most visibly the rank-1 points cell staying gold.
-   This block lives at the very end of the stylesheet so source-order guarantees
-   redact wins for every name/number cell, regardless of rank tinting. */
-.redacted #standingTable tbody .player-name-cell,
-.redacted #standingBody .player-name-cell {
-  color: transparent !important;
-}
-.redacted #standingTable tbody td.num,
-.redacted #standingTable tbody .num,
-.redacted #standingTable tbody .points-cell,
-.redacted #standingBody td.num,
-.redacted #standingBody .num,
-.redacted #standingBody .points-cell,
-.redacted #standingBody tr.standing-rank-1 .points-cell,
-.redacted #standingBody tr.standing-rank-2 .points-cell,
-.redacted #standingBody tr.standing-rank-3 .points-cell,
-.redacted #standingBody tr.standing-top3 td.num,
-.redacted #standingTable tbody td.sort-active,
-.redacted #standingBody td.sort-active {
-  color: transparent !important;
-}
 </style>
 </body>
+</html>
 </html>
