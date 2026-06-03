@@ -6885,6 +6885,32 @@ body.viewer-mode .score-box:disabled {
   content: none !important;
   display: none !important;
 }
+
+/* ===== REDACT FIX — must always win over rank-colored cells =====
+   Some standings cells set a !important color with specificity equal to the
+   base redact rule but appear LATER in source (e.g.
+   #standingBody tr.standing-rank-1 .points-cell, sort-active), so they leaked
+   through when redact was on — most visibly the rank-1 points cell staying gold.
+   This block lives at the very end of the stylesheet so source-order guarantees
+   redact wins for every name/number cell, regardless of rank tinting. */
+.redacted #standingTable tbody .player-name-cell,
+.redacted #standingBody .player-name-cell {
+  color: transparent !important;
+}
+.redacted #standingTable tbody td.num,
+.redacted #standingTable tbody .num,
+.redacted #standingTable tbody .points-cell,
+.redacted #standingBody td.num,
+.redacted #standingBody .num,
+.redacted #standingBody .points-cell,
+.redacted #standingBody tr.standing-rank-1 .points-cell,
+.redacted #standingBody tr.standing-rank-2 .points-cell,
+.redacted #standingBody tr.standing-rank-3 .points-cell,
+.redacted #standingBody tr.standing-top3 td.num,
+.redacted #standingTable tbody td.sort-active,
+.redacted #standingBody td.sort-active {
+  color: transparent !important;
+}
 </style>
 </body>
 </html>
