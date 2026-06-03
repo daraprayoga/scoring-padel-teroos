@@ -899,7 +899,9 @@
   .podium-standings-table tr.rank-gold .rank-cell { color: #d9b971; }
   .podium-standings-table tr.rank-gold .name-cell { color: #d9b971; }
   .podium-standings-table tr.rank-silver .rank-cell { color: #d4d4d4; }
+  .podium-standings-table tr.rank-silver .name-cell { color: #d4d4d4; }
   .podium-standings-table tr.rank-bronze .rank-cell { color: #cd9d6e; }
+  .podium-standings-table tr.rank-bronze .name-cell { color: #cd9d6e; }
 
   /* Density modes — auto-tighten when many players */
   .density-roomy .podium-standings-table th { padding: 10px 8px; font-size: 10px; }
@@ -988,7 +990,7 @@
   /* Stage: glass cards horizontal */
   .podium-stage {
     display: flex;
-    align-items: stretch;
+    align-items: flex-end;
     justify-content: center;
     gap: 14px;
     max-width: 980px;
@@ -1042,9 +1044,13 @@
     filter: drop-shadow(0 0 18px rgba(201, 169, 97, 0.7)) drop-shadow(0 4px 8px rgba(0,0,0,0.4));
   }
   .podium-slot.second .podium-icon svg {
+    width: 70px;
+    height: 70px;
     filter: drop-shadow(0 0 12px rgba(192, 192, 192, 0.4)) drop-shadow(0 3px 6px rgba(0,0,0,0.3));
   }
   .podium-slot.third .podium-icon svg {
+    width: 56px;
+    height: 56px;
     filter: drop-shadow(0 0 12px rgba(205, 127, 50, 0.4)) drop-shadow(0 3px 6px rgba(0,0,0,0.3));
   }
 
@@ -1610,8 +1616,9 @@
       height: 26px;
       flex-shrink: 0;
     }
-    .podium-icon svg { width: 18px; height: 18px; }
-    .podium-slot.first .podium-icon svg { width: 22px; height: 22px; }
+    .podium-icon svg { width: 16px; height: 16px; }
+    .podium-slot.second .podium-icon svg { width: 19px; height: 19px; }
+    .podium-slot.first .podium-icon svg { width: 23px; height: 23px; }
 
     .podium-rank-label { display: block; font-size: 10px; margin-bottom: 2px; text-align: center; }
 
@@ -3214,7 +3221,8 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
   .podium-slot { flex:1 1 0 !important; min-width:0 !important; max-width:30% !important; display:flex !important; flex-direction:column !important; align-items:center !important; justify-content:flex-end !important; overflow:visible !important; box-sizing:border-box !important; }
   .podium-slot.first { order:2 !important; } .podium-slot.second { order:1 !important; } .podium-slot.third { order:3 !important; }
   .podium-icon { height:clamp(28px,3.5vh,40px) !important; display:flex !important; align-items:center !important; justify-content:center !important; margin-bottom:2px !important; flex-shrink:0 !important; }
-  .podium-icon svg { width:22px !important; height:22px !important; filter:none !important; }
+  .podium-icon svg { width:20px !important; height:20px !important; filter:none !important; }
+  .podium-slot.second .podium-icon svg { width:24px !important; height:24px !important; }
   .podium-slot.first .podium-icon svg { width:28px !important; height:28px !important; filter:drop-shadow(0 0 8px rgba(201,169,97,0.5)) !important; }
   .podium-place-label { display:block !important; font-size:clamp(10px,1.4vh,15px) !important; margin-bottom:3px !important; text-align:center !important; }
   .podium-slot .podium-card { width:100% !important; box-sizing:border-box !important; padding:clamp(14px,2.8vh,32px) clamp(10px,1.4vw,18px) !important; gap:clamp(6px,1.1vh,12px) !important; border-radius:14px !important; justify-content:flex-start !important; margin-top:0 !important; }
@@ -6796,6 +6804,17 @@ body.viewer-mode .sb-player {
   overflow-wrap: anywhere !important;
   word-break: normal !important;
   text-overflow: clip !important;
+}
+
+/* Viewer mode on phone portrait: names were flooring at 10px (the vw-based
+   clamp is tuned for landscape). Bump to a readable size that scales with width. */
+@media (max-width: 640px) and (orientation: portrait) {
+  body.viewer-mode .sb-player {
+    font-size: clamp(14px, 4.2vw, 18px) !important;
+    line-height: 1.15 !important;
+    max-width: clamp(110px, 34vw, 170px) !important;
+    font-weight: 800 !important;
+  }
 }
 
 body.viewer-mode .sb-score-box {
