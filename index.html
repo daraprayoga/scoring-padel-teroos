@@ -2927,6 +2927,7 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: flex-start;
   gap: 0;
   padding: 12px 12px 10px;
@@ -2965,6 +2966,10 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   flex-shrink: 0;
   flex: 0 0 auto;
   overflow: hidden;
+  width: 100%;
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
 }
 .result-row {
   display: grid;
@@ -3262,7 +3267,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
   .podium-results-header { flex-shrink:0 !important; text-align:center !important; width:100% !important; margin-bottom:clamp(8px,1.6vh,18px) !important; }
   .podium-results-header h2 { font-size:clamp(26px,5.5vh,56px) !important; margin-bottom:4px !important; }
   .podium-results-header .results-sub { font-size:clamp(8px,1.1vh,10px) !important; letter-spacing:2px !important; }
-  .podium-results-list { flex-shrink:0 !important; overflow:hidden !important; display:flex !important; flex-direction:column !important; gap:0 !important; width:100% !important; box-sizing:border-box !important; padding:clamp(10px,1.5vh,18px) clamp(16px,2vw,28px) !important; background:rgba(255,255,255,0.6) !important; border:1px solid rgba(45,107,78,0.15) !important; border-radius:14px !important; }
+  .podium-results-list { flex-shrink:0 !important; overflow:hidden !important; display:flex !important; flex-direction:column !important; gap:0 !important; width:100% !important; max-width:1100px !important; margin-left:auto !important; margin-right:auto !important; box-sizing:border-box !important; padding:clamp(10px,1.5vh,18px) clamp(16px,2vw,28px) !important; background:rgba(255,255,255,0.6) !important; border:1px solid rgba(45,107,78,0.15) !important; border-radius:14px !important; }
   .result-row { padding:clamp(6px,1vh,12px) 0 !important; border-radius:0 !important; background:transparent !important; border:none !important; border-bottom:1px solid rgba(45,107,78,0.08) !important; grid-template-columns:60px 1fr auto !important; gap:14px !important; }
   .result-row:last-child { border-bottom:none !important; }
   .result-row-label { font-size:clamp(9px,1.2vh,13px) !important; }
