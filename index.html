@@ -3934,6 +3934,13 @@ document.getElementById('resetNamesBtn').addEventListener('click', () => {
 
 // ========== START ==========
 function startTournament() {
+  // Always read mode and format from the DOM — what the user actually sees.
+  // Guards against any state<->UI desync from localStorage restore.
+  const _selMode = document.querySelector('.mode-card.selected');
+  if (_selMode) state.mode = _selMode.dataset.mode;
+  const _selFmt = document.querySelector('.format-card.selected');
+  if (_selFmt) state.format = _selFmt.dataset.format;
+
   if (isTeam()) {
     state.pairNames = state.pairNames.map((p, i) => [
       (p[0] || '').trim() || `Player ${i*2+1}`,
@@ -3944,6 +3951,8 @@ function startTournament() {
   }
   state.tournamentName = (state.tournamentName || '').trim();
   state.started = true;
+  state.ended = false;   // always reset — previous tournament may have been ended
+  state.endedAt = null;
   state.rounds = [];
   state.currentRoundIdx = 0;
 
@@ -6825,5 +6834,4 @@ body.viewer-mode .score-box:disabled {
 }
 </style>
 </body>
-</html>
 </html>
