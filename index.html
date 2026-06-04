@@ -3404,6 +3404,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
               <button data-step="1">+</button>
             </div>
             <div class="control-hint" id="playersHint">Auto-calculated</div>
+            <div id="playersOddWarn" style="display:none;color:#b45309;font-size:11px;font-weight:700;margin-top:4px;">⚠️ Jumlah ganjil — pembagian game play bisa tidak rata (ada yang main 1 game lebih sedikit). Tetap bisa dipakai.</div>
           </div>
         </div>
       </div>
@@ -3822,6 +3823,9 @@ function updateStepperVals() {
   document.getElementById('playersVal').textContent = state.players;
   const auto = state.courts * state.playersPerCourt;
   document.getElementById('playersHint').textContent = state.manualPlayerCount ? `Manual · auto = ${auto}` : `Auto: ${state.courts} × ${state.playersPerCourt} = ${auto}`;
+  // Odd player count is allowed (all individual modes) — warn that game play may be uneven.
+  const oddWarn = document.getElementById('playersOddWarn');
+  if (oddWarn) oddWarn.style.display = (!isTeam() && state.players % 2 === 1) ? '' : 'none';
 
   document.getElementById('courtsValTeam').textContent = state.courts;
   document.getElementById('pairsVal').textContent = state.pairs;
@@ -6938,12 +6942,4 @@ body.viewer-mode .score-box:disabled {
 }
 </style>
 </body>
-</html>
-.podium-slot.first .podium-rank-label::after {
-  content: none !important;
-  display: none !important;
-}
-</style>
-</body>
-</html>
 </html>
