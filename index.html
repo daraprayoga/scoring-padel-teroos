@@ -118,13 +118,15 @@
   .icon-btn.danger:hover { background: var(--red); border-color: var(--red); }
 
   /* ===== FULLSCREEN — hide app chrome so the active view fills the screen (TV cast) ===== */
-  /* In fullscreen the header (💾 📂 ⛶ ↺) and the top banners overlapped/clipped the
-     scoreboard. While fullscreen, drop them and reclaim the top padding entirely. */
+  /* The banners + bottom nav were overlapping/clipping the scoreboard, so drop them and
+     reclaim the top padding. KEEP the header so the padel.teroos logo stays on the TV —
+     only the action buttons (💾 📂 ⛶ ↺) are hidden (exit is the floating button instead). */
   body.fs-active { padding-top: 0 !important; }
   body.fs-active .beta-banner,
   body.fs-active #viewerModeBanner,
-  body.fs-active #bottomNav,
-  body.fs-active header { display: none !important; }
+  body.fs-active #bottomNav { display: none !important; }
+  body.fs-active header { padding: 6px 16px !important; }
+  body.fs-active .header-actions { display: none !important; }
   #fsExitBtn {
     position: fixed;
     bottom: max(10px, env(safe-area-inset-bottom, 0px));
