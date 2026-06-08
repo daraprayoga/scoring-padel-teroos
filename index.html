@@ -3575,6 +3575,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
               <button data-step="1">+</button>
             </div>
             <div class="control-hint" id="pairsHint">Default = courts × 4</div>
+            <div id="pairsWarn" style="display:none;color:#b45309;font-size:11px;font-weight:700;margin-top:4px;">⚠️ &gt;4 pair/court (&gt;8 pemain/court): antri giliran lama. Di Mexicano, duduk bisa &gt;2 ronde. Rekomendasi: 4 pair/court.</div>
           </div>
           <div class="control">
             <label>Info</label>
@@ -3980,6 +3981,10 @@ function updateStepperVals() {
   document.getElementById('pairsHint').textContent = state.manualPairCount
     ? `Manual · default = ${defaultPairs} · min = ${state.courts * 2}`
     : `Default: ${state.courts} × 4 = ${defaultPairs}`;
+  // Warn when > 4 pairs/court (> 8 players/court): healthy ratio exceeded → long queue,
+  // and Team Mexicano sit-out can run past 2 rounds.
+  const pairsWarn = document.getElementById('pairsWarn');
+  if (pairsWarn) pairsWarn.style.display = (isTeam() && state.pairs > state.courts * 4) ? '' : 'none';
 }
 
 function updateConfigVisibility() {
