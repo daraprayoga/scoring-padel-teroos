@@ -3,6 +3,7 @@
 <head>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
@@ -735,6 +736,115 @@
   .podium-close-btn:hover {
     background: rgba(255,255,255,0.14);
   }
+
+  /* Share-as-photo button on the podium — captures the page currently in view
+     (podium 1-3 OR full standings) to an image and opens the share sheet. */
+  .podium-share-btn {
+    position: fixed;
+    bottom: max(16px, env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100001;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 26px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #c9a961, #8b6914);
+    color: #1a1a1a;
+    border: none;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(201,169,97,0.45);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .podium-backdrop.show ~ .podium-share-btn,
+  .podium-share-btn.show { display: inline-flex; }
+  .podium-share-btn:active { transform: translateX(-50%) scale(0.95); }
+
+  /* ===== STORY STUDIO — template picker + photo composer (IG Story 9:16) ===== */
+  .studio-backdrop { position: fixed; inset: 0; z-index: 100002; background: var(--rc-forest, #f5f0e6); display: none; flex-direction: column; }
+  .studio-backdrop.show { display: flex; }
+  .studio-head { display: flex; align-items: center; gap: 14px; padding: max(14px, calc(8px + env(safe-area-inset-top,0px))) 20px 10px; flex-shrink: 0; }
+  .studio-back { width: 42px; height: 42px; border-radius: 12px; border: 1px solid rgba(45,107,78,0.2); background: #fff; color: #2d6b4e; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .studio-head h2 { font-size: 26px; font-weight: 800; color: #1a3d2e; letter-spacing: -0.5px; }
+  .studio-stage-wrap { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; min-height: 0; }
+  .studio-stage { width: 1080px; height: 1920px; position: relative; transform-origin: center center; background: #0f2318; overflow: hidden; box-shadow: 0 12px 48px rgba(0,0,0,0.25); flex-shrink: 0; }
+  .ss-photo-layer { position: absolute; inset: 0; overflow: hidden; touch-action: none; }
+  .ss-photo { position: absolute; will-change: transform; -webkit-user-drag: none; user-select: none; pointer-events: none; }
+  .ss-placeholder { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px; color: rgba(245,240,230,0.7);
+    background-color: #16331f;
+    background-image: linear-gradient(45deg, #1b3d2c 25%, transparent 25%), linear-gradient(-45deg, #1b3d2c 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #1b3d2c 75%), linear-gradient(-45deg, transparent 75%, #1b3d2c 75%);
+    background-size: 140px 140px; background-position: 0 0, 0 70px, 70px -70px, -70px 0; }
+  .ss-placeholder svg { width: 130px; height: 130px; opacity: 0.55; }
+  .ss-placeholder div { font-size: 36px; font-weight: 700; letter-spacing: 1px; }
+  .ss-overlay { position: absolute; inset: 0; pointer-events: none; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif; }
+  .studio-dots { display: flex; gap: 8px; justify-content: center; padding: 12px 0 6px; flex-shrink: 0; }
+  .studio-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(45,107,78,0.25); transition: all 0.2s; cursor: pointer; }
+  .studio-dot.active { background: #2d6b4e; width: 28px; border-radius: 6px; }
+  .studio-zoom { display: flex; align-items: center; gap: 14px; padding: 4px 28px; flex-shrink: 0; height: 36px; }
+  .studio-zoom.hidden { visibility: hidden; }
+  .studio-zoom span { font-size: 20px; }
+  .studio-zoom input[type=range] { flex: 1; accent-color: #2d6b4e; height: 4px; }
+  .studio-hint { text-align: center; font-size: 12px; color: #4a8a6a; font-weight: 700; letter-spacing: 0.5px; padding: 2px 0 4px; flex-shrink: 0; }
+  .studio-actions { display: flex; flex-direction: column; gap: 10px; padding: 6px 20px max(18px, calc(10px + env(safe-area-inset-bottom,0px))); flex-shrink: 0; }
+  .studio-btn { padding: 16px; border-radius: 16px; font-size: 17px; font-weight: 800; border: none; cursor: pointer; letter-spacing: 0.3px; }
+  .studio-btn.primary { background: #2d6b4e; color: #f5f0e6; }
+  .studio-btn.primary:active { background: #1a4a35; }
+  .studio-btn.secondary { background: rgba(45,107,78,0.12); color: #2d6b4e; border: 1px solid rgba(45,107,78,0.25); }
+  .studio-btn:disabled { opacity: 0.4; }
+
+  /* ---- overlay scrims shared ---- */
+  .ss-overlay .ss-scrim-top { position: absolute; top: 0; left: 0; right: 0; height: 420px; background: linear-gradient(180deg, rgba(15,35,24,0.92) 0%, rgba(15,35,24,0.45) 55%, transparent 100%); }
+  .ss-overlay .ss-scrim-bot { position: absolute; bottom: 0; left: 0; right: 0; height: 680px; background: linear-gradient(0deg, rgba(15,35,24,0.95) 0%, rgba(15,35,24,0.55) 50%, transparent 100%); }
+  .ss-overlay .ss-logo { font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-weight: 700; color: #f5f0e6; white-space: nowrap; }
+  .ss-overlay .ss-logo span { color: #c9a961; }
+  .ss-ava { background: linear-gradient(160deg, #3d8a66, #1a4a35); display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+  .ss-ava svg { width: 60%; height: 60%; }
+
+  /* ---- Template 1: Podium bottom ---- */
+  .ss-overlay .t1-title { position: absolute; top: 84px; left: 60px; right: 320px; font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-weight: 700; font-size: 60px; color: #f5f0e6; line-height: 1.04; text-shadow: 0 2px 14px rgba(0,0,0,0.5); }
+  .ss-overlay .t1-logo { position: absolute; top: 92px; right: 60px; font-size: 42px; }
+  .ss-overlay .t1-podium { position: absolute; left: 50px; right: 50px; bottom: 110px; display: flex; align-items: flex-end; justify-content: center; gap: 30px; }
+  .ss-overlay .t1-slot { flex: 1; max-width: 320px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .ss-overlay .t1-ava { position: relative; width: 150px; height: 150px; border: 5px solid #f5f0e6; }
+  .ss-overlay .t1-slot.champ .t1-ava { width: 192px; height: 192px; border-color: #c9a961; box-shadow: 0 0 34px rgba(201,169,97,0.55); }
+  .ss-overlay .t1-rank { position: absolute; top: -6px; left: -6px; width: 56px; height: 56px; border-radius: 50%; background: #f5f0e6; color: #14301f; font-weight: 900; font-size: 30px; display: flex; align-items: center; justify-content: center; border: 3px solid #2d6b4e; }
+  .ss-overlay .t1-slot.champ .t1-rank { background: #c9a961; border-color: #f5f0e6; }
+  .ss-overlay .t1-name { font-size: 40px; font-weight: 800; color: #f5f0e6; text-align: center; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ss-overlay .t1-wlt { font-size: 28px; color: rgba(245,240,230,0.78); font-weight: 700; }
+  .ss-overlay .t1-pts { font-family: 'Cinzel', 'Cormorant Garamond', serif; font-size: 52px; font-weight: 900; color: #c9a961; line-height: 1; }
+
+  /* ---- Template 2: Top-3 rows ---- */
+  .ss-overlay .t2-rows { position: absolute; top: 100px; left: 50px; right: 50px; display: flex; flex-direction: column; gap: 20px; }
+  .ss-overlay .t2-row { display: flex; align-items: center; gap: 24px; background: linear-gradient(135deg, rgba(20,48,31,0.88), rgba(20,48,31,0.72)); border: 1px solid rgba(201,169,97,0.35); border-radius: 30px; padding: 24px 32px; }
+  .ss-overlay .t2-row.r1 { border-color: #c9a961; box-shadow: 0 0 26px rgba(201,169,97,0.28); }
+  .ss-overlay .t2-pos { font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-weight: 700; font-size: 42px; color: #c9a961; width: 74px; flex-shrink: 0; }
+  .ss-overlay .t2-ava { width: 76px; height: 76px; border: 3px solid #f5f0e6; flex-shrink: 0; }
+  .ss-overlay .t2-name { flex: 1; font-size: 40px; font-weight: 800; color: #f5f0e6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ss-overlay .t2-wlt { font-size: 28px; color: rgba(245,240,230,0.78); font-weight: 700; }
+  .ss-overlay .t2-pts { font-family: 'Cinzel', 'Cormorant Garamond', serif; font-size: 44px; font-weight: 900; color: #c9a961; width: 96px; text-align: right; flex-shrink: 0; }
+  .ss-overlay .t2-title { position: absolute; left: 60px; right: 60px; bottom: 130px; text-align: center; font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-weight: 700; font-size: 66px; color: #f5f0e6; line-height: 1.05; text-shadow: 0 2px 16px rgba(0,0,0,0.55); }
+  .ss-overlay .t2-logo { position: absolute; left: 0; right: 0; bottom: 70px; text-align: center; font-size: 34px; }
+
+  /* ---- Template 3: Standings card ---- */
+  .ss-overlay .t3-logo { position: absolute; top: 70px; left: 0; right: 0; text-align: center; font-size: 44px; }
+  .ss-overlay .t3-card { position: absolute; top: 190px; left: 48px; right: 48px; background: rgba(245,240,230,0.97); border: 1px solid rgba(201,169,97,0.4); border-radius: 42px; padding: 40px 38px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+  .ss-overlay .t3-head { font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-weight: 700; font-size: 50px; color: #2d6b4e; margin-bottom: 6px; }
+  .ss-overlay .t3-sub { font-size: 22px; color: #4a8a6a; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 26px; }
+  .ss-overlay .t3-table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
+  .ss-overlay .t3-table th { font-size: 22px; color: #7a5010; text-transform: uppercase; letter-spacing: 1.5px; padding: 0 16px 6px; text-align: right; }
+  .ss-overlay .t3-table th.l { text-align: left; }
+  .ss-overlay .t3-row td { font-size: 30px; font-weight: 800; color: #1a3d2e; padding: 16px; text-align: right; background: rgba(45,107,78,0.08); }
+  .ss-overlay .t3-row td:first-child { border-radius: 18px 0 0 18px; text-align: center; color: #4a8a6a; width: 90px; }
+  .ss-overlay .t3-row td:last-child { border-radius: 0 18px 18px 0; color: #2d6b4e; }
+  .ss-overlay .t3-row td.l { text-align: left; }
+  .ss-overlay .t3-row.top3 td { background: rgba(201,169,97,0.16); }
+  .ss-overlay .t3-row.top3 td:first-child { color: #7a5010; }
+  .ss-overlay .t3-foot { position: absolute; left: 0; right: 0; bottom: 70px; text-align: center; font-size: 26px; color: #f5f0e6; font-weight: 700; text-shadow: 0 2px 10px rgba(0,0,0,0.6); }
 
   .podium-content {
     flex: 1;
@@ -3645,6 +3755,8 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
   </div>
   <div class="podium-content" id="podiumContent"></div>
 </div>
+<button class="podium-share-btn" id="podiumShareBtn" type="button">📸 Share ke Story</button>
+<input type="file" id="storyPhotoInput" accept="image/*" style="display:none;">
 
 <!-- SCHEDULE MODAL -->
 <div class="modal-backdrop" id="scheduleModal">
@@ -5611,6 +5723,286 @@ document.getElementById('closePodium').addEventListener('click', () => {
   if (betaBanner) betaBanner.style.display = '';
 });
 
+// ===== STORY STUDIO — template picker + draggable photo → IG Story (9:16, 1080×1920) =====
+const STORY_W = 1080, STORY_H = 1920;
+const SS_AVA = `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="24" r="13" fill="#f5f0e6"/><path d="M11 55c1-12 10-18 21-18s20 6 21 18z" fill="#f5f0e6"/></svg>`;
+const SS_PIC = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10.5" r="1.6"/><path d="M21 16l-5-5L5 19"/></svg>`;
+
+const _ssPhoto = { img: null, scale: 1, tx: 0, ty: 0, baseW: 0, baseH: 0 };
+let _ssIdx = 0, _ssK = 1;
+
+const wlt = (p) => `${p.wins}-${p.losses}-${p.ties}`;
+
+// --- Templates (in our forest/cream/gold design language) ---
+function tplPodium() {
+  const t3 = computeStandings().slice(0, 3);
+  const title = escapeHtml(state.tournamentName || 'Padel Tournament');
+  const slot = (p, i) => p ? `
+    <div class="t1-slot ${i === 0 ? 'champ' : ''}">
+      <div class="ss-ava t1-ava">${SS_AVA}<span class="t1-rank">${i + 1}</span></div>
+      <div class="t1-name">${escapeHtml(p.name)}</div>
+      <div class="t1-wlt">${wlt(p)}</div>
+      <div class="t1-pts">${p.points}</div>
+    </div>` : '';
+  return `
+    <div class="ss-scrim-top"></div>
+    <div class="ss-scrim-bot"></div>
+    <div class="t1-title">${title}</div>
+    <div class="ss-logo t1-logo">padel<span>.</span>teroos</div>
+    <div class="t1-podium">${slot(t3[1], 1)}${slot(t3[0], 0)}${slot(t3[2], 2)}</div>`;
+}
+function tplTop3() {
+  const t3 = computeStandings().slice(0, 3);
+  const pos = ['1st', '2nd', '3rd'];
+  const title = escapeHtml(state.tournamentName || 'Padel Tournament');
+  const row = (p, i) => p ? `
+    <div class="t2-row ${i === 0 ? 'r1' : ''}">
+      <div class="t2-pos">${pos[i]}</div>
+      <div class="ss-ava t2-ava">${SS_AVA}</div>
+      <div class="t2-name">${escapeHtml(p.name)}</div>
+      <div class="t2-wlt">${wlt(p)}</div>
+      <div class="t2-pts">${p.points}</div>
+    </div>` : '';
+  return `
+    <div class="ss-scrim-top"></div>
+    <div class="ss-scrim-bot"></div>
+    <div class="t2-rows">${row(t3[0], 0)}${row(t3[1], 1)}${row(t3[2], 2)}</div>
+    <div class="t2-title">${title}</div>
+    <div class="ss-logo t2-logo">padel<span>.</span>teroos</div>`;
+}
+function tplStandings() {
+  const s = computeStandings();
+  const ord = ['1st','2nd','3rd','4th','5th','6th','7th','8th'];
+  const title = escapeHtml(state.tournamentName || 'Padel Tournament');
+  const rows = s.slice(0, 8).map((p, i) => `
+    <tr class="t3-row ${i < 3 ? 'top3' : ''}">
+      <td>${ord[i] || (i + 1)}</td>
+      <td class="l">${escapeHtml(p.name)}</td>
+      <td>${wlt(p)}</td>
+      <td>${p.diff > 0 ? '+' : ''}${p.diff}</td>
+      <td>${p.points}</td>
+    </tr>`).join('');
+  return `
+    <div class="ss-scrim-bot"></div>
+    <div class="ss-logo t3-logo">padel<span>.</span>teroos</div>
+    <div class="t3-card">
+      <div class="t3-head">Klasemen Akhir</div>
+      <div class="t3-sub">${escapeHtml(formatLabel(state.format))}</div>
+      <table class="t3-table">
+        <thead><tr><th>#</th><th class="l">${isTeam() ? 'Pair' : 'Pemain'}</th><th>W-L-T</th><th>+/−</th><th>Pts</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="t3-foot">${title}</div>`;
+}
+const STORY_TEMPLATES = [
+  { name: 'Podium', render: tplPodium },
+  { name: 'Top 3', render: tplTop3 },
+  { name: 'Klasemen', render: tplStandings }
+];
+
+function _ssClampPhoto() {
+  if (!_ssPhoto.img) return;
+  const effW = _ssPhoto.baseW * _ssPhoto.scale, effH = _ssPhoto.baseH * _ssPhoto.scale;
+  const maxX = Math.max(0, (effW - STORY_W) / 2), maxY = Math.max(0, (effH - STORY_H) / 2);
+  _ssPhoto.tx = Math.max(-maxX, Math.min(maxX, _ssPhoto.tx));
+  _ssPhoto.ty = Math.max(-maxY, Math.min(maxY, _ssPhoto.ty));
+}
+function _ssApplyPhoto() {
+  const img = document.getElementById('ssPhoto');
+  if (!img || !_ssPhoto.img) return;
+  img.style.width = _ssPhoto.baseW + 'px';
+  img.style.height = _ssPhoto.baseH + 'px';
+  img.style.left = ((STORY_W - _ssPhoto.baseW) / 2) + 'px';
+  img.style.top = ((STORY_H - _ssPhoto.baseH) / 2) + 'px';
+  img.style.transformOrigin = 'center center';
+  img.style.transform = `translate(${_ssPhoto.tx}px, ${_ssPhoto.ty}px) scale(${_ssPhoto.scale})`;
+}
+function _ssSyncZoom() { const r = document.getElementById('ssZoomRange'); if (r) r.value = _ssPhoto.scale; }
+
+function loadStudioPhoto(dataUrl) {
+  const img = new Image();
+  img.onload = () => {
+    _ssPhoto.img = img;
+    const ar = img.naturalWidth / img.naturalHeight;
+    const stageAR = STORY_W / STORY_H;
+    if (ar > stageAR) { _ssPhoto.baseH = STORY_H; _ssPhoto.baseW = STORY_H * ar; }
+    else { _ssPhoto.baseW = STORY_W; _ssPhoto.baseH = STORY_W / ar; }
+    _ssPhoto.scale = 1; _ssPhoto.tx = 0; _ssPhoto.ty = 0;
+    const el = document.getElementById('ssPhoto');
+    el.src = dataUrl; el.style.display = '';
+    const ph = document.getElementById('ssPlaceholder'); if (ph) ph.style.display = 'none';
+    const z = document.getElementById('ssZoom'); if (z) z.classList.remove('hidden');
+    _ssSyncZoom(); _ssClampPhoto(); _ssApplyPhoto();
+  };
+  img.onerror = () => showToast('Gagal baca foto.');
+  img.src = dataUrl;
+}
+
+function _ssSetupGestures() {
+  const layer = document.getElementById('ssPhotoLayer');
+  if (!layer) return;
+  const pts = new Map();
+  let lastX = 0, lastY = 0, startDist = 0, startScale = 1;
+  layer.addEventListener('pointerdown', e => {
+    if (!_ssPhoto.img) return;
+    layer.setPointerCapture(e.pointerId);
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 1) { lastX = e.clientX; lastY = e.clientY; }
+    else if (pts.size === 2) { const a = [...pts.values()]; startDist = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); startScale = _ssPhoto.scale; }
+  });
+  layer.addEventListener('pointermove', e => {
+    if (!_ssPhoto.img || !pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 1) {
+      const dx = (e.clientX - lastX) / _ssK, dy = (e.clientY - lastY) / _ssK;
+      lastX = e.clientX; lastY = e.clientY;
+      _ssPhoto.tx += dx; _ssPhoto.ty += dy; _ssClampPhoto(); _ssApplyPhoto();
+    } else if (pts.size >= 2 && startDist > 0) {
+      const a = [...pts.values()]; const dist = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
+      _ssPhoto.scale = Math.max(1, Math.min(4, startScale * dist / startDist));
+      _ssSyncZoom(); _ssClampPhoto(); _ssApplyPhoto();
+    }
+  });
+  const up = e => { pts.delete(e.pointerId); if (pts.size < 2) startDist = 0; if (pts.size === 1) { const r = [...pts.values()][0]; lastX = r.x; lastY = r.y; } };
+  layer.addEventListener('pointerup', up);
+  layer.addEventListener('pointercancel', up);
+}
+
+function buildStudio() {
+  if (document.getElementById('storyStudio')) return;
+  const el = document.createElement('div');
+  el.className = 'studio-backdrop';
+  el.id = 'storyStudio';
+  el.innerHTML = `
+    <div class="studio-head">
+      <button class="studio-back" id="ssBack" type="button">←</button>
+      <h2>Pilih Template</h2>
+    </div>
+    <div class="studio-stage-wrap" id="ssWrap">
+      <div class="studio-stage" id="ssStage">
+        <div class="ss-photo-layer" id="ssPhotoLayer">
+          <div class="ss-placeholder" id="ssPlaceholder">${SS_PIC}<div>Insert Photo</div></div>
+          <img class="ss-photo" id="ssPhoto" style="display:none;" alt="">
+        </div>
+        <div class="ss-overlay" id="ssOverlay"></div>
+      </div>
+    </div>
+    <div class="studio-dots" id="ssDots"></div>
+    <div class="studio-zoom hidden" id="ssZoom"><span>🔍</span><input type="range" id="ssZoomRange" min="1" max="4" step="0.01" value="1"></div>
+    <div class="studio-hint">Geser & cubit foto untuk atur posisi</div>
+    <div class="studio-actions">
+      <button class="studio-btn primary" id="ssInsert" type="button">Insert Photo</button>
+      <button class="studio-btn secondary" id="ssShare" type="button">Share Image</button>
+    </div>`;
+  document.body.appendChild(el);
+
+  document.getElementById('ssBack').addEventListener('click', closeStudio);
+  document.getElementById('ssInsert').addEventListener('click', () => document.getElementById('storyPhotoInput').click());
+  document.getElementById('ssShare').addEventListener('click', exportStudio);
+  document.getElementById('ssZoomRange').addEventListener('input', e => { _ssPhoto.scale = parseFloat(e.target.value); _ssClampPhoto(); _ssApplyPhoto(); });
+
+  const dots = document.getElementById('ssDots');
+  STORY_TEMPLATES.forEach((t, i) => {
+    const d = document.createElement('div');
+    d.className = 'studio-dot' + (i === 0 ? ' active' : '');
+    d.title = t.name;
+    d.addEventListener('click', () => { _ssIdx = i; renderStudio(); });
+    dots.appendChild(d);
+  });
+  _ssSetupGestures();
+}
+
+function renderStudio() {
+  const ov = document.getElementById('ssOverlay');
+  if (ov) ov.innerHTML = STORY_TEMPLATES[_ssIdx].render();
+  document.querySelectorAll('#ssDots .studio-dot').forEach((d, i) => d.classList.toggle('active', i === _ssIdx));
+}
+
+function layoutStudio() {
+  const wrap = document.getElementById('ssWrap'), stage = document.getElementById('ssStage');
+  if (!wrap || !stage) return;
+  const k = Math.min((wrap.clientWidth - 28) / STORY_W, (wrap.clientHeight - 16) / STORY_H);
+  _ssK = k > 0 ? k : 1;
+  stage.style.transform = `scale(${_ssK})`;
+}
+
+function openStudio() {
+  buildStudio();
+  _ssIdx = 0;
+  renderStudio();
+  // Restore photo if one was already chosen this session
+  if (_ssPhoto.img) {
+    const el = document.getElementById('ssPhoto'); el.style.display = '';
+    document.getElementById('ssPlaceholder').style.display = 'none';
+    document.getElementById('ssZoom').classList.remove('hidden');
+    _ssApplyPhoto();
+  }
+  document.getElementById('storyStudio').classList.add('show');
+  requestAnimationFrame(layoutStudio);
+}
+function closeStudio() { const el = document.getElementById('storyStudio'); if (el) el.classList.remove('show'); }
+
+async function exportStudio() {
+  if (typeof html2canvas === 'undefined') { showToast('Butuh internet untuk fitur foto.'); return; }
+  const shareBtn = document.getElementById('ssShare');
+  const orig = shareBtn.textContent;
+  shareBtn.disabled = true; shareBtn.textContent = 'Membuat foto…';
+  try {
+    if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
+    const canvas = document.createElement('canvas');
+    canvas.width = STORY_W; canvas.height = STORY_H;
+    const ctx = canvas.getContext('2d');
+    if (_ssPhoto.img) {
+      const effW = _ssPhoto.baseW * _ssPhoto.scale, effH = _ssPhoto.baseH * _ssPhoto.scale;
+      const x = (STORY_W - effW) / 2 + _ssPhoto.tx, y = (STORY_H - effH) / 2 + _ssPhoto.ty;
+      ctx.drawImage(_ssPhoto.img, x, y, effW, effH);
+    } else {
+      const g = ctx.createLinearGradient(0, 0, 0, STORY_H);
+      g.addColorStop(0, '#1f5a40'); g.addColorStop(1, '#0f2318');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, STORY_W, STORY_H);
+    }
+    // Render the overlay graphics at true 1080×1920 (off-screen clone → no ancestor transform)
+    const tmp = document.createElement('div');
+    tmp.className = 'ss-overlay';
+    tmp.style.cssText = 'position:fixed;left:-20000px;top:0;width:1080px;height:1920px;';
+    tmp.innerHTML = STORY_TEMPLATES[_ssIdx].render();
+    document.body.appendChild(tmp);
+    const oc = await html2canvas(tmp, { backgroundColor: null, width: STORY_W, height: STORY_H, scale: 1, useCORS: true, logging: false });
+    tmp.remove();
+    ctx.drawImage(oc, 0, 0, STORY_W, STORY_H);
+    shareBtn.disabled = false; shareBtn.textContent = orig;
+    canvas.toBlob(async (blob) => {
+      if (!blob) { showToast('Gagal membuat foto.'); return; }
+      const fname = `teroos-story-${slugify(state.tournamentName || 'tournament')}.png`;
+      const file = new File([blob], fname, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: state.tournamentName || 'Padel Tournament' }); return; }
+        catch (e) { if (e && e.name === 'AbortError') return; }
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = fname; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast('Foto story tersimpan 📸');
+    }, 'image/png');
+  } catch (e) {
+    shareBtn.disabled = false; shareBtn.textContent = orig;
+    showToast('Gagal: ' + (e && e.message ? e.message : e));
+  }
+}
+
+document.getElementById('podiumShareBtn').addEventListener('click', openStudio);
+document.getElementById('storyPhotoInput').addEventListener('change', (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => loadStudioPhoto(reader.result);
+  reader.onerror = () => showToast('Gagal baca foto.');
+  reader.readAsDataURL(file);
+});
+window.addEventListener('resize', () => { const el = document.getElementById('storyStudio'); if (el && el.classList.contains('show')) layoutStudio(); });
+
 // ========== PODIUM RENDER ==========
 function formatDate(d) {
   if (!d) return '';
@@ -6555,6 +6947,9 @@ saveState = window.saveState;
       document.querySelectorAll('button, .nav-btn, .bottom-tab, input, label').forEach(el => {
         if (el.id === 'fullscreenBtn') return;
         if (el.id === 'fsExitBtn') return; // exit-fullscreen must stay usable on the TV
+        if (el.id === 'podiumShareBtn') return; // viewers can share the podium/standings photo
+        if (el.id === 'storyPhotoInput') return; // photo upload for the story share
+        if (el.closest && el.closest('#storyStudio')) return; // story studio controls stay usable
         if (el.closest && el.closest('#sbActions')) return; // handled separately
         el.style.pointerEvents = 'none';
         el.style.opacity = '0.3';
