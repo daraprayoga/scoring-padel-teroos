@@ -54,8 +54,10 @@
   }
 
   .beta-banner {
-    position: fixed;
-    top: 0; left: 0; right: 0;
+    /* v0.68.1: in normal document flow (was position:fixed).
+       Header sits naturally below it — overlap is structurally impossible.
+       On scroll the ribbon scrolls away and the sticky header takes the top. */
+    position: relative;
     z-index: 9999;
     background: #f5c800;
     overflow: visible;
@@ -3467,8 +3469,6 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
   <div class="view active" id="view-setup">
     <div class="setup-wrap">
       <div class="setup-title setup-hero">
-        <div class="setup-hero-mark">padel<span>.</span>teroos</div>
-        <div class="setup-hero-rule"></div>
         <h1>Tournament Setup</h1>
         <p>Atur format, mode, dan pemain — lalu mulai. <em>Main asik, skill naik!</em></p>
       </div>
@@ -3604,7 +3604,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start Tournament</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.68 · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.68.1 · beta</div>
     </div>
   </div>
 
@@ -6592,11 +6592,10 @@ function boot() {
   applyRedactMode();
 }
 
-// Beta banner offset — push all content below the fixed banner + iOS status bar
+// v0.68.1: the beta ribbon now lives in normal document flow, so the old
+// body padding-top offset (for the previously fixed banner) is gone —
+// it was painting an empty cream strip above the ribbon.
 (function() {
-  // Banner height handled purely via CSS using --sat (env(safe-area-inset-top))
-  // body.paddingTop set via CSS class — no JS safe-area calculation needed
-  document.body.style.paddingTop = 'calc(26px + var(--sat))';
   // Set --vh to real inner height (accounts for mobile browser chrome)
   (function setVh() {
     document.documentElement.style.setProperty('--vh', window.innerHeight + 'px');
@@ -6917,10 +6916,12 @@ saveState = window.saveState;
     const betaBannerEl = document.getElementById('betaBanner');
     if (betaBannerEl) betaBannerEl.style.display = 'none';
     // Create viewer banner as new element (avoids CSS conflicts)
+    // v0.68.1: in normal flow above the sticky header — same structural fix
+    // as the beta ribbon. No fixed positioning, no height measurement.
     const viewerBanner = document.createElement('div');
     viewerBanner.id = 'viewerModeBanner';
     viewerBanner.style.cssText = [
-      'position:fixed', 'top:0', 'left:0', 'right:0', 'z-index:99999',
+      'position:relative', 'z-index:99999',
       'background:#2d6b4e', 'color:#f5f0e6',
       'font-size:11px', 'font-weight:800', 'letter-spacing:2px',
       'text-transform:uppercase', 'text-align:center',
@@ -6931,11 +6932,6 @@ saveState = window.saveState;
     document.body.insertBefore(viewerBanner, document.body.firstChild);
     const _podMod = document.getElementById('podiumModal');
     if (_podMod) { new MutationObserver(() => { viewerBanner.style.display = _podMod.classList.contains('show') ? 'none' : ''; }).observe(_podMod, { attributes:true, attributeFilter:['class'] }); }
-    // Measure banner height after paint and set body padding exactly
-    setTimeout(() => {
-      const h = viewerBanner.getBoundingClientRect().height || 28;
-      document.body.style.paddingTop = h + 'px';
-    }, 0);
     document.getElementById('bottomNav') && (document.getElementById('bottomNav').style.display = 'none');
 
     // Viewer state: track which round viewer is on vs live round
@@ -7227,8 +7223,155 @@ saveState = window.saveState;
     }
   }
 })();
+
+// Layout chrome v0.68.1 — rewritten, loop-free.
+// The previous version measured banner height and toggled body classes from a
+// MutationObserver that watched body class changes — its own writes re-triggered
+// it in an infinite reflow loop (the "page never finishes loading" freeze).
+// Now: the ribbon lives in normal flow (CSS), so nothing needs measuring.
+// Remaining JS only does idempotent class toggles, which converge.
+(function installRevisionChromeFixes() {
+  const body = document.body;
+  const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+  // Header glass deepens slightly once the page is scrolled — class toggle only
+  function onScroll() {
+    body.classList.toggle('header-scrolled',
+      (window.scrollY || document.documentElement.scrollTop || 0) > 2);
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // Reserve bottom padding on <main> while the bottom nav is visible.
+  // Idempotent toggle: if the class state doesn't change, no mutation record is
+  // produced, so observing bottomNav (a different element) cannot loop.
+  function syncBottomNav() {
+    const bn = document.getElementById('bottomNav');
+    const visible = !!bn && getComputedStyle(bn).display !== 'none'
+      && !body.classList.contains('fs-active');
+    body.classList.toggle('has-bottom-nav', visible);
+  }
+  window.addEventListener('stateRendered', syncBottomNav);
+  window.addEventListener('resize', syncBottomNav);
+  window.addEventListener('orientationchange', syncBottomNav);
+  document.addEventListener('fullscreenchange', syncBottomNav);
+  document.addEventListener('webkitfullscreenchange', syncBottomNav);
+  const bn = document.getElementById('bottomNav');
+  if (bn) {
+    new MutationObserver(syncBottomNav)
+      .observe(bn, { attributes: true, attributeFilter: ['style'] });
+  }
+  syncBottomNav();
+
+  // Fullscreen button must stay tappable even when viewer-mode locks UI
+  if (fullscreenBtn) {
+    fullscreenBtn.type = 'button';
+    fullscreenBtn.style.pointerEvents = 'auto';
+    fullscreenBtn.style.cursor = 'pointer';
+  }
+})();
 </script>
 <style>
+
+/* ===== User revision fixes v0.68.1 ===== */
+/* Ribbon is in normal flow (see .beta-banner). Header is sticky at top:0 —
+   at rest it sits below the ribbon; on scroll the ribbon scrolls away and
+   the header takes the top edge. No JS measurement, no padding-top hacks. */
+html {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+body {
+  min-height: 100dvh !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1000 !important;
+  background: linear-gradient(180deg, rgba(252,249,242,0.80), rgba(247,242,232,0.58)) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.24) !important;
+  backdrop-filter: blur(18px) saturate(1.24) !important;
+}
+
+body.header-scrolled header {
+  background: linear-gradient(180deg, rgba(252,249,242,0.68), rgba(247,242,232,0.42)) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.55) inset, 0 7px 24px rgba(20,46,32,0.09) !important;
+}
+
+main {
+  overflow: visible !important;
+  flex: 1 0 auto !important;
+  padding-bottom: 0 !important;
+}
+body.has-bottom-nav main {
+  padding-bottom: max(110px, env(safe-area-inset-bottom, 0px) + 92px) !important;
+}
+.view {
+  height: auto !important;
+  min-height: 0 !important;
+}
+.view.active {
+  min-height: auto !important;
+}
+
+.setup-hero {
+  padding-top: 18px !important;
+}
+.setup-hero-mark,
+.setup-hero-rule {
+  display: none !important;
+}
+
+.bottom-tab {
+  min-width: 68px;
+  min-height: 54px;
+  background: rgba(255,255,255,0.48) !important;
+  border: 1px solid rgba(45,107,78,0.18) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.68), 0 2px 10px rgba(20,46,32,0.06) !important;
+}
+.bottom-tab.active {
+  background: rgba(255,255,255,0.74) !important;
+  border-color: rgba(201,169,97,0.58) !important;
+}
+.bottom-tab:not(.active):hover {
+  border-color: rgba(45,107,78,0.34) !important;
+}
+.bottom-tab-label {
+  color: #2d6b4e !important;
+  opacity: 0.78;
+}
+.bottom-tab.active .bottom-tab-label {
+  color: var(--rc-gold, #c9a961) !important;
+  opacity: 1;
+}
+
+#fullscreenBtn,
+body.viewer-mode #fullscreenBtn,
+body.viewer-mode #fullscreenBtn * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+}
+body.viewer-mode .header-actions {
+  pointer-events: auto !important;
+}
+body.viewer-mode header {
+  pointer-events: auto !important;
+}
+
+body.fs-active {
+  overflow: hidden !important;
+}
+body.fs-active main {
+  padding-bottom: 0 !important;
+}
+body.fs-active header {
+  position: static !important;
+  top: 0 !important;
+}
 /* User revision: keep Final Podium subtitle centered on the 840px export axis (X:420). */
 .podium-page-1 {
   --podium-name-size: clamp(20px, 3vw, 32px);
@@ -7602,4 +7745,5 @@ body.viewer-mode .sb-score-box.winner .match-score-input:disabled {
 }
 </style>
 </body>
+</html>
 </html>
