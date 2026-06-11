@@ -3604,7 +3604,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start Tournament</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.67 · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.68 · beta</div>
     </div>
   </div>
 
@@ -6679,7 +6679,7 @@ function updateLandscapePanel() {
   const metaEl = document.getElementById('rpTournamentMeta');
   if (nameEl) {
     nameEl.textContent = state.tournamentName || 'padel.teroos';
-    nameEl.style.cssText = 'display:block!important;font-size:15px!important;font-weight:800!important;color:#2d6b4e!important;line-height:1.3!important;margin-bottom:3px!important;word-break:break-word!important;visibility:visible!important;opacity:1!important;';
+    // Styling lives in CSS (#rpTournamentName) — v0.68 cleanup
   }
   if (metaEl) {
     try {
@@ -6689,7 +6689,7 @@ function updateLandscapePanel() {
     } catch(e2) {
       metaEl.textContent = `Round ${state.rounds ? state.rounds.length : 1}`;
     }
-    metaEl.style.cssText = 'display:block!important;font-size:10px!important;font-weight:700!important;color:#4a8a6a!important;letter-spacing:1.2px!important;text-transform:uppercase!important;margin-bottom:10px!important;visibility:visible!important;opacity:1!important;';
+    // Styling lives in CSS (#rpTournamentMeta) — v0.68 cleanup
   }
 
   // QR Code — same link as 📺 TV button
@@ -6893,11 +6893,12 @@ function showShareButton() {
   saveBtn.parentNode.insertBefore(btn, saveBtn);
 }
 
-// Override saveState to also push to Firebase
+// Override saveState to also push to Firebase + notify UI hooks
 const _origSaveState = saveState;
 window.saveState = function() {
   _origSaveState();
   pushToFirebase();
+  window.dispatchEvent(new Event('stateRendered'));
 };
 saveState = window.saveState;
 
@@ -7128,20 +7129,64 @@ saveState = window.saveState;
     const loadingEl = document.getElementById('viewerLoading');
     if (loadingEl) loadingEl.remove();
 
+    // ===== REALTIME LISTENER (v0.68) — replaces 3s polling =====
+    // Firebase RTDB on('value') fires instantly on every admin push.
+    // Handles both states: waiting for tournament start AND live updates.
+    if (_fbDb) {
+      _fbDb.ref(`tournaments/${getRoomId()}`).on('value', (fbSnap) => {
+        try {
+          if (!fbSnap.exists()) return;
+          const loaded = fbSnap.val();
+          if (!loaded || !loaded.started) return;
+          window._lastPulledAt = loaded._pushedAt || Date.now();
+
+          const wasOnLive = _viewerRound === null;
+          const prevRoundIdx = state.currentRoundIdx;
+
+          Object.keys(loaded).forEach(k => {
+            if (k.startsWith('_')) return;
+            if (k === 'endedAt' && loaded[k]) state[k] = new Date(loaded[k]);
+            else state[k] = loaded[k];
+          });
+
+          if (wasOnLive) {
+            // Following live — jump to latest round
+            state.currentRoundIdx = state.rounds.length - 1;
+          } else {
+            // Browsing history — stay on chosen round
+            state.currentRoundIdx = Math.min(prevRoundIdx, state.rounds.length - 1);
+          }
+
+          // First data arrival: dismiss waiting overlay, reveal app
+          const waitOv = document.getElementById('viewerWaitOverlay');
+          if (waitOv) {
+            waitOv.remove();
+            const bn = document.getElementById('bottomNav');
+            if (bn) bn.style.display = 'flex';
+            showView('overview');
+          }
+
+          renderAll();
+          applyViewerUI();
+          maybeAutoOpenPodium();
+        } catch (e) {
+          console.warn('Realtime sync error:', e);
+        }
+      }, (err) => {
+        console.warn('Firebase listener failed, viewer will not auto-update:', err);
+      });
+    }
+
     if (!state.started) {
-      // No data found for this room
+      // No data yet for this room — listener above will dismiss this overlay
       const overlay = document.createElement('div');
+      overlay.id = 'viewerWaitOverlay';
       overlay.style.cssText = 'position:fixed;inset:0;z-index:9990;background:rgba(245,240,230,0.97);'
         + 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;';
       overlay.innerHTML = '<div style="font-size:32px">⏳</div>'
         + '<div style="font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#2d6b4e;">Menunggu tournament...</div>'
         + '<div style="font-size:11px;color:#4a8a6a;">Admin belum start atau room ID salah</div>';
       document.body.appendChild(overlay);
-      // Retry every 5s
-      setInterval(async () => {
-        await pullFromFirebase();
-        if (state.started) { overlay.remove(); showView('overview'); renderAll(); applyViewerUI(); maybeAutoOpenPodium(); }
-      }, 5000);
       return;
     }
 
@@ -7157,43 +7202,22 @@ saveState = window.saveState;
     applyViewerUI();
     maybeAutoOpenPodium();
 
-    // Poll every 3 seconds — only follow live round if viewer hasn't navigated away
-    _fbSyncInterval = setInterval(async () => {
-      const wasOnLive = _viewerRound === null;
-      const prevRoundIdx = state.currentRoundIdx;
-      // Signal to pullFromFirebase whether to preserve round position
-      window._viewerRoundRef = wasOnLive ? null : prevRoundIdx;
-      await pullFromFirebase();
-      if (wasOnLive) {
-        // Following live — jump to latest round
-        state.currentRoundIdx = state.rounds.length - 1;
-      } else {
-        // Browsing history — stay on chosen round
-        state.currentRoundIdx = Math.min(prevRoundIdx, state.rounds.length - 1);
-      }
-      renderAll();
-      applyViewerUI();
-      maybeAutoOpenPodium();
-    }, 3000);
+    // Live updates now arrive via the on('value') realtime listener above —
+    // no polling interval needed. _viewerRound still tracks whether the
+    // viewer is following live or browsing round history.
 
   } else {
     // ADMIN MODE — push on every save
     showShareButton();
 
-    // Show share button when tournament started
-    const origRenderAll = renderAll;
-    // Share button visibility tracked via saveState hook above
+    // Show share button when tournament started — event-driven via
+    // 'stateRendered' (dispatched from the saveState hook above). No polling.
     const _checkShare = () => {
       const btn = document.getElementById('shareBtn');
       if (btn) btn.style.display = state.started ? 'flex' : 'none';
     };
-
-    // Patch renderAll to show share button
-    const _patchedRender = renderAll;
     window.addEventListener('stateRendered', _checkShare);
-
-    // Check on existing renders
-    setInterval(_checkShare, 1000);
+    _checkShare();
 
     // Push current state if already started (e.g. page reload)
     if (state.started) {
@@ -7391,6 +7415,190 @@ body.viewer-mode .score-box:disabled {
 .redacted #standingTable tbody .bonus-marker,
 .redacted #standingBody .bonus-marker {
   color: transparent !important;
+}
+</style>
+<style id="liquid-glass-v068">
+/* ============================================================
+   LIQUID GLASS v0.68 — Reserve Cup frost language
+   Reference: Reserve Cup Miami match graphics —
+   frosted panel over imagery, specular top edge, hairline
+   dividers, deep-forest winner chips with white numerals,
+   italic serif eyebrows, letterspaced micro-labels.
+   CSS-only layer. Lives at end of document: source order wins.
+   NOTE: .podium-page-1 / Story Studio export surfaces are
+   deliberately untouched — html2canvas can't rasterize
+   backdrop-filter, so export pages keep opaque fills.
+   ============================================================ */
+
+:root {
+  /* Material */
+  --lg-frost:        linear-gradient(135deg, rgba(253,251,245,0.68) 0%, rgba(242,237,225,0.46) 100%);
+  --lg-frost-strong: linear-gradient(135deg, rgba(253,251,245,0.82) 0%, rgba(244,239,228,0.64) 100%);
+  --lg-frost-chip:   rgba(252,250,244,0.55);
+  --lg-blur:         blur(24px) saturate(1.5);
+  --lg-blur-soft:    blur(16px) saturate(1.35);
+  /* Edges & shadow */
+  --lg-edge:         rgba(255,255,255,0.55);
+  --lg-edge-lit:     rgba(255,255,255,0.75);
+  --lg-hairline:     rgba(22,48,33,0.16);
+  --lg-shadow:       0 8px 32px rgba(20,46,32,0.10);
+  --lg-specular:     inset 0 1px 0 rgba(255,255,255,0.70), inset 0 -1px 0 rgba(20,46,32,0.05);
+  /* Reserve Cup score chips */
+  --lg-forest-deep:  #1d3b2a;
+  --lg-forest-deep2: #16301f;
+  --lg-chip-ink:     #1a3d2e;
+  --lg-chip-paper:   #f7f3e8;
+}
+
+/* ---------- Backdrop: glass needs something to refract ---------- */
+/* Layered court-light glows under the cream base. Fixed attachment
+   so panels scroll over it and the blur visibly shifts. */
+body {
+  background:
+    radial-gradient(900px 600px at 12% -8%,  rgba(45,107,78,0.16) 0%, rgba(45,107,78,0) 60%),
+    radial-gradient(1100px 700px at 100% 18%, rgba(201,169,97,0.13) 0%, rgba(201,169,97,0) 55%),
+    radial-gradient(800px 900px at 50% 115%, rgba(29,59,42,0.14) 0%, rgba(29,59,42,0) 60%),
+    linear-gradient(180deg, #f6f1e7 0%, #efe9db 100%) !important;
+  background-attachment: fixed !important;
+}
+main, .view { background: transparent !important; }
+
+/* ---------- Core glass recipe ---------- */
+header,
+.bottom-nav,
+.card,
+.setup-card,
+.modal,
+.rp-section,
+.sb-court-card {
+  background: var(--lg-frost) !important;
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  border: 1px solid var(--lg-edge) !important;
+  box-shadow: var(--lg-shadow), var(--lg-specular) !important;
+}
+
+/* Header & nav: thinner material, stronger blur, hairline seams */
+header {
+  background: linear-gradient(180deg, rgba(252,249,242,0.78), rgba(247,242,232,0.55)) !important;
+  border: none !important;
+  border-bottom: 1px solid var(--lg-hairline) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 4px 24px rgba(20,46,32,0.06) !important;
+}
+.bottom-nav {
+  background: linear-gradient(0deg, rgba(252,249,242,0.80), rgba(247,242,232,0.58)) !important;
+  border: none !important;
+  border-top: 1px solid var(--lg-hairline) !important;
+  box-shadow: 0 -1px 0 rgba(255,255,255,0.6) inset, 0 -6px 28px rgba(20,46,32,0.08) !important;
+}
+.bottom-tab.active,
+.nav-btn.active {
+  background: var(--lg-frost-strong) !important;
+  border: 1px solid var(--lg-edge-lit) !important;
+  box-shadow: var(--lg-specular), 0 2px 10px rgba(20,46,32,0.08) !important;
+}
+
+/* Modals: heavier frost so content stays readable over busy views */
+.modal {
+  background: var(--lg-frost-strong) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(1.5);
+  backdrop-filter: blur(32px) saturate(1.5);
+}
+.modal-backdrop { background: rgba(18,38,27,0.45) !important; }
+.modal-backdrop.show {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+/* ---------- Match cards: hairline header seam, frost body ---------- */
+.sb-court-header { border-bottom: 1px solid var(--lg-hairline) !important; }
+.court-header    { border-bottom: 1px solid var(--lg-hairline) !important; }
+
+/* ---------- Score chips — the Reserve Cup signature ---------- */
+/* Loser / neutral: frosted chip, dark numeral */
+.sb-score-box {
+  background: var(--lg-frost-chip) !important;
+  -webkit-backdrop-filter: var(--lg-blur-soft);
+  backdrop-filter: var(--lg-blur-soft);
+  border: 1px solid var(--lg-edge) !important;
+  box-shadow: var(--lg-specular) !important;
+}
+/* Winner: solid deep forest, white numeral — exactly the graphic */
+.sb-score-box.winner {
+  background: linear-gradient(160deg, var(--lg-forest-deep) 0%, var(--lg-forest-deep2) 100%) !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+  box-shadow:
+    0 6px 18px rgba(22,48,31,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.16) !important;
+}
+.sb-score-box.winner .sb-score-input {
+  color: var(--lg-chip-paper) !important;
+  -webkit-text-fill-color: var(--lg-chip-paper) !important;
+}
+/* Winner dot — the match-point marker from the Reserve Cup layout */
+.sb-score-box.winner::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #d9b971;
+  box-shadow: 0 0 6px rgba(217,185,113,0.6);
+}
+/* Viewer mode forces #050505 on disabled inputs late in the sheet —
+   re-assert white numerals on winner chips (this block is later still) */
+body.viewer-mode .sb-score-box.winner,
+body.viewer-mode .sb-score-box.winner:disabled {
+  background: linear-gradient(160deg, var(--lg-forest-deep) 0%, var(--lg-forest-deep2) 100%) !important;
+}
+body.viewer-mode .sb-score-box.winner .sb-score-input,
+body.viewer-mode .sb-score-box.winner .sb-score-input:disabled,
+body.viewer-mode .sb-score-box.winner .match-score-input:disabled {
+  color: var(--lg-chip-paper) !important;
+  -webkit-text-fill-color: var(--lg-chip-paper) !important;
+  opacity: 1 !important;
+}
+
+/* ---------- Landscape right panel (replaces JS cssText, v0.68) ---------- */
+#rpTournamentName {
+  display: block;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: 19px;
+  font-weight: 700;
+  color: #1d3b2a;
+  line-height: 1.25;
+  margin-bottom: 3px;
+  word-break: break-word;
+}
+#rpTournamentMeta {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #4a8a6a;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.rp-section { backdrop-filter: var(--lg-blur-soft); -webkit-backdrop-filter: var(--lg-blur-soft); }
+
+/* ---------- Fallbacks ---------- */
+/* No backdrop-filter support (incl. html2canvas rasterization):
+   raise fill opacity so panels stay legible instead of see-through */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  header, .bottom-nav, .card, .setup-card, .modal, .rp-section, .sb-court-card {
+    background: rgba(250,246,238,0.96) !important;
+  }
+  .sb-score-box { background: rgba(252,250,244,0.97) !important; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  header, .bottom-nav, .card, .setup-card, .modal, .rp-section, .sb-court-card {
+    background: rgba(250,246,238,0.98) !important;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 </style>
 </body>
