@@ -646,6 +646,8 @@
   .podium-backdrop.show { display: flex; }
   .podium-backdrop.show ~ * .beta-banner,
   body:has(.podium-backdrop.show) .beta-banner { display: none !important; }
+  body:has(.podium-backdrop.show) header,
+  body:has(.podium-backdrop.show) #betaBanner { display: none !important; }
 
   /* Blurred court line decorations — mimic Reserve Cup's blurred court lines bg */
   .podium-backdrop::before,
