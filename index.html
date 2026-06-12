@@ -7285,7 +7285,10 @@ saveState = window.saveState;
 /* overflow-x: clip (NOT hidden) — 'hidden' silently forces overflow-y
    into 'auto', turning body into its own scroll container, which detaches
    the sticky header from the viewport scroll. 'clip' clips without
-   creating a scroll container, so sticky engages on the viewport. */
+   creating a scroll container, so sticky engages on the viewport.
+   Clipping root lives on html ONLY; body stays fully visible — body is
+   then definitively not a scroll container (best for sticky on Android)
+   and not a clip root (best for fixed-element layout on iOS Safari). */
 html {
   overflow-x: clip !important;
   overflow-y: auto !important;
@@ -7297,7 +7300,7 @@ body {
 }
 @supports not (overflow-x: clip) {
   html { overflow-x: hidden !important; }
-  body { overflow-x: hidden !important; overflow-y: auto !important; }
+  body { overflow-x: hidden !important; }
 }
 
 header {
@@ -7696,6 +7699,13 @@ body.header-scrolled header {
   box-shadow: var(--lq-float), var(--lq-lens) !important;
   padding: 8px 12px !important;
   padding-bottom: 8px !important;
+  /* iOS Safari: a transform on a fixed element creates its own compositing
+     layer that can PAINT AT A STALE POSITION on first load until the page
+     repaints (e.g. on scroll) — exactly the "footer floats until I scroll"
+     bug. The base CSS translateZ(0) hack is removed; backdrop-filter above
+     already promotes this to a GPU layer. */
+  transform: none !important;
+  -webkit-transform: none !important;
 }
 /* Nav is fixed — restore bottom clearance for content */
 body.has-bottom-nav main {
