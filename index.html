@@ -3606,7 +3606,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start Tournament</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.68.1 · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.69.2 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -6923,12 +6923,15 @@ saveState = window.saveState;
     const viewerBanner = document.createElement('div');
     viewerBanner.id = 'viewerModeBanner';
     viewerBanner.style.cssText = [
-      'position:relative', 'z-index:99999',
-      'background:#2d6b4e', 'color:#f5f0e6',
+      'position:relative', 'z-index:1001',
+      'background:rgba(45,107,78,0.85)',
+      '-webkit-backdrop-filter:blur(16px) saturate(1.5)',
+      'backdrop-filter:blur(16px) saturate(1.5)',
+      'color:#f5f0e6',
       'font-size:11px', 'font-weight:800', 'letter-spacing:2px',
       'text-transform:uppercase', 'text-align:center',
       'padding:6px 16px 6px', 'padding-top:calc(6px + env(safe-area-inset-top,0px))',
-      'box-shadow:0 2px 8px rgba(0,0,0,0.2)', 'pointer-events:none'
+      'box-shadow:inset 0 -1px 0 rgba(255,255,255,0.25)', 'pointer-events:none'
     ].join(';');
     viewerBanner.textContent = '📺  MODE NONTON  ·  VIEW ONLY';
     document.body.insertBefore(viewerBanner, document.body.firstChild);
@@ -7279,14 +7282,22 @@ saveState = window.saveState;
 /* Ribbon is in normal flow (see .beta-banner). Header is sticky at top:0 —
    at rest it sits below the ribbon; on scroll the ribbon scrolls away and
    the header takes the top edge. No JS measurement, no padding-top hacks. */
+/* overflow-x: clip (NOT hidden) — 'hidden' silently forces overflow-y
+   into 'auto', turning body into its own scroll container, which detaches
+   the sticky header from the viewport scroll. 'clip' clips without
+   creating a scroll container, so sticky engages on the viewport. */
 html {
-  overflow-x: hidden !important;
+  overflow-x: clip !important;
   overflow-y: auto !important;
 }
 body {
   min-height: 100dvh !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
+  overflow-x: clip !important;
+  overflow-y: visible !important;
+}
+@supports not (overflow-x: clip) {
+  html { overflow-x: hidden !important; }
+  body { overflow-x: hidden !important; overflow-y: auto !important; }
 }
 
 header {
@@ -7560,125 +7571,207 @@ body.viewer-mode .score-box:disabled {
   color: transparent !important;
 }
 </style>
-<style id="liquid-glass-v068">
+<style id="liquid-glass-v069">
 /* ============================================================
-   LIQUID GLASS v0.68 — Reserve Cup frost language
-   Reference: Reserve Cup Miami match graphics —
-   frosted panel over imagery, specular top edge, hairline
-   dividers, deep-forest winner chips with white numerals,
-   italic serif eyebrows, letterspaced micro-labels.
-   CSS-only layer. Lives at end of document: source order wins.
-   NOTE: .podium-page-1 / Story Studio export surfaces are
-   deliberately untouched — html2canvas can't rasterize
-   backdrop-filter, so export pages keep opaque fills.
+   LIQUID GLASS v0.69 — design system
+   Frost (v0.68) was milky + matte. Liquid is true glass:
+   clearer fills, heavy blur + saturation boost so color
+   passes through, lens-edge refraction (bright top rim,
+   side rims), diagonal specular gloss baked into fills,
+   capsule shapes, floating dock nav.
+   Last style block in the document: source order wins.
+   NOTE: .podium-page-* / Story Studio export surfaces remain
+   untouched — html2canvas can't rasterize backdrop-filter.
    ============================================================ */
 
 :root {
-  /* Material */
-  --lg-frost:        linear-gradient(135deg, rgba(253,251,245,0.68) 0%, rgba(242,237,225,0.46) 100%);
-  --lg-frost-strong: linear-gradient(135deg, rgba(253,251,245,0.82) 0%, rgba(244,239,228,0.64) 100%);
-  --lg-frost-chip:   rgba(252,250,244,0.55);
-  --lg-blur:         blur(24px) saturate(1.5);
-  --lg-blur-soft:    blur(16px) saturate(1.35);
-  /* Edges & shadow */
-  --lg-edge:         rgba(255,255,255,0.55);
-  --lg-edge-lit:     rgba(255,255,255,0.75);
-  --lg-hairline:     rgba(22,48,33,0.16);
-  --lg-shadow:       0 8px 32px rgba(20,46,32,0.10);
-  --lg-specular:     inset 0 1px 0 rgba(255,255,255,0.70), inset 0 -1px 0 rgba(20,46,32,0.05);
-  /* Reserve Cup score chips */
-  --lg-forest-deep:  #1d3b2a;
-  --lg-forest-deep2: #16301f;
-  --lg-chip-ink:     #1a3d2e;
-  --lg-chip-paper:   #f7f3e8;
+  --lq-radius: 24px;
+  /* Clear glass fills with diagonal specular gloss baked in */
+  --lq-fill: linear-gradient(132deg,
+      rgba(255,255,255,0.52) 0%, rgba(255,255,255,0.16) 34%,
+      rgba(255,255,255,0.28) 66%, rgba(255,255,255,0.42) 100%);
+  --lq-fill-strong: linear-gradient(132deg,
+      rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.36) 42%,
+      rgba(255,255,255,0.55) 100%);
+  --lq-chip: linear-gradient(135deg,
+      rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.24) 55%,
+      rgba(255,255,255,0.40) 100%);
+  --lq-blur: blur(30px) saturate(1.75);
+  --lq-blur-soft: blur(18px) saturate(1.6);
+  --lq-blur-heavy: blur(42px) saturate(1.8);
+  --lq-border: rgba(255,255,255,0.55);
+  /* Lens refraction: bright top rim, faint bottom + side rims */
+  --lq-lens:
+      inset 0 1.5px 1px rgba(255,255,255,0.90),
+      inset 0 -1px 1px rgba(255,255,255,0.28),
+      inset 1.5px 0 1.5px rgba(255,255,255,0.20),
+      inset -1.5px 0 1.5px rgba(255,255,255,0.20);
+  --lq-float: 0 14px 38px rgba(20,46,32,0.15), 0 3px 10px rgba(20,46,32,0.07);
+  --lq-hairline: rgba(255,255,255,0.40);
+  --lq-forest: #1d3b2a;
+  --lq-forest2: #142b1d;
+  --lq-paper: #f7f3e8;
 }
 
-/* ---------- Backdrop: glass needs something to refract ---------- */
-/* Layered court-light glows under the cream base. Fixed attachment
-   so panels scroll over it and the blur visibly shifts. */
-body {
+/* ---------- Backdrop: clear glass needs rich color behind it ---------- */
+/* Painted on a FIXED ELEMENT (body::before), not background-attachment:fixed.
+   Chrome Android mis-samples fixed-attachment backgrounds under
+   backdrop-filter, producing hard-edged smear bands behind glass panels.
+   A fixed-position layer composites correctly. Visual is identical. */
+html { background: linear-gradient(180deg, #f6f1e7 0%, #ece5d4 100%) !important; }
+body { background: transparent !important; }
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background:
-    radial-gradient(900px 600px at 12% -8%,  rgba(45,107,78,0.16) 0%, rgba(45,107,78,0) 60%),
-    radial-gradient(1100px 700px at 100% 18%, rgba(201,169,97,0.13) 0%, rgba(201,169,97,0) 55%),
-    radial-gradient(800px 900px at 50% 115%, rgba(29,59,42,0.14) 0%, rgba(29,59,42,0) 60%),
-    linear-gradient(180deg, #f6f1e7 0%, #efe9db 100%) !important;
-  background-attachment: fixed !important;
+    radial-gradient(900px 620px at 10% -8%,  rgba(45,107,78,0.26) 0%, rgba(45,107,78,0) 60%),
+    radial-gradient(1100px 720px at 102% 16%, rgba(201,169,97,0.22) 0%, rgba(201,169,97,0) 55%),
+    radial-gradient(820px 920px at 50% 116%, rgba(29,59,42,0.22) 0%, rgba(29,59,42,0) 60%),
+    radial-gradient(500px 380px at 78% 64%,  rgba(120,170,120,0.10) 0%, rgba(120,170,120,0) 70%);
 }
 main, .view { background: transparent !important; }
 
-/* ---------- Core glass recipe ---------- */
-header,
-.bottom-nav,
+/* ---------- Core lens recipe ---------- */
+/* Cards carry NO backdrop-filter: Chromium on Android has a long-standing
+   bug rendering backdrop-filter inside rounded, overflow-clipped elements
+   (.sb-court-card is radius 22px + overflow:hidden) — it tiles the sampled
+   backdrop and draws hard-edged smear bands inside the card. The glass look
+   comes from the gloss gradient fill + lens-edge insets instead.
+   Page-level blur stays on header, ribbon, dock, and modal, which render
+   clean because they are not rounded clip containers. */
 .card,
 .setup-card,
-.modal,
 .rp-section,
 .sb-court-card {
-  background: var(--lg-frost) !important;
-  -webkit-backdrop-filter: var(--lg-blur);
-  backdrop-filter: var(--lg-blur);
-  border: 1px solid var(--lg-edge) !important;
-  box-shadow: var(--lg-shadow), var(--lg-specular) !important;
+  background: linear-gradient(132deg,
+      rgba(255,255,255,0.80) 0%, rgba(252,249,240,0.55) 34%,
+      rgba(252,249,240,0.62) 66%, rgba(255,255,255,0.72) 100%) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border: 1px solid var(--lq-border) !important;
+  box-shadow: var(--lq-float), var(--lq-lens) !important;
+}
+.modal {
+  border: 1px solid var(--lq-border) !important;
+  box-shadow: var(--lq-float), var(--lq-lens) !important;
+}
+.card, .setup-card { border-radius: var(--lq-radius) !important; }
+
+/* Match-card header dissolves into the lens — single piece of glass */
+.sb-court-header,
+.court-header {
+  background: transparent !important;
+  border-bottom: 1px solid var(--lq-hairline) !important;
 }
 
-/* Header & nav: thinner material, stronger blur, hairline seams */
+/* ---------- Header: clear sticky pane ---------- */
 header {
-  background: linear-gradient(180deg, rgba(252,249,242,0.78), rgba(247,242,232,0.55)) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.20)) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(1.65) !important;
+  backdrop-filter: blur(26px) saturate(1.65) !important;
   border: none !important;
-  border-bottom: 1px solid var(--lg-hairline) !important;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 4px 24px rgba(20,46,32,0.06) !important;
+  border-bottom: 1px solid var(--lq-hairline) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 6px 24px rgba(20,46,32,0.07) !important;
 }
+body.header-scrolled header {
+  background: linear-gradient(180deg, rgba(255,255,255,0.46), rgba(255,255,255,0.14)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.75), 0 10px 30px rgba(20,46,32,0.11) !important;
+}
+
+/* ---------- Bottom nav: in-flow glass dock (not fixed) ---------- */
 .bottom-nav {
-  background: linear-gradient(0deg, rgba(252,249,242,0.80), rgba(247,242,232,0.58)) !important;
-  border: none !important;
-  border-top: 1px solid var(--lg-hairline) !important;
-  box-shadow: 0 -1px 0 rgba(255,255,255,0.6) inset, 0 -6px 28px rgba(20,46,32,0.08) !important;
+  position: fixed !important;
+  left: 10px !important;
+  right: 10px !important;
+  bottom: max(10px, env(safe-area-inset-bottom, 0px)) !important;
+  border-radius: 30px !important;
+  background: var(--lq-fill) !important;
+  -webkit-backdrop-filter: var(--lq-blur);
+  backdrop-filter: var(--lq-blur);
+  border: 1px solid var(--lq-border) !important;
+  border-top: 1px solid var(--lq-border) !important;
+  box-shadow: var(--lq-float), var(--lq-lens) !important;
+  padding: 8px 12px !important;
+  padding-bottom: 8px !important;
+}
+/* Nav is fixed — restore bottom clearance for content */
+body.has-bottom-nav main {
+  padding-bottom: max(110px, env(safe-area-inset-bottom, 0px) + 90px) !important;
+}
+.bottom-tab {
+  border-radius: 22px !important;
+  background: rgba(255,255,255,0.30) !important;
+  border: 1px solid rgba(255,255,255,0.45) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.75) !important;
 }
 .bottom-tab.active,
 .nav-btn.active {
-  background: var(--lg-frost-strong) !important;
-  border: 1px solid var(--lg-edge-lit) !important;
-  box-shadow: var(--lg-specular), 0 2px 10px rgba(20,46,32,0.08) !important;
+  background: var(--lq-fill-strong) !important;
+  border-color: rgba(201,169,97,0.65) !important;
+  box-shadow: inset 0 1.5px 1px rgba(255,255,255,0.9), 0 3px 12px rgba(20,46,32,0.10) !important;
 }
 
-/* Modals: heavier frost so content stays readable over busy views */
+/* ---------- Buttons: capsule lenses ---------- */
+.ghost-btn,
+.icon-btn,
+.sb-nav-btn {
+  border-radius: 999px !important;
+  background: var(--lq-chip) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border: 1px solid var(--lq-border) !important;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.85), 0 2px 8px rgba(20,46,32,0.07) !important;
+}
+.primary-btn,
+.danger-btn {
+  border-radius: 999px !important;
+  box-shadow: inset 0 1.5px 1px rgba(255,255,255,0.30), 0 6px 18px rgba(20,46,32,0.22) !important;
+}
+
+/* ---------- Modals: heavy lens so content stays readable ---------- */
 .modal {
-  background: var(--lg-frost-strong) !important;
-  -webkit-backdrop-filter: blur(32px) saturate(1.5);
-  backdrop-filter: blur(32px) saturate(1.5);
+  background: var(--lq-fill-strong) !important;
+  -webkit-backdrop-filter: var(--lq-blur-heavy);
+  backdrop-filter: var(--lq-blur-heavy);
+  border-radius: var(--lq-radius) !important;
 }
-.modal-backdrop { background: rgba(18,38,27,0.45) !important; }
-.modal-backdrop.show {
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-}
+.modal-backdrop { background: rgba(14,32,22,0.48) !important; }
+/* No blur on the backdrop: the modal inside it carries its own heavy blur,
+   and nesting the two triggers the same Chrome Android sampling artifact. */
 
-/* ---------- Match cards: hairline header seam, frost body ---------- */
-.sb-court-header { border-bottom: 1px solid var(--lg-hairline) !important; }
-.court-header    { border-bottom: 1px solid var(--lg-hairline) !important; }
-
-/* ---------- Score chips — the Reserve Cup signature ---------- */
-/* Loser / neutral: frosted chip, dark numeral */
+/* ---------- Score chips ---------- */
+/* Loser / neutral: clear lens chip.
+   NO backdrop-filter here: nested blur (chip inside an already-blurred
+   card) triggers a Chrome Android sampling bug that renders horizontal
+   smear bands across the card. The card behind already blurs the page,
+   so the chip stays glassy from its translucent fill + lens insets alone. */
 .sb-score-box {
-  background: var(--lg-frost-chip) !important;
-  -webkit-backdrop-filter: var(--lg-blur-soft);
-  backdrop-filter: var(--lg-blur-soft);
-  border: 1px solid var(--lg-edge) !important;
-  box-shadow: var(--lg-specular) !important;
+  background: var(--lq-chip) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border: 1px solid var(--lq-border) !important;
+  border-radius: 18px !important;
+  box-shadow: var(--lq-lens) !important;
 }
-/* Winner: solid deep forest, white numeral — exactly the graphic */
+/* Winner: deep forest glass — glossy, lit from above, gold marker */
 .sb-score-box.winner {
-  background: linear-gradient(160deg, var(--lg-forest-deep) 0%, var(--lg-forest-deep2) 100%) !important;
-  border: 1px solid rgba(255,255,255,0.18) !important;
+  background:
+    linear-gradient(150deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.02) 38%, rgba(0,0,0,0.10) 100%),
+    linear-gradient(160deg, var(--lq-forest) 0%, var(--lq-forest2) 100%) !important;
+  border: 1px solid rgba(255,255,255,0.25) !important;
   box-shadow:
-    0 6px 18px rgba(22,48,31,0.35),
-    inset 0 1px 0 rgba(255,255,255,0.16) !important;
+    0 4px 14px rgba(20,46,32,0.18),
+    0 1px 3px rgba(20,46,32,0.14),
+    inset 0 1.5px 1px rgba(255,255,255,0.28),
+    inset 0 -1px 2px rgba(0,0,0,0.25) !important;
 }
 .sb-score-box.winner .sb-score-input {
-  color: var(--lg-chip-paper) !important;
-  -webkit-text-fill-color: var(--lg-chip-paper) !important;
+  color: var(--lq-paper) !important;
+  -webkit-text-fill-color: var(--lq-paper) !important;
 }
-/* Winner dot — the match-point marker from the Reserve Cup layout */
 .sb-score-box.winner::after {
   content: '';
   position: absolute;
@@ -7688,23 +7781,24 @@ header {
   height: 5px;
   border-radius: 50%;
   background: #d9b971;
-  box-shadow: 0 0 6px rgba(217,185,113,0.6);
+  box-shadow: 0 0 6px rgba(217,185,113,0.7);
 }
-/* Viewer mode forces #050505 on disabled inputs late in the sheet —
-   re-assert white numerals on winner chips (this block is later still) */
+/* Viewer mode forces #050505 on disabled inputs — re-assert white numerals */
 body.viewer-mode .sb-score-box.winner,
 body.viewer-mode .sb-score-box.winner:disabled {
-  background: linear-gradient(160deg, var(--lg-forest-deep) 0%, var(--lg-forest-deep2) 100%) !important;
+  background:
+    linear-gradient(150deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.02) 38%, rgba(0,0,0,0.10) 100%),
+    linear-gradient(160deg, var(--lq-forest) 0%, var(--lq-forest2) 100%) !important;
 }
 body.viewer-mode .sb-score-box.winner .sb-score-input,
 body.viewer-mode .sb-score-box.winner .sb-score-input:disabled,
 body.viewer-mode .sb-score-box.winner .match-score-input:disabled {
-  color: var(--lg-chip-paper) !important;
-  -webkit-text-fill-color: var(--lg-chip-paper) !important;
+  color: var(--lq-paper) !important;
+  -webkit-text-fill-color: var(--lq-paper) !important;
   opacity: 1 !important;
 }
 
-/* ---------- Landscape right panel (replaces JS cssText, v0.68) ---------- */
+/* ---------- Landscape right panel ---------- */
 #rpTournamentName {
   display: block;
   font-family: 'Cormorant Garamond', Georgia, serif;
@@ -7725,23 +7819,56 @@ body.viewer-mode .sb-score-box.winner .match-score-input:disabled {
   text-transform: uppercase;
   margin-bottom: 10px;
 }
-.rp-section { backdrop-filter: var(--lg-blur-soft); -webkit-backdrop-filter: var(--lg-blur-soft); }
+
+/* ---------- Chrome: v0.68.1 approach (proven) ---------- */
+/* Ribbon lives in normal flow and scrolls away; header is sticky at top:0
+   (set in the revision block) and takes the top edge on scroll.
+   Ribbon keeps the liquid material: translucent + blurred. */
+.beta-banner {
+  position: relative !important;
+  z-index: 1001 !important;
+  background: rgba(245,200,0,0.80) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  backdrop-filter: blur(16px) saturate(1.5);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(255,255,255,0.30) !important;
+}
+
+/* ---------- iOS-feel interaction polish ---------- */
+* { -webkit-tap-highlight-color: transparent; }
+.ghost-btn, .icon-btn, .sb-nav-btn, .bottom-tab,
+.primary-btn, .danger-btn {
+  transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1.3),
+              background 0.25s ease, box-shadow 0.25s ease,
+              border-color 0.25s ease;
+}
+.ghost-btn:active, .icon-btn:active, .sb-nav-btn:active,
+.primary-btn:active, .danger-btn:active { transform: scale(0.95); }
+header, .bottom-nav { transition: background 0.3s ease, box-shadow 0.3s ease; }
+.sb-score-box { transition: background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .ghost-btn, .icon-btn, .sb-nav-btn, .bottom-tab,
+  .primary-btn, .danger-btn, header, .bottom-nav, .sb-score-box { transition: none; }
+}
 
 /* ---------- Fallbacks ---------- */
-/* No backdrop-filter support (incl. html2canvas rasterization):
-   raise fill opacity so panels stay legible instead of see-through */
+/* No backdrop-filter (incl. html2canvas): near-opaque so text stays legible */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  header, .bottom-nav, .card, .setup-card, .modal, .rp-section, .sb-court-card {
+  .card, .setup-card, .modal, .rp-section, .sb-court-card,
+  header, .bottom-nav {
     background: rgba(250,246,238,0.96) !important;
   }
   .sb-score-box { background: rgba(252,250,244,0.97) !important; }
+  .ghost-btn, .icon-btn, .sb-nav-btn, .bottom-tab { background: rgba(252,250,244,0.95) !important; }
+  .beta-banner { background: #f5c800 !important; }
 }
 @media (prefers-reduced-transparency: reduce) {
-  header, .bottom-nav, .card, .setup-card, .modal, .rp-section, .sb-court-card {
+  .card, .setup-card, .modal, .rp-section, .sb-court-card,
+  header, .bottom-nav, .sb-score-box, .ghost-btn, .icon-btn, .sb-nav-btn, .bottom-tab {
     background: rgba(250,246,238,0.98) !important;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
+  .beta-banner { background: #f5c800 !important; -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 </style>
 </body>
