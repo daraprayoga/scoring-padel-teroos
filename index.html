@@ -7691,19 +7691,18 @@ body.header-scrolled header {
   right: 10px !important;
   bottom: max(10px, env(safe-area-inset-bottom, 0px)) !important;
   border-radius: 30px !important;
-  background: var(--lq-fill) !important;
-  -webkit-backdrop-filter: var(--lq-blur);
-  backdrop-filter: var(--lq-blur);
+  /* No backdrop-filter: position:fixed + backdrop-filter = continuous
+     repaint flicker on iOS Safari. Opaque fill preserves the glass look. */
+  background: linear-gradient(132deg,
+      rgba(248,244,234,0.97) 0%, rgba(244,239,226,0.94) 34%,
+      rgba(246,242,230,0.96) 66%, rgba(250,246,237,0.97) 100%) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
   border: 1px solid var(--lq-border) !important;
   border-top: 1px solid var(--lq-border) !important;
   box-shadow: var(--lq-float), var(--lq-lens) !important;
   padding: 8px 12px !important;
   padding-bottom: 8px !important;
-  /* iOS Safari: a transform on a fixed element creates its own compositing
-     layer that can PAINT AT A STALE POSITION on first load until the page
-     repaints (e.g. on scroll) — exactly the "footer floats until I scroll"
-     bug. The base CSS translateZ(0) hack is removed; backdrop-filter above
-     already promotes this to a GPU layer. */
   transform: none !important;
   -webkit-transform: none !important;
 }
