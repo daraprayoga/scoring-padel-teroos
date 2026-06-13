@@ -7292,9 +7292,13 @@ saveState = window.saveState;
 html {
   overflow-x: clip !important;
   overflow-y: auto !important;
+  /* html background covers full viewport even when body is shorter than viewport */
+  min-height: 100dvh !important;
 }
 body {
-  min-height: 100dvh !important;
+  /* No min-height: 100dvh on mobile — forces body taller than content, creating
+     scrollable dead space below short pages. Fixed nav sits at viewport bottom
+     regardless of body height; html gradient covers the rest. */
   overflow-x: clip !important;
   overflow-y: visible !important;
 }
