@@ -3523,9 +3523,10 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
         <div class="mode-grid" id="modeGrid">
           <div class="mode-card" data-mode="points_16"><div class="mode-label">16 Points</div><div class="mode-desc">Fixed total</div></div>
           <div class="mode-card" data-mode="points_21"><div class="mode-label">21 Points</div><div class="mode-desc">Fixed total</div></div>
-          <div class="mode-card" data-mode="points_32"><div class="mode-label">32 Points</div><div class="mode-desc">Fixed total</div></div>
+          
           <div class="mode-card selected" data-mode="total_of_4"><div class="mode-label">Total of 4</div><div class="mode-desc">4-0, 3-1, 2-2</div></div>
           <div class="mode-card" data-mode="total_of_5"><div class="mode-label">Total of 5</div><div class="mode-desc">5-0, 4-1, 3-2</div></div>
+          <div class="mode-card" data-mode="race_to_3"><div class="mode-label">Race to 3</div><div class="mode-desc">First to 3</div></div>
           <div class="mode-card" data-mode="race_to_4"><div class="mode-label">Race to 4</div><div class="mode-desc">First to 4</div></div>
           <div class="mode-card" data-mode="race_to_5"><div class="mode-label">Race to 5</div><div class="mode-desc">First to 5</div></div>
           <div class="mode-card" data-mode="race_to_6"><div class="mode-label">Race to 6</div><div class="mode-desc">First to 6</div></div>
@@ -3618,7 +3619,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start Tournament</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.4 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.5 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -3863,7 +3864,7 @@ function modeInfo(mode) {
 }
 
 function modeLabel(mode) {
-  const map = { points_21:'21 Points', points_16:'16 Points', points_32:'32 Points', total_of_4:'Total of 4', total_of_5:'Total of 5', race_to_4:'Race to 4', race_to_5:'Race to 5', race_to_6:'Race to 6' };
+  const map = { points_16:'16 Points', points_21:'21 Points', total_of_4:'Total of 4', total_of_5:'Total of 5', race_to_3:'Race to 3', race_to_4:'Race to 4', race_to_5:'Race to 5', race_to_6:'Race to 6' };
   return map[mode] || mode;
 }
 
