@@ -2469,14 +2469,35 @@ main { background: var(--rc-forest) !important; }
 .sb-nav-btn:hover { background: rgba(240,235,224,0.10); border-color: rgba(240,235,224,0.2); transform: translateY(-1px); }
 .sb-nav-btn:active { transform: scale(0.94); }
 .sb-nav-next {
-  background: rgba(255,255,255,0.9);
-  color: #2d6b4e !important;
-  border-color: rgba(45,107,78,0.4) !important;
-  box-shadow: 0 2px 8px rgba(45,107,78,0.1);
+  background: #2d6b4e;
+  color: #f5f0e6 !important;
+  border-color: #2d6b4e !important;
+  box-shadow: 0 2px 12px rgba(45,107,78,0.35);
   pointer-events: auto !important;
   cursor: pointer !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.3px;
+  padding: 8px 18px;
+  font-size: 13px;
+  position: relative;
+  overflow: hidden;
 }
-.sb-nav-next:hover { border-color: rgba(45,107,78,0.6); box-shadow: 0 4px 12px rgba(45,107,78,0.15); }
+.sb-nav-next::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 0 rgba(45,107,78,0.5);
+  animation: nextPulse 2.5s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes nextPulse {
+  0% { box-shadow: 0 0 0 0 rgba(45,107,78,0.45); }
+  60% { box-shadow: 0 0 0 8px rgba(45,107,78,0); }
+  100% { box-shadow: 0 0 0 0 rgba(45,107,78,0); }
+}
+.sb-nav-next:hover { background: #1a4a35 !important; border-color: #1a4a35 !important; box-shadow: 0 4px 16px rgba(45,107,78,0.45); transform: translateY(-1px); }
+.sb-nav-next:hover::after { animation: none; }
 
 /* Pages */
 .sb-page {
@@ -3051,7 +3072,7 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
     .sb-topbar .round-meta { font-size: 10px; }
     .sb-tab { padding: 4px 12px; font-size: 11px; }
     .sb-nav-btn { padding: 4px 10px; font-size: 11px; }
-    .sb-nav-next { padding: 4px 14px; font-size: 12px; }
+    .sb-nav-next { padding: 5px 14px; font-size: 12px; }
   }
   .sb-round-num { font-size: 22px; }
   .sb-tab { padding: 5px 12px; font-size: 12px; }
@@ -3606,7 +3627,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start Tournament</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.69.2 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.69.4 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -3632,7 +3653,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
         </div>
         <div class="sb-round-nav">
           <button class="sb-nav-btn" data-action="prev">←</button>
-          <button class="sb-nav-btn sb-nav-next" data-action="next">Next →</button>
+          <button class="sb-nav-btn sb-nav-next" data-action="next" id="nextRoundBtn">Next Round <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-left:2px;"><polyline points="9 18 15 12 9 6"/></svg></button>
         </div>
       </div>
 
@@ -3829,7 +3850,8 @@ const state = {
   playerStatus: [], // per-player status: 'available' | 'late' | 'left'
   playerGenders: [], // per-player gender: 'M' | 'F' (used in Mixicano)
   courtNames: [],  // custom court names e.g. ['Court Biru', 'Court Merah']
-  scheduleAhead: 5  // how many rounds ahead to pre-generate
+  scheduleAhead: 5,  // how many rounds ahead to pre-generate
+  roomId: null  // UUID per session — generated at startTournament, persistent
 };
 
 const RANDOM_POOL = ['Kiki','Marsa','Dwita','Pomen','Renny','Bella','Fina','Tarisa','Dila','Elva','Janes','Anggi','Sheva','Yola','Rina','Gia','Geges','OKI','Dhana','Rere','Adee','Una','Karina','Minda','Erlin','Rizkita','Vera','Chaca','Shintia','Vina','Cita','Diana','Sita','Eno','Bianca','Diths','Janty','Vio'];
@@ -4175,6 +4197,7 @@ function startTournament() {
   }
   state.tournamentName = (state.tournamentName || '').trim();
   state.started = true;
+  if (!state.roomId) state.roomId = generateRoomId(); // UUID per session
   state.ended = false;       // reset — a fresh tournament is never already ended
   state.endedAt = null;      // (stale `ended` from a restored session blocks player-swap, court rename, etc.)
   state.rounds = [];
@@ -6633,6 +6656,16 @@ const FB_CONFIG = {
 
 let _fbApp = null, _fbDb = null, _fbSyncInterval = null, _currentRoomId = null;
 
+// Generate a short UUID-style room ID (8 chars, URL-safe)
+function generateRoomId() {
+  const chars = 'abcdefghijkmnpqrstuvwxyz23456789'; // no ambiguous chars (0/o, 1/l/i)
+  let id = '';
+  const arr = new Uint8Array(8);
+  crypto.getRandomValues(arr);
+  arr.forEach(b => { id += chars[b % chars.length]; });
+  return id;
+}
+
 function slugify(str) {
   return (str || 'tournament')
     .toLowerCase()
@@ -6801,7 +6834,7 @@ function renderLandscapePanel() {
 
 function getRoomId() {
   if (_roomParam) return _roomParam;
-  return slugify(state.tournamentName || 'tournament');
+  return state.roomId || slugify(state.tournamentName || 'tournament');
 }
 
 async function initFirebase() {
@@ -6869,7 +6902,7 @@ function showShareButton() {
   btn.id = 'shareBtn';
   btn.className = 'icon-btn';
   btn.title = 'Share live link';
-  btn.textContent = '📺';
+  btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>';
   btn.style.display = 'none';
   btn.addEventListener('click', async () => {
     const roomId = getRoomId();
@@ -6885,9 +6918,9 @@ function showShareButton() {
       document.execCommand('copy');
       document.body.removeChild(tmp);
     }
-    btn.textContent = '✅';
-    showToast('Link sudah dicopy! Paste ke penonton untuk share mode nonton 👁');
-    setTimeout(() => { btn.textContent = '📺'; }, 2000);
+    btn.innerHTML = '✅';
+    showToast('Link sesi ini sudah dicopy! Link ini permanen untuk mabar ini 🔗');
+    setTimeout(() => { btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>'; }, 2000);
   });
   // Insert before saveBtn
   const saveBtn = document.getElementById('saveBtn');
