@@ -3618,7 +3618,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start Tournament</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.69.7 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.69.10 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -6601,10 +6601,12 @@ function getPlayerMatchHistory(playerId) {
         ? (state.pairNames[id] ? state.pairNames[id].filter(Boolean).join(' & ') : `Pair ${id+1}`)
         : (state.playerNames[id] || `P${id+1}`);
 
-      // For team format: partner = none (it's a pair), opp = the opposing pair
+      // Partner names
       let partnerNames, oppNames;
       if (isTeam()) {
-        partnerNames = [];
+        // Team format: playerId = pairId, partner = the other player in that pair
+        const pair = state.pairNames[playerId];
+        partnerNames = pair ? pair.filter(Boolean) : [];
         oppNames = oppTeam.map(nameOf);
       } else {
         partnerNames = partners.map(nameOf);
@@ -6661,8 +6663,8 @@ function showPlayerProfile(playerId, rank, name) {
   } else {
     histEl.innerHTML = history.map(h => {
       const partnerStr = h.partnerNames.length
-        ? `<span>w/</span> ${escapeHtml(h.partnerNames.join(' & '))}`
-        : '<span style="opacity:0.5">solo pair</span>';
+        ? `<span>Partner:</span> ${escapeHtml(h.partnerNames.join(' & '))}`
+        : '';
       const oppStr = `<span>vs</span> ${escapeHtml(h.oppNames.join(' & '))}`;
       const scoreColor = h.result === 'win' ? '#2d6b4e' : h.result === 'loss' ? '#a03838' : '#8b6010';
       return `
@@ -6672,7 +6674,7 @@ function showPlayerProfile(playerId, rank, name) {
             <div class="pp-court-tag">${escapeHtml(h.court)}</div>
           </div>
           <div class="pp-match-info">
-            <div class="pp-partner-line">${partnerStr}</div>
+            ${partnerStr ? `<div class="pp-partner-line">${partnerStr}</div>` : ''}
             <div class="pp-opp-line">${oppStr}</div>
           </div>
           <div class="pp-score-col">
@@ -8234,8 +8236,8 @@ header, .bottom-nav { transition: background 0.3s ease, box-shadow 0.3s ease; }
 }
 .pp-partner-line {
   font-size: 11px;
-  font-weight: 700;
-  color: #2d6b4e;
+  font-weight: 800;
+  color: #0f2318;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -8243,7 +8245,8 @@ header, .bottom-nav { transition: background 0.3s ease, box-shadow 0.3s ease; }
 .pp-partner-line span { color: #4a8a6a; font-weight: 600; }
 .pp-opp-line {
   font-size: 11px;
-  color: #4a8a6a;
+  font-weight: 700;
+  color: #1a3d2a;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
