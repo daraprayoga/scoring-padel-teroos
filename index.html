@@ -1883,7 +1883,7 @@
   --rc-score-lose:  #b8dbc8;
   --rc-cream:    #2d6b4e;
   --rc-cream-dim:#4a8a6a;
-  --rc-gold:     #7a5010;
+  --rc-gold:     #c9a961;
   --rc-divider:  rgba(15,35,24,0.12);
   --rc-border:   rgba(15,35,24,0.10);
   --rc-border-lit: rgba(15,35,24,0.25);
@@ -3049,7 +3049,7 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
 #standingBody tr.standing-rank-1 td:first-child::before { background: linear-gradient(180deg, #d9b971, #8b6914); }
 #standingBody tr.standing-rank-2 td:first-child::before { background: linear-gradient(180deg, #c0c0c0, #707070); }
 #standingBody tr.standing-rank-3 td:first-child::before { background: linear-gradient(180deg, #cd7f32, #7a4a1a); }
-#standingBody tr.standing-rank-1 .points-cell { color: var(--rc-gold) !important; }
+#standingBody tr.standing-rank-1 .points-cell { color: #2d6b4e !important; }
 .rank { width: 28px; height: 28px; border-radius: 8px; font-size: 12px !important; }
 
 /* Phone tweaks for sb */
@@ -3618,7 +3618,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start Tournament</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.8 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.9 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -7794,7 +7794,7 @@ body.viewer-mode .score-box:disabled {
 .redacted #standingBody td.num,
 .redacted #standingBody .num,
 .redacted #standingBody .points-cell,
-.redacted #standingBody tr.standing-rank-1 .points-cell,
+.redacted #standingBody tr.standing-rank-1 .points-cell,  /* green, still redacted */
 .redacted #standingBody tr.standing-rank-2 .points-cell,
 .redacted #standingBody tr.standing-rank-3 .points-cell,
 .redacted #standingBody tr.standing-top3 td.num,
