@@ -3484,7 +3484,6 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
     <div class="setup-wrap">
       <div class="setup-title setup-hero">
         <h1>Tournament Setup</h1>
-        <p>Atur format, mode, dan pemain — lalu mulai. <em>Main asik, skill naik!</em></p>
       </div>
 
       <div class="card">
@@ -3619,7 +3618,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start Tournament</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.5 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.7 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -5096,9 +5095,10 @@ function renderAll() {
     b.style.opacity = mexicanoUnscored ? '0.4' : '1';
     b.style.pointerEvents = 'auto';
     b.style.cursor = 'pointer';
-    b.style.color = '#2d6b4e';
-    b.style.background = 'rgba(255,255,255,0.9)';
-    b.style.border = '1px solid rgba(45,107,78,0.4)';
+    // Let CSS handle color/background — no inline override
+    b.style.color = '';
+    b.style.background = '';
+    b.style.border = '';
   });
   document.querySelectorAll('[data-action="add"]').forEach(b => {
     b.disabled = false;
