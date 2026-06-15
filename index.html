@@ -6766,6 +6766,16 @@ function renderRoundPills() {
   nav.classList.add('visible');
   nav.innerHTML = '';
 
+  const centerPill = (pill, behavior = 'smooth') => {
+    if (!pill) return;
+    const left = pill.offsetLeft - (nav.clientWidth - pill.offsetWidth) / 2;
+    try {
+      nav.scrollTo({ left: Math.max(0, left), behavior });
+    } catch (e) {
+      nav.scrollLeft = Math.max(0, left);
+    }
+  };
+
   state.rounds.forEach((round, idx) => {
     const pill = document.createElement('button');
     const isActive = idx === state.currentRoundIdx;
@@ -6777,18 +6787,22 @@ function renderRoundPills() {
 
     pill.innerHTML = `<span class="pill-label">R</span><span class="pill-num">${idx + 1}</span>`;
     pill.addEventListener('click', () => {
-      state.currentRoundIdx = idx;
-      renderAll();
-      // Scroll pill into view
-      pill.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+      if (IS_VIEWER && typeof window.viewerJumpToRound === 'function') {
+        window.viewerJumpToRound(idx);
+      } else {
+        state.currentRoundIdx = idx;
+        renderAll();
+      }
+      centerPill(nav.querySelector(`.round-pill[data-round-idx="${idx}"]`));
     });
+    pill.dataset.roundIdx = idx;
     nav.appendChild(pill);
   });
 
-  // Auto-scroll active pill into view
+  // Keep the active pill visible horizontally without moving the page vertically.
   const activePill = nav.querySelector('.round-pill.active');
   if (activePill) {
-    setTimeout(() => activePill.scrollIntoView({ inline: 'center', behavior: 'smooth' }), 50);
+    setTimeout(() => centerPill(activePill, 'auto'), 50);
   }
 }
 
@@ -7195,6 +7209,7 @@ saveState = window.saveState;
       document.querySelectorAll('button, .nav-btn, .bottom-tab, input, label').forEach(el => {
         if (el.id === 'fullscreenBtn') return;
         if (el.id === 'fsExitBtn') return; // exit-fullscreen must stay usable on the TV
+        if (el.closest && el.closest('#roundPillNav')) return; // viewers can jump to any round
         if (el.id === 'podiumShareBtn') return; // viewers can share the podium/standings photo
         if (el.id === 'storyPhotoInput') return; // photo upload for the story share
         if (el.closest && el.closest('#storyStudio')) return; // story studio controls stay usable
@@ -7307,6 +7322,14 @@ saveState = window.saveState;
       } else {
         if (liveBtn) liveBtn.remove();
       }
+    };
+
+    window.viewerJumpToRound = function(idx) {
+      if (!state.rounds || !state.rounds.length) return;
+      state.currentRoundIdx = Math.max(0, Math.min(idx, state.rounds.length - 1));
+      _viewerRound = state.currentRoundIdx;
+      renderAll();
+      applyViewerUI();
     };
 
     // Patch showPodium so close button stays enabled for viewer
@@ -8526,9 +8549,68 @@ body:not(.viewer-mode) .sb-topbar {
   top: auto !important;
 }
 
+/* Viewer mode: round pills remain interactive for jumping between rounds. */
+body.viewer-mode #roundPillNav,
+body.viewer-mode #roundPillNav *,
+.viewer-url #roundPillNav,
+.viewer-url #roundPillNav * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+}
+
+/* Next round button: static light-gold treatment, no animated gradient/glow. */
+.sb-nav-next,
+body.viewer-mode .sb-nav-next {
+  background: #ead39b !important;
+  color: #214b36 !important;
+  border-color: rgba(201,169,97,0.62) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.56), 0 2px 7px rgba(45,107,78,0.10) !important;
+  animation: none !important;
+  transform: none !important;
+}
+.sb-nav-next:hover,
+.sb-nav-next:active,
+.sb-nav-next.lg-pressed {
+  background: #ead39b !important;
+  color: #214b36 !important;
+  border-color: rgba(201,169,97,0.62) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.56), 0 2px 7px rgba(45,107,78,0.10) !important;
+  filter: none !important;
+  transform: none !important;
+}
+.sb-nav-next::before {
+  display: none !important;
+}
+
 /* iOS/mobile sticky header: keep it below the status bar safe area. */
 header {
   top: env(safe-area-inset-top, 0px) !important;
+  z-index: 10000 !important;
+  pointer-events: auto !important;
+}
+.header-actions {
+  position: relative !important;
+  z-index: 10001 !important;
+  pointer-events: auto !important;
+}
+#fullscreenBtn,
+#fullscreenBtn *,
+body.viewer-mode #fullscreenBtn,
+body.viewer-mode #fullscreenBtn * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+  touch-action: manipulation !important;
+}
+@media (max-width: 640px) and (orientation: portrait) {
+  #fullscreenBtn {
+    min-width: 44px !important;
+    width: 44px !important;
+    height: 44px !important;
+    position: relative !important;
+    z-index: 10002 !important;
+  }
 }
 
 /* Viewer portrait: player names were too large on iPhone-sized vertical screens. */
