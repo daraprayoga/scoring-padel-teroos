@@ -8682,6 +8682,70 @@ body.viewer-mode .sb-nav-next,
   }
 }
 
+/* Admin mobile/tablet: force a compact solid toolbar.
+   This prevents the score board from showing through a tall glass header. */
+@media (max-width: 900px) {
+  body:not(.viewer-mode) header {
+    position: sticky !important;
+    top: 0 !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
+    padding: 6px 10px !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    overflow: hidden !important;
+    background: rgba(248,244,234,0.98) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    box-shadow: 0 1px 0 rgba(45,107,78,0.10), 0 2px 10px rgba(20,46,32,0.05) !important;
+  }
+  body:not(.viewer-mode) .brand {
+    width: auto !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    height: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    overflow: hidden !important;
+  }
+  body:not(.viewer-mode) .brand-img-logo {
+    height: 26px !important;
+    width: auto !important;
+    max-width: min(178px, calc(100vw - 206px)) !important;
+    object-fit: contain !important;
+    display: block !important;
+  }
+  body:not(.viewer-mode) .header-actions {
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+    height: 40px !important;
+    flex: 0 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 5px !important;
+    overflow: visible !important;
+  }
+  body:not(.viewer-mode) .header-actions .icon-btn {
+    width: 32px !important;
+    min-width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    flex: 0 0 32px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 13px !important;
+    line-height: 1 !important;
+  }
+}
+
 body.viewer-mode #saveBtn,
 body.viewer-mode #loadBtnLabel,
 body.viewer-mode #resetBtn,
@@ -8693,3 +8757,29 @@ body.viewer-mode #resetBtn,
 #fullscreenBtn,
 #fullscreenBtn *,
 body.viewer-mode #fullscreenBtn,
+body.viewer-mode #fullscreenBtn * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+  touch-action: manipulation !important;
+}
+@media (max-width: 640px) and (orientation: portrait) {
+  body.viewer-mode .sb-player {
+    font-size: clamp(12px, 3.35vw, 15px) !important;
+    line-height: 1.12 !important;
+  }
+  #fullscreenBtn {
+    position: relative !important;
+    z-index: 10002 !important;
+  }
+  #fullscreenBtn::after {
+    content: '' !important;
+    position: absolute !important;
+    inset: -4px !important;
+    border-radius: 999px !important;
+  }
+}
+</style>
+</body>
+</html>
+</html>
