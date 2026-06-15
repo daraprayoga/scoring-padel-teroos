@@ -2373,7 +2373,7 @@ main { background: var(--rc-forest) !important; }
    STADIUM BOARD — Score-first redesign
    ============================================================ */
 
-/* Top bar */
+/* Top bar — sticky, logo + tabs only */
 .sb-topbar {
   position: sticky;
   top: 0;
@@ -2383,11 +2383,21 @@ main { background: var(--rc-forest) !important; }
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(201,169,97,0.15);
   padding: 10px 16px;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+}
+/* Nav row — NOT sticky, scrolls with content */
+.sb-nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 8px 16px;
+  background: rgba(245,240,230,0.6);
+  border-bottom: 1px solid rgba(201,169,97,0.08);
 }
 .sb-round-info {
   display: flex;
@@ -3622,7 +3632,7 @@ body.viewer-mode #betaBanner { display: none !important; }
     </div>
     <div id="overviewContent" style="display:none;">
 
-      <!-- STICKY TOP BAR -->
+      <!-- STICKY TOP BAR: round info + tabs only -->
       <div class="sb-topbar">
         <div class="sb-round-info">
           <span class="sb-round-label">ROUND</span>
@@ -3633,6 +3643,10 @@ body.viewer-mode #betaBanner { display: none !important; }
           <button class="sb-tab active" id="tabScore">Score</button>
           <button class="sb-tab" id="tabStandings">Standings</button>
         </div>
+      </div>
+
+      <!-- NAV ROW: prev/next — not sticky, scrolls with content -->
+      <div class="sb-nav-row">
         <div class="sb-round-nav">
           <button class="sb-nav-btn" data-action="prev">←</button>
           <button class="sb-nav-btn sb-nav-next" data-action="next" id="nextRoundBtn">Next Round <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-left:2px;"><polyline points="9 18 15 12 9 6"/></svg></button>
