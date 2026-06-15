@@ -8787,9 +8787,18 @@ body.viewer-mode #fullscreenBtn * {
     font-size: clamp(12px, 3.35vw, 15px) !important;
     line-height: 1.12 !important;
   }
-  #fullscreenBtn {
+  body.viewer-mode header {
+    overflow: hidden !important;
+  }
+  body.viewer-mode #fullscreenBtn {
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    min-height: 30px !important;
+    font-size: 13px !important;
     position: relative !important;
     z-index: 10002 !important;
+    flex-shrink: 0 !important;
   }
   #fullscreenBtn::after {
     content: '' !important;
@@ -8800,5 +8809,6 @@ body.viewer-mode #fullscreenBtn * {
 }
 </style>
 </body>
+</html>
 </html>
 </html>
