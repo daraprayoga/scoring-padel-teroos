@@ -8631,6 +8631,46 @@ body.viewer-mode .sb-nav-next,
   line-height: 1 !important;
   font-size: 14px !important;
 }
+
+/* Admin phone portrait: keep header as one clean row, no absolute icon stack. */
+@media (max-width: 640px) and (orientation: portrait) {
+  body:not(.viewer-mode) header {
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    padding-right: 10px !important;
+    padding-left: 10px !important;
+  }
+  body:not(.viewer-mode) .brand {
+    width: auto !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+  body:not(.viewer-mode) .brand-img-logo {
+    height: 28px !important;
+    width: auto !important;
+    max-width: min(168px, calc(100vw - 184px)) !important;
+    object-fit: contain !important;
+  }
+  body:not(.viewer-mode) .header-actions {
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+    flex: 0 0 auto !important;
+    gap: 5px !important;
+  }
+  body:not(.viewer-mode) .header-actions .icon-btn {
+    width: 32px !important;
+    min-width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    flex-basis: 32px !important;
+    font-size: 13px !important;
+  }
+}
+
 body.viewer-mode #saveBtn,
 body.viewer-mode #loadBtnLabel,
 body.viewer-mode #resetBtn,
