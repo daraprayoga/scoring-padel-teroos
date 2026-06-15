@@ -3356,6 +3356,8 @@ main { padding-bottom: max(130px, env(safe-area-inset-bottom, 0px) + 120px); }
 .podium-slot.first .podium-card { box-shadow:0 3px 18px rgba(0,0,0,0.12),0 0 30px rgba(201,169,97,0.13) !important; }
 .podium-slot.first::before { background:radial-gradient(ellipse 58% 42% at 50% 54%,rgba(201,169,97,0.10) 0%,transparent 70%) !important; filter:blur(34px) !important; inset:-48px -22px !important; }
 body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
+body.viewer-mode .beta-banner,
+body.viewer-mode #betaBanner { display: none !important; }
 @media (orientation:landscape) {
   .podium-page { justify-content:flex-start !important; padding:0 24px !important; }
   .podium-stage { flex:0 0 auto !important; margin-bottom:0 !important; }
@@ -5731,7 +5733,7 @@ document.getElementById('confirmEndGame').addEventListener('click', () => {
 document.getElementById('closePodium').addEventListener('click', () => {
   document.getElementById('podiumModal').classList.remove('show');
   const betaBanner = document.getElementById('betaBanner');
-  if (betaBanner) betaBanner.style.display = '';
+  if (betaBanner && !document.body.classList.contains('viewer-mode')) betaBanner.style.display = '';
 });
 
 // ===== STORY STUDIO — template picker + draggable photo → IG Story (9:16, 1080×1920) =====
