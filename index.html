@@ -6760,7 +6760,7 @@ function renderRoundPills() {
         window._applyViewerUI();
       }
       // Scroll pill into view
-      pill.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+      pill.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
     });
     nav.appendChild(pill);
   });
@@ -6768,7 +6768,7 @@ function renderRoundPills() {
   // Auto-scroll active pill into view
   const activePill = nav.querySelector('.round-pill.active');
   if (activePill) {
-    setTimeout(() => activePill.scrollIntoView({ inline: 'center', behavior: 'smooth' }), 50);
+    setTimeout(() => activePill.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }), 50);
   }
 }
 
