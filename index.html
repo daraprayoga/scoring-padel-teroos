@@ -3446,6 +3446,16 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
 <body>
 
 <button id="fsExitBtn" type="button" title="Keluar layar penuh" aria-label="Keluar layar penuh">⤢ Keluar Layar Penuh</button>
+<script>
+try {
+  if (new URLSearchParams(window.location.search).get('room')) {
+    document.documentElement.classList.add('viewer-url');
+    const style = document.createElement('style');
+    style.textContent = '.viewer-url #betaBanner,.viewer-url .beta-banner{display:none!important;}';
+    document.head.appendChild(style);
+  }
+} catch (e) {}
+</script>
 <div class="beta-banner" id="betaBanner">
   <div class="beta-ticker">
     <span>⚠️ MASIH BETA. PERLU BANYAK UJI COBA. REKOMENDASI: COBA DI MABAR SKALA KECIL DULU.</span>
@@ -8498,6 +8508,45 @@ header, .bottom-nav { transition: background 0.3s ease, box-shadow 0.3s ease; }
   background: #c9a961;
 }
 .round-pill.active.scored::after { background: rgba(201,169,97,0.8); }
+</style>
+<style id="codex-revision-v07010">
+/* v0.70.10 revision */
+
+/* Viewer mode: hide the yellow beta ribbon in every watch/view-only state. */
+body.viewer-mode #betaBanner,
+body.viewer-mode .beta-banner,
+.viewer-url #betaBanner,
+.viewer-url .beta-banner {
+  display: none !important;
+}
+
+/* Admin mode: only the main header should stick. The round controls scroll away. */
+body:not(.viewer-mode) .sb-topbar {
+  position: relative !important;
+  top: auto !important;
+}
+
+/* iOS/mobile sticky header: keep it below the status bar safe area. */
+header {
+  top: env(safe-area-inset-top, 0px) !important;
+}
+
+/* Viewer portrait: player names were too large on iPhone-sized vertical screens. */
+@media (max-width: 640px) and (orientation: portrait) {
+  body.viewer-mode .sb-player {
+    font-size: clamp(12px, 3.55vw, 16px) !important;
+    line-height: 1.12 !important;
+  }
+}
+
+/* iOS Safari gets a slightly tighter cap because text renders optically larger. */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 640px) and (orientation: portrait) {
+    body.viewer-mode .sb-player {
+      font-size: clamp(12px, 3.35vw, 15px) !important;
+    }
+  }
+}
 </style>
 </body>
 </html>
