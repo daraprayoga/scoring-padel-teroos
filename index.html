@@ -8565,8 +8565,23 @@ body.viewer-mode .beta-banner,
 
 /* Admin: only the app header sticks. Round prev/next bar scrolls naturally. */
 body:not(.viewer-mode) .sb-topbar {
-  position: relative !important;
+  position: static !important;
   top: auto !important;
+  z-index: auto !important;
+  transform: none !important;
+  -webkit-transform: none !important;
+}
+
+/* Sticky app header respects iOS notch/status-bar safe area. */
+header {
+  top: env(safe-area-inset-top, 0px) !important;
+  padding-top: max(8px, calc(8px + env(safe-area-inset-top, 0px))) !important;
+}
+@media (max-width: 640px) {
+  header {
+    top: env(safe-area-inset-top, 0px) !important;
+    padding-top: max(10px, calc(8px + env(safe-area-inset-top, 0px))) !important;
+  }
 }
 
 /* Viewer: round pills must stay tappable. */
@@ -8638,18 +8653,3 @@ body.viewer-mode #fullscreenBtn * {
     font-size: clamp(12px, 3.35vw, 15px) !important;
     line-height: 1.12 !important;
   }
-  #fullscreenBtn {
-    position: relative !important;
-    z-index: 10002 !important;
-  }
-  #fullscreenBtn::after {
-    content: '' !important;
-    position: absolute !important;
-    inset: -4px !important;
-    border-radius: 999px !important;
-  }
-}
-</style>
-</body>
-</html>
-</html>
