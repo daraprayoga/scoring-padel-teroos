@@ -2100,24 +2100,13 @@ main { background: var(--rc-forest) !important; }
 /* ---------- Primary (Next Round) ---------- */
 .primary-btn {
   background: #2d6b4e !important;
-  border: 2px solid #2d6b4e !important;
+  border: 2px solid #c9a961 !important;
   color: #f5f0e6 !important;
   border-radius: 10px !important;
-  box-shadow: 0 0 16px rgba(201,169,97,0.12), var(--rc-inset) !important;
-  transition: all 0.2s var(--transition-smooth) !important;
+  box-shadow: 0 0 22px rgba(201,169,97,0.35), 0 2px 10px rgba(0,0,0,0.15), var(--rc-inset) !important;
   position: relative;
   overflow: hidden;
 }
-.primary-btn::after {
-  content: '';
-  position: absolute;
-  top: 0; left: -100%;
-  width: 60%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
-  transition: left 0.5s ease;
-}
-.primary-btn:hover { border-color: rgba(201,169,97,0.65) !important; box-shadow: 0 0 28px rgba(201,169,97,0.22), var(--rc-inset) !important; transform: translateY(-1px); }
-.primary-btn:hover::after { left: 140%; }
 .primary-btn:active { transform: scale(0.95) !important; }
 
 /* ---------- Start button ---------- */
@@ -5087,15 +5076,11 @@ function renderAll() {
     b.style.pointerEvents = canPrev ? 'auto' : 'none';
     b.style.cursor = canPrev ? 'pointer' : 'not-allowed';
   });
-  // Next button: dim if mexicano and current round unscored
-  const mexicanoUnscored = isMexicano() && !state.ended && (() => {
-    const round = state.rounds[state.currentRoundIdx];
-    return !(round && round.matches && round.matches.some(m => m.scoreA > 0 || m.scoreB > 0));
-  })() && state.currentRoundIdx === state.rounds.length - 1;
-
+  // Next button: always solid/obvious. Mexicano "score first" guard is
+  // enforced on click in handleRoundAction (shows a toast), not by dimming.
   document.querySelectorAll('[data-action="next"]').forEach(b => {
     b.disabled = false;
-    b.style.opacity = mexicanoUnscored ? '0.4' : '1';
+    b.style.opacity = '1';
     b.style.pointerEvents = 'auto';
     b.style.cursor = 'pointer';
     // Let CSS handle color/background — no inline override
@@ -6769,6 +6754,9 @@ function renderRoundPills() {
     pill.addEventListener('click', () => {
       state.currentRoundIdx = idx;
       renderAll();
+      if (typeof IS_VIEWER !== 'undefined' && IS_VIEWER && typeof window._applyViewerUI === 'function') {
+        window._applyViewerUI();
+      }
       // Scroll pill into view
       pill.scrollIntoView({ inline: 'center', behavior: 'smooth' });
     });
@@ -7210,6 +7198,13 @@ saveState = window.saveState;
         btn.style.color = '#c9a961';
       });
 
+      // Re-enable round pills (R1, R2, ...) so viewers can jump between rounds
+      document.querySelectorAll('#roundPillNav .round-pill').forEach(pill => {
+        pill.style.pointerEvents = 'auto';
+        pill.style.cursor = 'pointer';
+        pill.style.opacity = '1';
+      });
+
       // When ended: enable podium button + standings tab
       if (state.ended) {
         // Podium button — make it pop with gold glow
@@ -7298,6 +7293,9 @@ saveState = window.saveState;
         if (liveBtn) liveBtn.remove();
       }
     };
+
+    // Expose for round pill handler (renderRoundPills is top-level scope)
+    window._applyViewerUI = applyViewerUI;
 
     // Patch showPodium so close button stays enabled for viewer
     const _origShowPodium = showPodium;
@@ -8425,6 +8423,25 @@ header, .bottom-nav { transition: background 0.3s ease, box-shadow 0.3s ease; }
 .mode-card:active, .bottom-tab:active, .danger-btn:active,
 .end-confirm-btn:active {
   transform: none !important;
+}
+
+/* Next Round button: keep gold vivid — tame the glass film, lock contrast, fully static */
+.sb-nav-next {
+  background: linear-gradient(135deg, #e8c97a 0%, #c9a961 100%) !important;
+  color: #0f2318 !important;
+  border: 2px solid #c9a961 !important;
+  box-shadow: 0 4px 18px rgba(201,169,97,0.5), 0 2px 6px rgba(0,0,0,0.18) !important;
+  animation: none !important;
+  filter: none !important;
+}
+.sb-nav-next::before {
+  background: linear-gradient(160deg, rgba(255,255,255,0.18) 0%, transparent 55%) !important;
+}
+.sb-nav-next > * { position: relative; z-index: 1; }
+.sb-nav-next:hover {
+  background: linear-gradient(135deg, #e8c97a 0%, #c9a961 100%) !important;
+  transform: none !important;
+  box-shadow: 0 4px 18px rgba(201,169,97,0.5), 0 2px 6px rgba(0,0,0,0.18) !important;
 }
 </style>
 <style id="round-pill-css">
