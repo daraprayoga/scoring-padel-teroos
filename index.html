@@ -97,6 +97,7 @@
     -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(45,107,78,0.15);
     padding: 10px 16px;
+    padding-top: max(10px, calc(6px + env(safe-area-inset-top, 0px)));
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -2383,7 +2384,6 @@ main { background: var(--rc-forest) !important; }
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(201,169,97,0.15);
   padding: 10px 16px;
-  padding-top: calc(10px + env(safe-area-inset-top, 0px));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -7716,7 +7716,7 @@ body.viewer-mode .sb-player {
    clamp is tuned for landscape). Bump to a readable size that scales with width. */
 @media (max-width: 640px) and (orientation: portrait) {
   body.viewer-mode .sb-player {
-    font-size: clamp(14px, 4.2vw, 18px) !important;
+    font-size: clamp(11px, 3.2vw, 14px) !important;
     line-height: 1.15 !important;
     max-width: clamp(110px, 34vw, 170px) !important;
     font-weight: 800 !important;
