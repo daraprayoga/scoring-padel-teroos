@@ -7256,6 +7256,7 @@ saveState = window.saveState;
       'background:#2d6b4e',
       'color:#f5f0e6',
       'font-size:11px', 'font-weight:800', 'letter-spacing:1.5px',
+      'line-height:1',
       'text-transform:uppercase', 'text-align:center',
       `min-height:${26 + _vSat}px`,
       `padding-top:${_vSat}px`,
@@ -7265,7 +7266,11 @@ saveState = window.saveState;
       'box-shadow:inset 0 -1px 0 rgba(255,255,255,0.15)',
       'pointer-events:none'
     ].join(';');
-    viewerBanner.textContent = '📺  MODE NONTON  ·  VIEW ONLY';
+    // Wrap text in span to match beta-ticker structure
+    const _vSpan = document.createElement('span');
+    _vSpan.style.cssText = 'display:inline-block;padding:0 40px;font-size:11px;font-weight:800;letter-spacing:1.5px;color:#f5f0e6;text-transform:uppercase;line-height:1;white-space:nowrap;';
+    _vSpan.textContent = '📺  MODE NONTON  ·  VIEW ONLY';
+    viewerBanner.appendChild(_vSpan);
     document.body.insertBefore(viewerBanner, document.body.firstChild);
 
     const _podMod = document.getElementById('podiumModal');
