@@ -6891,7 +6891,36 @@ function boot() {
 
 boot();
 
-// ========== FIREBASE REALTIME SYNC ==========
+// ===== SAFE AREA INSET TOP: JS injection =====
+// env(safe-area-inset-top) can return 0 in iOS Safari browser (non-PWA).
+// This reads via probe, then falls back to screen heuristic (notch detection).
+(function injectSAT() {
+  function setSAT() {
+    // Method 1: probe env() — works in PWA / some iOS versions
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;' +
+      'padding-top:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none;';
+    document.documentElement.appendChild(probe);
+    const fromEnv = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+    document.documentElement.removeChild(probe);
+
+    // Method 2: screen heuristic — notch/Dynamic Island iPhones
+    const fromScreen = (window.screen.height - window.innerHeight) > 80
+      ? 0 // fullscreen browser
+      : (window.screen.height / window.screen.width > 1.9 && window.devicePixelRatio >= 2)
+        ? 44 // tall iPhone with notch
+        : 0;
+
+    const sat = fromEnv > 0 ? fromEnv : fromScreen;
+    if (sat > 0) {
+      document.documentElement.style.setProperty('--sat', sat + 'px');
+    }
+  }
+  setSAT();
+  window.addEventListener('resize', setSAT);
+})();
+
+
 // Uses Firebase Realtime Database to sync tournament state
 // Admin: full control (no ?room= param, or ?admin=1)
 // Viewer: read-only live view via ?room=ROOMID
@@ -8848,10 +8877,6 @@ body.viewer-mode #fullscreenBtn * {
     border-radius: 999px !important;
   }
 }
-</style>
-</body>
-</html>
-</html>
 </style>
 </body>
 </html>
