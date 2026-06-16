@@ -7206,40 +7206,30 @@ saveState = window.saveState;
     // Hide beta banner, show fresh viewer banner
     const betaBannerEl = document.getElementById('betaBanner');
     if (betaBannerEl) betaBannerEl.style.display = 'none';
-    // Create viewer banner — fixed at top so it covers status bar area on iOS
+
+    // Viewer banner: same structure as beta banner (position:relative, normal flow)
+    // so sticky header sits naturally below it. Uses --sat CSS var for safe area.
     const viewerBanner = document.createElement('div');
     viewerBanner.id = 'viewerModeBanner';
-
-    // Read safe-area-inset-top via probe element
-    const _saProbe = document.createElement('div');
-    _saProbe.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;padding-top:env(safe-area-inset-top,0px);pointer-events:none;visibility:hidden;';
-    document.documentElement.appendChild(_saProbe);
-    const _sat = parseFloat(getComputedStyle(_saProbe).paddingTop) || 0;
-    document.documentElement.removeChild(_saProbe);
-
     viewerBanner.style.cssText = [
-      'position:fixed', 'top:0', 'left:0', 'right:0', 'z-index:1001',
+      'position:relative',
+      'z-index:9999',
       'background:rgba(45,107,78,0.92)',
       '-webkit-backdrop-filter:blur(16px) saturate(1.5)',
       'backdrop-filter:blur(16px) saturate(1.5)',
       'color:#f5f0e6',
       'font-size:11px', 'font-weight:800', 'letter-spacing:2px',
       'text-transform:uppercase', 'text-align:center',
-      `padding-top:${Math.max(_sat, 6)}px`,
+      'min-height:calc(28px + var(--sat,0px))',
+      'padding-top:var(--sat,0px)',
       'padding-bottom:6px',
       'padding-left:16px', 'padding-right:16px',
-      'box-shadow:inset 0 -1px 0 rgba(255,255,255,0.25)', 'pointer-events:none'
+      'display:flex', 'align-items:flex-end', 'justify-content:center',
+      'box-shadow:inset 0 -1px 0 rgba(255,255,255,0.25)',
+      'pointer-events:none'
     ].join(';');
     viewerBanner.textContent = '📺  MODE NONTON  ·  VIEW ONLY';
     document.body.insertBefore(viewerBanner, document.body.firstChild);
-
-    // Push body content down by banner height so header isn't hidden under it
-    const _pushBody = () => {
-      const h = viewerBanner.getBoundingClientRect().height;
-      document.body.style.paddingTop = h + 'px';
-    };
-    setTimeout(_pushBody, 0);
-    window.addEventListener('resize', _pushBody);
 
     const _podMod = document.getElementById('podiumModal');
     if (_podMod) { new MutationObserver(() => { viewerBanner.style.display = _podMod.classList.contains('show') ? 'none' : ''; }).observe(_podMod, { attributes:true, attributeFilter:['class'] }); }
@@ -8858,6 +8848,10 @@ body.viewer-mode #fullscreenBtn * {
     border-radius: 999px !important;
   }
 }
+</style>
+</body>
+</html>
+</html>
 </style>
 </body>
 </html>
