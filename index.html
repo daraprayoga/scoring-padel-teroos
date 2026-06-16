@@ -6814,7 +6814,11 @@ function renderRoundPills() {
         state.currentRoundIdx = idx;
         renderAll();
       }
-      centerPill(nav.querySelector(`.round-pill[data-round-idx="${idx}"]`));
+      // Delay so DOM re-renders before we measure pill position
+      setTimeout(() => {
+        const fresh = nav.querySelector(`.round-pill[data-round-idx="${idx}"]`);
+        centerPill(fresh, 'smooth');
+      }, 30);
     });
     pill.dataset.roundIdx = idx;
     nav.appendChild(pill);
@@ -8789,6 +8793,11 @@ body.viewer-mode #fullscreenBtn * {
   }
   body.viewer-mode header {
     overflow: hidden !important;
+    align-items: center !important;
+  }
+  body.viewer-mode .header-actions {
+    align-items: center !important;
+    align-self: center !important;
   }
   body.viewer-mode #fullscreenBtn {
     width: 30px !important;
@@ -8799,6 +8808,7 @@ body.viewer-mode #fullscreenBtn * {
     position: relative !important;
     z-index: 10002 !important;
     flex-shrink: 0 !important;
+    align-self: center !important;
   }
   #fullscreenBtn::after {
     content: '' !important;
