@@ -775,8 +775,26 @@
   .studio-head { display: flex; align-items: center; gap: 14px; padding: max(14px, calc(8px + env(safe-area-inset-top,0px))) 20px 10px; flex-shrink: 0; }
   .studio-back { width: 42px; height: 42px; border-radius: 12px; border: 1px solid rgba(45,107,78,0.2); background: #fff; color: #2d6b4e; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .studio-head h2 { font-size: 26px; font-weight: 800; color: #1a3d2e; letter-spacing: -0.5px; }
-  .studio-stage-wrap { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; min-height: 0; }
+  .studio-stage-wrap { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; min-height: 0; gap: 10px; }
   .studio-stage { width: 1080px; height: 1920px; position: relative; transform-origin: center center; background: #0f2318; overflow: hidden; box-shadow: 0 12px 48px rgba(0,0,0,0.25); flex-shrink: 0; }
+  .ss-tpl-arrow {
+    flex-shrink: 0;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(45,107,78,0.85);
+    color: #f5f0e6;
+    font-size: 26px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    z-index: 10;
+    transition: background 0.15s;
+    padding: 0;
+  }
+  .ss-tpl-arrow:active { background: rgba(20,60,35,0.95); }
   .ss-photo-layer { position: absolute; inset: 0; overflow: hidden; touch-action: none; }
   .ss-photo { position: absolute; will-change: transform; -webkit-user-drag: none; user-select: none; pointer-events: none; }
   .ss-placeholder { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px; color: rgba(245,240,230,0.7);
@@ -5943,6 +5961,7 @@ function buildStudio() {
       <h2>Pilih Template</h2>
     </div>
     <div class="studio-stage-wrap" id="ssWrap">
+      <button class="ss-tpl-arrow ss-tpl-prev" id="ssPrev" type="button">‹</button>
       <div class="studio-stage" id="ssStage">
         <div class="ss-photo-layer" id="ssPhotoLayer">
           <div class="ss-placeholder" id="ssPlaceholder">${SS_PIC}<div>Insert Photo</div></div>
@@ -5950,10 +5969,11 @@ function buildStudio() {
         </div>
         <div class="ss-overlay" id="ssOverlay"></div>
       </div>
+      <button class="ss-tpl-arrow ss-tpl-next" id="ssNext" type="button">›</button>
     </div>
     <div class="studio-dots" id="ssDots"></div>
     <div class="studio-zoom hidden" id="ssZoom"><span>🔍</span><input type="range" id="ssZoomRange" min="1" max="4" step="0.01" value="1"></div>
-    <div class="studio-hint">Geser & cubit foto untuk atur posisi</div>
+    <div class="studio-hint">Geser & cubit foto untuk atur posisi · Swipe untuk ganti template</div>
     <div class="studio-actions">
       <button class="studio-btn primary" id="ssInsert" type="button">Insert Photo</button>
       <button class="studio-btn secondary" id="ssShare" type="button">Share Image</button>
@@ -5964,6 +5984,36 @@ function buildStudio() {
   document.getElementById('ssInsert').addEventListener('click', () => document.getElementById('storyPhotoInput').click());
   document.getElementById('ssShare').addEventListener('click', exportStudio);
   document.getElementById('ssZoomRange').addEventListener('input', e => { _ssPhoto.scale = parseFloat(e.target.value); _ssClampPhoto(); _ssApplyPhoto(); });
+
+  // Arrow buttons
+  const ssPrev = document.getElementById('ssPrev');
+  const ssNext = document.getElementById('ssNext');
+  function ssNavTo(idx) {
+    _ssIdx = (idx + STORY_TEMPLATES.length) % STORY_TEMPLATES.length;
+    renderStudio();
+    ssPrev.style.opacity = STORY_TEMPLATES.length <= 1 ? '0' : '1';
+    ssNext.style.opacity = STORY_TEMPLATES.length <= 1 ? '0' : '1';
+  }
+  ssPrev.addEventListener('click', () => ssNavTo(_ssIdx - 1));
+  ssNext.addEventListener('click', () => ssNavTo(_ssIdx + 1));
+
+  // Swipe on stage to change template
+  const stage = document.getElementById('ssStage');
+  let _swipeStartX = null, _swipeStartY = null;
+  stage.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+      _swipeStartX = e.clientX; _swipeStartY = e.clientY;
+    }
+  }, { passive: true });
+  stage.addEventListener('pointerup', e => {
+    if (_swipeStartX === null) return;
+    const dx = e.clientX - _swipeStartX;
+    const dy = e.clientY - _swipeStartY;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+      ssNavTo(_ssIdx + (dx < 0 ? 1 : -1));
+    }
+    _swipeStartX = null; _swipeStartY = null;
+  }, { passive: true });
 
   const dots = document.getElementById('ssDots');
   STORY_TEMPLATES.forEach((t, i) => {
@@ -8895,5 +8945,6 @@ body.viewer-mode #fullscreenBtn * {
 }
 </style>
 </body>
+</html>
 </html>
 </html>
