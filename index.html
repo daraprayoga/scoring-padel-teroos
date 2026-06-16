@@ -8187,6 +8187,7 @@ header, .bottom-nav { transition: background 0.3s ease, box-shadow 0.3s ease; }
   .sb-score-box { background: rgba(252,250,244,0.97) !important; }
   .ghost-btn, .icon-btn, .sb-nav-btn, .bottom-tab { background: rgba(252,250,244,0.95) !important; }
   .beta-banner { background: #f5c800 !important; }
+  body.viewer-mode .beta-banner { background: #2d6b4e !important; }
 }
 @media (prefers-reduced-transparency: reduce) {
   .card, .setup-card, .modal, .rp-section, .sb-court-card,
@@ -8196,6 +8197,13 @@ header, .bottom-nav { transition: background 0.3s ease, box-shadow 0.3s ease; }
     backdrop-filter: none;
   }
   .beta-banner { background: #f5c800 !important; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  body.viewer-mode .beta-banner { background: #2d6b4e !important; }
+}
+
+/* Viewer mode: center the static ticker text */
+body.viewer-mode .beta-ticker {
+  justify-content: center !important;
+  animation: none !important;
 }
 </style>
 <!-- PLAYER PROFILE MODAL -->
