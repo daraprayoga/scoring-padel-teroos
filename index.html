@@ -3456,9 +3456,6 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
 try {
   if (new URLSearchParams(window.location.search).get('room')) {
     document.documentElement.classList.add('viewer-url');
-    const style = document.createElement('style');
-    style.textContent = '.viewer-url #betaBanner,.viewer-url .beta-banner{display:none!important;}';
-    document.head.appendChild(style);
   }
 } catch (e) {}
 </script>
@@ -7231,50 +7228,20 @@ saveState = window.saveState;
     // Mark body as viewer mode
     document.body.classList.add('viewer-mode');
 
-    // Hide beta banner, show fresh viewer banner
+    // Reuse the beta banner element directly — same DOM, same CSS class,
+    // same safe-area handling. Just restyle and replace content.
     const betaBannerEl = document.getElementById('betaBanner');
-    if (betaBannerEl) betaBannerEl.style.display = 'none';
+    if (betaBannerEl) {
+      betaBannerEl.style.background = '#2d6b4e';
+      betaBannerEl.style.boxShadow = 'inset 0 -1px 0 rgba(255,255,255,0.15)';
+      const ticker = betaBannerEl.querySelector('.beta-ticker');
+      if (ticker) {
+        ticker.style.animation = 'none';
+        ticker.style.justifyContent = 'center';
+        ticker.innerHTML = '<span style="padding:0 40px;font-size:11px;font-weight:800;letter-spacing:1.5px;color:#f5f0e6;text-transform:uppercase;">📺&nbsp;&nbsp;MODE NONTON · VIEW ONLY</span>';
+      }
+    }
 
-    // Viewer banner: plain normal-flow element, same as beta banner.
-    // Scrolls away on scroll; sticky header takes over. Safe area is
-    // handled by the header (same as admin mode) — not by the banner.
-    // Read --sat from beta banner BEFORE hiding it — it's the ground truth
-    // because it uses the same CSS class and has already been painted.
-    const _betaBannerForSat = document.getElementById('betaBanner');
-    const _vSat = _betaBannerForSat
-      ? parseFloat(getComputedStyle(_betaBannerForSat).paddingTop) || 0
-      : 0;
-
-    const viewerBanner = document.createElement('div');
-    viewerBanner.id = 'viewerModeBanner';
-
-    viewerBanner.style.cssText = [
-      'position:relative',
-      'z-index:9999',
-      'overflow:visible',
-      'height:auto',
-      'background:#2d6b4e',
-      'color:#f5f0e6',
-      'font-size:11px', 'font-weight:800', 'letter-spacing:1.5px',
-      'line-height:1',
-      'text-transform:uppercase', 'text-align:center',
-      `min-height:${26 + _vSat}px`,
-      `padding-top:${_vSat}px`,
-      'padding-bottom:5px',
-      'padding-left:16px', 'padding-right:16px',
-      'display:flex', 'align-items:flex-end', 'justify-content:center',
-      'box-shadow:inset 0 -1px 0 rgba(255,255,255,0.15)',
-      'pointer-events:none'
-    ].join(';');
-    // Wrap text in span to match beta-ticker structure
-    const _vSpan = document.createElement('span');
-    _vSpan.style.cssText = 'display:inline-block;padding:0 40px;font-size:11px;font-weight:800;letter-spacing:1.5px;color:#f5f0e6;text-transform:uppercase;line-height:1;white-space:nowrap;';
-    _vSpan.textContent = '📺  MODE NONTON  ·  VIEW ONLY';
-    viewerBanner.appendChild(_vSpan);
-    document.body.insertBefore(viewerBanner, document.body.firstChild);
-
-    const _podMod = document.getElementById('podiumModal');
-    if (_podMod) { new MutationObserver(() => { viewerBanner.style.display = _podMod.classList.contains('show') ? 'none' : ''; }).observe(_podMod, { attributes:true, attributeFilter:['class'] }); }
     document.getElementById('bottomNav') && (document.getElementById('bottomNav').style.display = 'none');
 
     // Viewer state: track which round viewer is on vs live round
@@ -8619,12 +8586,7 @@ header, .bottom-nav { transition: background 0.3s ease, box-shadow 0.3s ease; }
 <style id="codex-revision-v07011">
 /* v0.70.11: minimal safe fixes */
 
-body.viewer-mode #betaBanner,
-body.viewer-mode .beta-banner,
-.viewer-url #betaBanner,
-.viewer-url .beta-banner {
-  display: none !important;
-}
+/* Viewer mode: beta banner is restyled green via JS, not hidden */
 
 /* Admin: only the app header sticks. Round prev/next bar scrolls naturally. */
 body:not(.viewer-mode) .sb-topbar {
