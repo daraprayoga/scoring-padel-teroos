@@ -8631,13 +8631,14 @@ header {
   }
 }
 
-/* Viewer hides the yellow ribbon; viewer banner (in normal flow) handles safe area.
-   Header needs no padding-top offset — banner above it already clears status bar. */
+/* Viewer header: same safe-area handling as admin mode beta banner.
+   Banner scrolls away; header sticks at top with cream background. */
 body.viewer-mode header,
 .viewer-url body header {
   position: sticky !important;
   top: 0 !important;
-  padding-top: 8px !important;
+  padding-top: max(8px, var(--sat, 0px)) !important;
+  background: rgba(245,240,230,0.97) !important;
 }
 
 /* Viewer: round pills must stay tappable. */
