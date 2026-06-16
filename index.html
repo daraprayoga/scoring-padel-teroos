@@ -7234,6 +7234,8 @@ saveState = window.saveState;
 
     // Hide beta banner, show fresh viewer banner
     const betaBannerEl = document.getElementById('betaBanner');
+    // Read beta banner's actual sat padding BEFORE hiding (display:none = 0)
+    const _betaSat = betaBannerEl ? parseFloat(getComputedStyle(betaBannerEl).paddingTop) || 0 : 0;
     if (betaBannerEl) betaBannerEl.style.display = 'none';
 
     // Viewer banner: same structure as beta banner (position:relative, normal flow)
@@ -7241,16 +7243,20 @@ saveState = window.saveState;
     const viewerBanner = document.createElement('div');
     viewerBanner.id = 'viewerModeBanner';
 
-    // Read --sat directly at creation time (injectSAT may not have run yet).
-    // Use same heuristic as injectSAT: probe env() first, then screen ratio fallback.
+    // Read sat: beta banner ground truth → env() probe → screen heuristic
     (function() {
       const probe = document.createElement('div');
       probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;padding-top:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none;';
       document.documentElement.appendChild(probe);
       const fromEnv = parseFloat(getComputedStyle(probe).paddingTop) || 0;
       document.documentElement.removeChild(probe);
-      const fromScreen = (window.screen.height / window.screen.width > 1.9 && window.devicePixelRatio >= 2) ? 44 : 0;
-      viewerBanner._sat = fromEnv > 0 ? fromEnv : fromScreen;
+
+      let fromScreen = 0;
+      if (window.screen.height / window.screen.width > 1.9 && window.devicePixelRatio >= 2) {
+        fromScreen = (window.screen.height / window.devicePixelRatio) >= 852 ? 59 : 44;
+      }
+
+      viewerBanner._sat = _betaSat > 0 ? _betaSat : fromEnv > 0 ? fromEnv : fromScreen;
     })();
 
     const _bsat = viewerBanner._sat || 0;
