@@ -7240,6 +7240,20 @@ saveState = window.saveState;
     // so sticky header sits naturally below it. Uses --sat CSS var for safe area.
     const viewerBanner = document.createElement('div');
     viewerBanner.id = 'viewerModeBanner';
+
+    // Read --sat directly at creation time (injectSAT may not have run yet).
+    // Use same heuristic as injectSAT: probe env() first, then screen ratio fallback.
+    (function() {
+      const probe = document.createElement('div');
+      probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;padding-top:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none;';
+      document.documentElement.appendChild(probe);
+      const fromEnv = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+      document.documentElement.removeChild(probe);
+      const fromScreen = (window.screen.height / window.screen.width > 1.9 && window.devicePixelRatio >= 2) ? 44 : 0;
+      viewerBanner._sat = fromEnv > 0 ? fromEnv : fromScreen;
+    })();
+
+    const _bsat = viewerBanner._sat || 0;
     viewerBanner.style.cssText = [
       'position:relative',
       'z-index:9999',
@@ -7249,8 +7263,8 @@ saveState = window.saveState;
       'color:#f5f0e6',
       'font-size:11px', 'font-weight:800', 'letter-spacing:2px',
       'text-transform:uppercase', 'text-align:center',
-      'min-height:calc(28px + var(--sat,0px))',
-      'padding-top:var(--sat,0px)',
+      `min-height:${28 + _bsat}px`,
+      `padding-top:${_bsat}px`,
       'padding-bottom:6px',
       'padding-left:16px', 'padding-right:16px',
       'display:flex', 'align-items:flex-end', 'justify-content:center',
@@ -8635,10 +8649,13 @@ header {
   }
 }
 
-/* Viewer hides the yellow ribbon, so only viewer header needs safe-area padding. */
+/* Viewer hides the yellow ribbon; viewer banner (in normal flow) handles safe area.
+   Header needs no padding-top offset — banner above it already clears status bar. */
 body.viewer-mode header,
 .viewer-url body header {
-  padding-top: max(8px, calc(8px + env(safe-area-inset-top, 0px))) !important;
+  position: sticky !important;
+  top: 0 !important;
+  padding-top: 8px !important;
 }
 
 /* Viewer: round pills must stay tappable. */
