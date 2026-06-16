@@ -7238,13 +7238,15 @@ saveState = window.saveState;
     // Viewer banner: plain normal-flow element, same as beta banner.
     // Scrolls away on scroll; sticky header takes over. Safe area is
     // handled by the header (same as admin mode) — not by the banner.
+    // Read --sat from beta banner BEFORE hiding it — it's the ground truth
+    // because it uses the same CSS class and has already been painted.
+    const _betaBannerForSat = document.getElementById('betaBanner');
+    const _vSat = _betaBannerForSat
+      ? parseFloat(getComputedStyle(_betaBannerForSat).paddingTop) || 0
+      : 0;
+
     const viewerBanner = document.createElement('div');
     viewerBanner.id = 'viewerModeBanner';
-
-    // Compute --sat same way beta banner does (CSS var on :root)
-    const _vSat = parseFloat(
-      getComputedStyle(document.documentElement).getPropertyValue('--sat') || '0'
-    ) || 0;
 
     viewerBanner.style.cssText = [
       'position:relative',
