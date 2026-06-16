@@ -6808,13 +6808,14 @@ function renderRoundPills() {
 
     pill.innerHTML = `<span class="pill-label">R</span><span class="pill-num">${idx + 1}</span>`;
     pill.addEventListener('click', () => {
+      nav._clickPending = true;
       if (IS_VIEWER && typeof window.viewerJumpToRound === 'function') {
         window.viewerJumpToRound(idx);
       } else {
         state.currentRoundIdx = idx;
         renderAll();
       }
-      // Delay so DOM re-renders before we measure pill position
+      // Single scroll after DOM settles — no double-scroll conflict
       setTimeout(() => {
         const fresh = nav.querySelector(`.round-pill[data-round-idx="${idx}"]`);
         centerPill(fresh, 'smooth');
@@ -6824,11 +6825,13 @@ function renderRoundPills() {
     nav.appendChild(pill);
   });
 
-  // Keep active pill visible horizontally without scrolling the page vertically.
+  // On initial render / re-render: snap active pill into view instantly (no smooth)
+  // Skip if this was triggered by a pill click (click handler does its own centering)
   const activePill = nav.querySelector('.round-pill.active');
-  if (activePill) {
+  if (activePill && !nav._clickPending) {
     setTimeout(() => centerPill(activePill, 'auto'), 50);
   }
+  nav._clickPending = false;
 }
 
 // ========== BOOT ==========
@@ -8493,6 +8496,7 @@ header, .bottom-nav { transition: background 0.3s ease, box-shadow 0.3s ease; }
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  scroll-behavior: auto;
   padding: 6px 12px 8px;
   gap: 6px;
   flex-direction: row;
