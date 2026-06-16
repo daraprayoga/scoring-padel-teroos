@@ -8164,13 +8164,11 @@ body.viewer-mode .beta-banner,
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   box-shadow: inset 0 -1px 0 rgba(255,255,255,0.15) !important;
-  padding-top: 0 !important;
-  min-height: 26px !important;
 }
-/* Safe area above the green ribbon shows cream (matches header) */
+/* Green banner fills the safe area too — status bar area is green */
 body.viewer-mode,
 .viewer-url body {
-  background: #f5f0e6 !important;
+  padding-top: 0 !important;
 }
 /* Viewer mode green ribbon scrolls like beta ribbon — no override needed */
 
@@ -8214,11 +8212,7 @@ header, .bottom-nav { transition: background 0.3s ease, box-shadow 0.3s ease; }
   body.viewer-mode .beta-banner { background: #2d6b4e !important; }
 }
 
-/* Viewer mode: center the static ticker text */
-body.viewer-mode .beta-ticker {
-  justify-content: center !important;
-  animation: none !important;
-}
+/* Viewer mode green ribbon: ticker scrolls same as beta ribbon */
 </style>
 <!-- PLAYER PROFILE MODAL -->
 <div id="playerProfileModal">
