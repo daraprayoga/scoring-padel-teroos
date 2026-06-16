@@ -2128,16 +2128,18 @@ main { background: var(--rc-forest) !important; }
 
 /* ---------- Start button ---------- */
 .start-btn {
-  background: #2d6b4e !important;
-  border: 2px solid #2d6b4e !important;
-  color: #f5f0e6 !important;
+  background: linear-gradient(160deg, #e8c97a 0%, #c9a961 60%, #a07830 100%) !important;
+  border: 1.5px solid rgba(160,120,48,0.5) !important;
+  color: #1a3020 !important;
   border-radius: 14px !important;
-  letter-spacing: 1px;
-  box-shadow: 0 0 16px rgba(45,107,78,0.15), 0 4px 16px rgba(45,107,78,0.1) !important;
-  transition: all 0.25s var(--transition-smooth) !important;
+  letter-spacing: 1.5px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  box-shadow: 0 4px 20px rgba(201,169,97,0.45), 0 1px 0 rgba(255,255,255,0.55) inset !important;
+  transition: all 0.2s ease !important;
 }
-.start-btn:hover { border-color: rgba(201,169,97,0.75) !important; box-shadow: 0 0 24px rgba(201,169,97,0.14), 0 2px 8px rgba(0,0,0,0.08), var(--rc-inset) !important; transform: translateY(-2px); }
-.start-btn:active { transform: scale(0.97) !important; }
+.start-btn:hover { filter: brightness(1.06) !important; box-shadow: 0 6px 28px rgba(201,169,97,0.55), 0 1px 0 rgba(255,255,255,0.55) inset !important; transform: translateY(-1px) !important; }
+.start-btn:active { transform: scale(0.97) !important; filter: brightness(0.97) !important; }
 
 /* ---------- End game / podium button ---------- */
 .end-game-btn {
@@ -6891,29 +6893,8 @@ boot();
 // env(safe-area-inset-top) can return 0 in iOS Safari browser (non-PWA).
 // This reads via probe, then falls back to screen heuristic (notch detection).
 (function injectSAT() {
-  function setSAT() {
-    // Method 1: probe env() — works in PWA / some iOS versions
-    const probe = document.createElement('div');
-    probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;' +
-      'padding-top:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none;';
-    document.documentElement.appendChild(probe);
-    const fromEnv = parseFloat(getComputedStyle(probe).paddingTop) || 0;
-    document.documentElement.removeChild(probe);
-
-    // Method 2: screen heuristic — notch/Dynamic Island iPhones
-    const fromScreen = (window.screen.height - window.innerHeight) > 80
-      ? 0 // fullscreen browser
-      : (window.screen.height / window.screen.width > 1.9 && window.devicePixelRatio >= 2)
-        ? 44 // tall iPhone with notch
-        : 0;
-
-    const sat = fromEnv > 0 ? fromEnv : fromScreen;
-    if (sat > 0) {
-      document.documentElement.style.setProperty('--sat', sat + 'px');
-    }
-  }
-  setSAT();
-  window.addEventListener('resize', setSAT);
+  // Pure CSS env(safe-area-inset-top) is used directly in styles via var(--sat).
+  // No JS heuristic — browser computes the real inset. Nothing to do here.
 })();
 
 
