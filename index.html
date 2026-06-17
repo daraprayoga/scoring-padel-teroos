@@ -812,6 +812,7 @@
   .studio-zoom span { font-size: 20px; }
   .studio-zoom input[type=range] { flex: 1; accent-color: #2d6b4e; height: 4px; }
   .studio-hint { text-align: center; font-size: 12px; color: #4a8a6a; font-weight: 700; letter-spacing: 0.5px; padding: 2px 0 4px; flex-shrink: 0; }
+  .ss-rank-picker { display: flex; align-items: center; justify-content: center; padding: 4px 16px; flex-shrink: 0; }
   .studio-actions { display: flex; flex-direction: column; gap: 10px; padding: 6px 20px max(18px, calc(10px + env(safe-area-inset-bottom,0px))); flex-shrink: 0; }
   .studio-btn { padding: 16px; border-radius: 16px; font-size: 17px; font-weight: 800; border: none; cursor: pointer; letter-spacing: 0.3px; }
   .studio-btn.primary { background: #2d6b4e; color: #f5f0e6; }
@@ -3674,7 +3675,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start Tournament</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.11 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.12 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -3755,7 +3756,7 @@ try {
               <label>Sort</label>
               <select id="sortSelector">
                 <option value="wins" selected>Wins</option>
-                <option value="diff">+/−</option>
+                <option value="diff">Point</option>
               </select>
             </div>
             <div class="blur-toggle" id="blurToggle">
@@ -4957,36 +4958,59 @@ function computeStandings() {
     s.winRate = s.games > 0 ? s.wins / s.games : 0;
   });
 
-  // ===== FAIR COMPENSATION (points only — wins stays integer) =====
+  // ===== FAIR COMPENSATION — flat (PDLUP style) =====
+  // All teams that played fewer games get the same per-game rate:
+  // the session-wide average points per game across all teams.
   let maxGames = 0;
   Object.values(stats).forEach(s => { if (s.games > maxGames) maxGames = s.games; });
+
+  const totalPoints = Object.values(stats).reduce((sum, s) => sum + s.points, 0);
+  const totalGames  = Object.values(stats).reduce((sum, s) => sum + s.games,  0);
+  const flatAvg = totalGames > 0 ? totalPoints / totalGames : 0;
 
   Object.values(stats).forEach(s => {
     if (s.games === 0) return;
     const missed = maxGames - s.games;
     if (missed <= 0) return;
-    const avgPointsPerGame = s.points / s.games;
-    s.bonusPoints = Math.round(avgPointsPerGame * missed);
+    s.bonusPoints = Math.round(flatAvg * missed);
     s.points += s.bonusPoints;
     s.bonus = true;
     s.missedGames = missed;
   });
 
+  // ===== HEAD-TO-HEAD helper =====
+  // Returns score diff from a's perspective in all direct matches vs b.
+  // >0 means a outscored b in their direct matches.
+  function h2h(aId, bId) {
+    let aScore = 0, bScore = 0;
+    for (const round of state.rounds) {
+      if (!round || !round.matches) continue;
+      for (const m of round.matches) {
+        const aOnA = m.teamA.includes(aId), aOnB = m.teamB.includes(aId);
+        const bOnA = m.teamA.includes(bId), bOnB = m.teamB.includes(bId);
+        if ((aOnA && bOnB) || (aOnB && bOnA)) {
+          if (aOnA) { aScore += (m.scoreA || 0); bScore += (m.scoreB || 0); }
+          else       { aScore += (m.scoreB || 0); bScore += (m.scoreA || 0); }
+        }
+      }
+    }
+    return aScore - bScore;
+  }
+
   return Object.values(stats).sort((a, b) => {
     const sortBy = state.sortBy || 'wins';
     if (sortBy === 'wins') {
-      // Sort by integer win count only — no decimal, no win rate blend
-      if (b.wins !== a.wins) return b.wins - a.wins;
-      if (b.diff !== a.diff) return b.diff - a.diff;
-      return b.points - a.points;
+      if (b.wins   !== a.wins)   return b.wins   - a.wins;
+      if (b.points !== a.points) return b.points - a.points;
+      return h2h(b.id, a.id); // positive = b outscored a in H2H = b ranks higher
     } else if (sortBy === 'diff') {
-      if (b.diff !== a.diff) return b.diff - a.diff;
-      if (b.wins !== a.wins) return b.wins - a.wins;
-      return b.points - a.points;
+      if (b.points !== a.points) return b.points - a.points;
+      if (b.wins   !== a.wins)   return b.wins   - a.wins;
+      return h2h(b.id, a.id);
     } else if (sortBy === 'winrate') {
       if (b.winRate !== a.winRate) return b.winRate - a.winRate;
-      if (b.wins !== a.wins) return b.wins - a.wins;
-      return b.diff - a.diff;
+      if (b.wins    !== a.wins)    return b.wins    - a.wins;
+      return h2h(b.id, a.id);
     }
     return 0;
   });
@@ -5811,7 +5835,7 @@ const SS_AVA = `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><cir
 const SS_PIC = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10.5" r="1.6"/><path d="M21 16l-5-5L5 19"/></svg>`;
 
 const _ssPhoto = { img: null, scale: 1, tx: 0, ty: 0, baseW: 0, baseH: 0 };
-let _ssIdx = 0, _ssK = 1;
+let _ssIdx = 0, _ssK = 1, _ssStandingsStart = 0;
 
 const wlt = (p) => `${p.wins}-${p.losses}-${p.ties}`;
 
@@ -5853,11 +5877,16 @@ function tplTop3() {
 }
 function tplStandings() {
   const s = computeStandings();
-  const ord = ['1st','2nd','3rd','4th','5th','6th','7th','8th'];
+  const start = Math.max(0, Math.min((_ssStandingsStart || 0), s.length - 1));
+  const slice = s.slice(start, start + 8);
   const title = escapeHtml(state.tournamentName || 'Padel Tournament');
-  const rows = s.slice(0, 8).map((p, i) => `
-    <tr class="t3-row ${i < 3 ? 'top3' : ''}">
-      <td>${ord[i] || (i + 1)}</td>
+  const ordinal = n => {
+    const s2 = ['th','st','nd','rd'], v = n % 100;
+    return n + (s2[(v - 20) % 10] || s2[v] || s2[0]);
+  };
+  const rows = slice.map((p, i) => `
+    <tr class="t3-row ${(start + i) < 3 ? 'top3' : ''}">
+      <td>${ordinal(start + i + 1)}</td>
       <td class="l">${escapeHtml(p.name)}</td>
       <td>${wlt(p)}</td>
       <td>${p.diff > 0 ? '+' : ''}${p.diff}</td>
@@ -5972,6 +6001,10 @@ function buildStudio() {
       <button class="ss-tpl-arrow ss-tpl-next" id="ssNext" type="button">›</button>
     </div>
     <div class="studio-dots" id="ssDots"></div>
+    <div class="ss-rank-picker" id="ssRankPicker" style="display:none;">
+      <label style="font-size:12px;color:#8a9a7a;font-weight:700;letter-spacing:0.5px;">MULAI DARI RANK</label>
+      <select id="ssRankStart" style="margin-left:8px;padding:4px 8px;border-radius:6px;border:1px solid rgba(45,107,78,0.3);background:rgba(245,240,230,0.9);font-size:13px;font-weight:700;color:#2d6b4e;cursor:pointer;"></select>
+    </div>
     <div class="studio-zoom hidden" id="ssZoom"><span>🔍</span><input type="range" id="ssZoomRange" min="1" max="4" step="0.01" value="1"></div>
     <div class="studio-hint">Geser & cubit foto untuk atur posisi · Swipe untuk ganti template</div>
     <div class="studio-actions">
@@ -6030,6 +6063,30 @@ function renderStudio() {
   const ov = document.getElementById('ssOverlay');
   if (ov) ov.innerHTML = STORY_TEMPLATES[_ssIdx].render();
   document.querySelectorAll('#ssDots .studio-dot').forEach((d, i) => d.classList.toggle('active', i === _ssIdx));
+
+  // Show rank picker only for standings template (index 2)
+  const rankPicker = document.getElementById('ssRankPicker');
+  const isStandings = _ssIdx === 2;
+  if (rankPicker) {
+    rankPicker.style.display = isStandings ? 'flex' : 'none';
+    if (isStandings) {
+      const sel = document.getElementById('ssRankStart');
+      if (sel && sel.options.length === 0) {
+        const total = computeStandings().length;
+        for (let i = 0; i < total; i++) {
+          const opt = document.createElement('option');
+          opt.value = i;
+          opt.textContent = `#${i + 1}`;
+          sel.appendChild(opt);
+        }
+        sel.value = _ssStandingsStart;
+        sel.addEventListener('change', () => {
+          _ssStandingsStart = parseInt(sel.value) || 0;
+          renderStudio();
+        });
+      }
+    }
+  }
 }
 
 function layoutStudio() {
@@ -7374,21 +7431,20 @@ saveState = window.saveState;
         if (podiumModal) podiumModal.style.zIndex = '300';
       }
 
-      // 2. Actions bar: show ghosted, enable podium when ended
+      // 2. Actions bar: only show Podium button in viewer mode
       const actionsEl = document.getElementById('sbActions');
       if (actionsEl) {
         actionsEl.style.display = 'flex';
         actionsEl.style.flexWrap = 'wrap';
         actionsEl.style.gap = '6px';
-        // Ghost all action buttons
+        // Hide all action buttons except podium
         actionsEl.querySelectorAll('button').forEach(btn => {
-          btn.style.opacity = '0.2';
-          btn.style.pointerEvents = 'none';
-          btn.style.cursor = 'default';
-          btn.style.filter = 'saturate(0)';
-          btn.style.display = '';
+          const action = btn.dataset.action;
+          if (action !== 'podium') {
+            btn.style.display = 'none';
+          }
         });
-        // Podium button: always visible but only active when ended
+        // Podium button: always visible, active only when ended
         const podiumBtn = actionsEl.querySelector('[data-action="podium"]');
         if (podiumBtn) {
           podiumBtn.style.display = '';
@@ -7401,6 +7457,11 @@ saveState = window.saveState;
             podiumBtn.style.border = '1px solid rgba(201,169,97,0.8)';
             podiumBtn.style.boxShadow = '0 0 20px rgba(201,169,97,0.5)';
             podiumBtn.style.color = '#000';
+          } else {
+            podiumBtn.style.opacity = '0.35';
+            podiumBtn.style.pointerEvents = 'none';
+            podiumBtn.style.cursor = 'default';
+            podiumBtn.style.filter = 'saturate(0)';
           }
         }
       }
@@ -8945,6 +9006,5 @@ body.viewer-mode #fullscreenBtn * {
 }
 </style>
 </body>
-</html>
 </html>
 </html>
