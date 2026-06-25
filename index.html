@@ -42,7 +42,7 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   input, select, button, textarea { font-family: inherit; box-sizing: border-box; max-width: 100%; }
-  html, body { min-height: 100%; max-width: 100vw; overflow-x: hidden; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif; background: var(--primary); color: var(--cream); -webkit-user-select: none; user-select: none; -webkit-text-size-adjust: 100%; }
+  html, body { min-height: 100%; max-width: 100vw; overflow-x: hidden; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif; background: var(--primary); color: var(--cream); -webkit-user-select: none; user-select: none; -webkit-text-size-adjust: 100%; -moz-text-size-adjust: 100%; text-size-adjust: 100%; }
   body { display: flex; flex-direction: column; min-height: 100vh; }
   @media (min-width: 641px) {
     html, body { height: 100%; overflow: hidden; }
@@ -191,6 +191,46 @@
   .name-input::placeholder { color: var(--cream-dim); opacity: 0.5; }
 
   .format-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; }
+  .ko-stages { display: flex; flex-direction: column; gap: 8px; }
+  /* Tourney group phase: cards use the SAME .sb-court-card/.sb-courts CSS as mabar.
+     Only the group wrapper + standings need extra rules. */
+  #tourneyDrawView { max-width: 100vw; overflow-x: hidden; box-sizing: border-box; }
+  #tourneyDrawView .sb-tabs { display: inline-flex; margin-bottom: 14px; max-width: 100%; }
+  #tourneyDrawView .sb-page { max-width: 100%; width: 100%; overflow-x: hidden; box-sizing: border-box; }
+  #tourneyDrawView .tg-group-block { max-width: 100%; min-width: 0; box-sizing: border-box; }
+  #tourneyDrawView .sb-courts { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
+  #tourneyDrawView .sb-court-card { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; overflow: hidden; }
+  /* Lock the match grid so the name columns can never push the card wider than the screen.
+     Explicit center width + minmax(0,1fr) sides = deterministic across Chrome AND Edge. */
+  #tourneyDrawView .sb-match-body {
+    display: grid !important;
+    grid-template-columns: minmax(0,1fr) 128px minmax(0,1fr) !important;
+    gap: 6px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+  #tourneyDrawView .sb-team { min-width: 0 !important; max-width: 100% !important; overflow: hidden !important; }
+  #tourneyDrawView .sb-player {
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    max-width: 100% !important;
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+  }
+  #tourneyDrawView .sb-score-center { min-width: 0; }
+  #tourneyDrawView .standing-table { table-layout: fixed; width: 100%; max-width: 100%; }
+  #tourneyDrawView .standing-table td, #tourneyDrawView .standing-table th { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #tourneyDrawView .standing-table td:nth-child(2) { white-space: normal; word-break: break-word; }
+  .lock-badge { font-size: 11px; margin-left: 2px; }
+  .format-card.tourney-unlocked .lock-badge { display: none; }
+  .ko-stage-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--primary-dark); padding: 10px 14px; border-radius: 10px; }
+  .ko-stage-name { font-size: 13px; font-weight: 700; color: var(--cream); }
+  .ko-stage-sub { font-size: 11px; color: var(--cream-dim); font-weight: 600; }
+  .ko-stage-target { display: flex; align-items: center; gap: 6px; }
+  .ko-stage-target select { padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(45,107,78,0.3); background: rgba(245,240,230,0.9); font-size: 13px; font-weight: 700; color: #2d6b4e; cursor: pointer; }
   .format-card { padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.6); border: 2px solid rgba(45,107,78,0.15); cursor: pointer; transition: all 0.2s; }
   .format-card.selected { border-color: var(--green-bright); background: var(--green); }
   .format-card h3 { font-size: 13px; margin-bottom: 4px; }
@@ -2122,27 +2162,17 @@ main { background: var(--rc-forest) !important; }
 .ghost-btn:active { transform: scale(0.95) !important; }
 .ghost-btn:disabled { opacity: 0.3 !important; }
 
-/* ---------- Primary (Next Round) ---------- */
+/* ---------- Primary (Start) — solid like End button ---------- */
 .primary-btn {
   background: #2d6b4e !important;
-  border: 2px solid #2d6b4e !important;
+  border: 1px solid #2d6b4e !important;
   color: #f5f0e6 !important;
   border-radius: 10px !important;
-  box-shadow: 0 0 16px rgba(201,169,97,0.12), var(--rc-inset) !important;
-  transition: all 0.2s var(--transition-smooth) !important;
+  transition: all 0.2s !important;
   position: relative;
   overflow: hidden;
 }
-.primary-btn::after {
-  content: '';
-  position: absolute;
-  top: 0; left: -100%;
-  width: 60%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
-  transition: left 0.5s ease;
-}
-.primary-btn:hover { border-color: rgba(201,169,97,0.65) !important; box-shadow: 0 0 28px rgba(201,169,97,0.22), var(--rc-inset) !important; transform: translateY(-1px); }
-.primary-btn:hover::after { left: 140%; }
+.primary-btn:hover { background: #1a4a35 !important; box-shadow: 0 4px 16px rgba(45,107,78,0.3) !important; transform: translateY(-1px); }
 .primary-btn:active { transform: scale(0.95) !important; }
 
 /* ---------- Start button: liquid glass, static ---------- */
@@ -3540,12 +3570,12 @@ try {
   <div class="view active" id="view-setup">
     <div class="setup-wrap">
       <div class="setup-title setup-hero">
-        <h1>Tournament Setup</h1>
+        <h1>Mabar Session Setup</h1>
       </div>
 
       <div class="card">
-        <div class="card-title">Tournament Name</div>
-        <input class="name-input" id="tournamentNameInput" type="text" placeholder="e.g. Friendly Tourney" maxlength="60">
+        <div class="card-title">Nama Mabar Session</div>
+        <input class="name-input" id="tournamentNameInput" type="text" placeholder="e.g. Mabar Teroos Jumat" maxlength="60">
       </div>
 
       <div class="card">
@@ -3570,6 +3600,10 @@ try {
           <div class="format-card" data-format="team_americano">
             <h3>Team Americano</h3>
             <p>Fix pair. Pair rotate round-robin. Pair points.</p>
+          </div>
+          <div class="format-card locked" data-format="tourney" id="tourneyFormatCard">
+            <h3>🏆 Tournament <span class="lock-badge" id="tourneyLock">🔒</span></h3>
+            <p>Fix pair. Grup round-robin → knockout bracket. Drawing/kocok grup.</p>
           </div>
         </div>
       </div>
@@ -3658,6 +3692,85 @@ try {
         </div>
       </div>
 
+      <!-- TOURNEY CONFIG -->
+      <div class="card" id="configTourney" style="display:none;">
+        <div class="card-title">Configuration — Tournament</div>
+        <div class="control-grid">
+          <div class="control">
+            <label>Courts</label>
+            <div class="stepper" id="courtsStepperTourney">
+              <button data-step="-1">−</button>
+              <div class="value" id="courtsValTourney">4</div>
+              <button data-step="1">+</button>
+            </div>
+            <div class="control-hint">Range 1-8</div>
+          </div>
+          <div class="control">
+            <label>Total Pairs</label>
+            <div class="stepper" id="pairsStepperTourney">
+              <button data-step="-1">−</button>
+              <div class="value" id="pairsValTourney">16</div>
+              <button data-step="1">+</button>
+            </div>
+            <div class="control-hint">Min 4, max 64</div>
+          </div>
+          <div class="control">
+            <label>Jumlah Grup</label>
+            <div class="stepper" id="groupsStepper">
+              <button data-step="-1">−</button>
+              <div class="value" id="groupsVal">4</div>
+              <button data-step="1">+</button>
+            </div>
+            <div class="control-hint" id="groupsHint">≈ 4 pair/grup</div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;">
+          <label style="display:block;font-size:12px;font-weight:700;letter-spacing:0.5px;color:var(--cream-dim);margin-bottom:8px;">YANG LOLOS DARI TIAP GRUP</label>
+          <div class="control-grid">
+            <div class="control">
+              <label>Top per grup</label>
+              <div class="stepper" id="qualTopStepper">
+                <button data-step="-1">−</button>
+                <div class="value" id="qualTopVal">2</div>
+                <button data-step="1">+</button>
+              </div>
+              <div class="control-hint">Default 2 besar</div>
+            </div>
+            <div class="control">
+              <label>+ Peringkat-3 terbaik</label>
+              <div class="stepper" id="qualBestStepper">
+                <button data-step="-1">−</button>
+                <div class="value" id="qualBestVal">0</div>
+                <button data-step="1">+</button>
+              </div>
+              <div class="control-hint">Best 3rd lolos juga</div>
+            </div>
+            <div class="control">
+              <label>Total lolos</label>
+              <div style="background: var(--primary-dark); padding: 12px; border-radius: 10px; font-size: 18px; font-weight: 900; color: var(--gold); text-align:center;" id="qualTotalDisplay">8</div>
+              <div class="control-hint" id="qualTotalHint">ke fase knockout</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;">
+          <label style="display:block;font-size:12px;font-weight:700;letter-spacing:0.5px;color:var(--cream-dim);margin-bottom:8px;">TARGET POIN PER TAHAP KNOCKOUT</label>
+          <div class="ko-stages" id="koStages"></div>
+          <div class="control-hint" style="margin-top:6px;">Single game per match · Golden point (no deuce)</div>
+          <label class="ko-toggle-row" style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding:10px 14px;background:var(--primary-dark);border-radius:10px;cursor:pointer;">
+            <span style="font-size:13px;font-weight:700;color:var(--cream);">Perebutan Juara 3</span>
+            <span class="switch" id="ko3rdSwitch"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- TOURNEY PAIRS LIST -->
+      <div class="card" id="tourneyPairsCard" style="display:none;">
+        <div class="card-title">Pairs (Tournament)</div>
+        <div class="pairs-list" id="tourneyPairsList"></div>
+      </div>
+
       <!-- INDIVIDUAL PLAYERS LIST -->
       <div class="card" id="individualPlayersCard">
         <div class="card-title">Players</div>
@@ -3673,7 +3786,7 @@ try {
       <div class="btn-row">
         <button class="ghost-btn" id="shuffleBtn">Random Names</button>
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
-        <button class="primary-btn" id="startBtn">Start Tournament</button>
+        <button class="primary-btn" id="startBtn">Start</button>
       </div>
       <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.12 · liquid glass · beta</div>
     </div>
@@ -3902,7 +4015,25 @@ const state = {
   playerGenders: [], // per-player gender: 'M' | 'F' (used in Mixicano)
   courtNames: [],  // custom court names e.g. ['Court Biru', 'Court Merah']
   scheduleAhead: 5,  // how many rounds ahead to pre-generate
-  roomId: null  // UUID per session — generated at startTournament, persistent
+  roomId: null,  // UUID per session — generated at startTournament, persistent
+  // ===== TOURNEY MODE =====
+  tourneyPairs: 16,          // total pairs in tournament
+  tourneyPairNames: [],      // [[p1, p2], ...]
+  tourneyGroups: 4,          // number of groups
+  qualTop: 2,                // top N per group auto-qualify
+  qualBest3rd: 0,            // additional best Nth-place qualifiers across groups
+  koTargets: {},             // { 'R16': 3, 'QF': 4, 'SF': 5, 'F': 5 }
+  ko3rdPlace: false,         // include 3rd-place playoff (loser SF)
+  tourneyDraw: [],           // [[pairIdx, ...], ...] — groups after drawing
+  tourneyPhase: 'setup',     // 'setup' | 'groups' | 'knockout' | 'done'
+  tourneyGroupMatches: [],   // [{group, teamA:[pairIdx], teamB:[pairIdx], scoreA, scoreB, round, court, done}]
+  tourneyGroupRound: 0,      // current group round being viewed
+  tourneyQualified: [],      // [pairIdx, ...] after group phase resolved
+  tourneyQualInfo: [],       // [{id, group, rank}] richer qualifier info for seeding
+  koBracket: [],             // [{stage, mi, teamA, teamB, scoreA, scoreB, done}]
+  koStageView: null,         // current stage key being viewed
+  koChampion: null,          // pairIdx of champion when done
+  ko3rdWinner: null          // pairIdx of 3rd-place winner
 };
 
 const RANDOM_POOL = ['Kiki','Marsa','Dwita','Pomen','Renny','Bella','Fina','Tarisa','Dila','Elva','Janes','Anggi','Sheva','Yola','Rina','Gia','Geges','OKI','Dhana','Rere','Adee','Una','Karina','Minda','Erlin','Rizkita','Vera','Chaca','Shintia','Vina','Cita','Diana','Sita','Eno','Bianca','Diths','Janty','Vio'];
@@ -3912,6 +4043,21 @@ const isTeam = () => state.format.startsWith('team_');
 const isMixicano = () => state.format === 'mixicano';
 const isMexicano = () => state.format.endsWith('_mexicano');
 const isAmericano = () => state.format.endsWith('_americano');
+const isTourney = () => state.format === 'tourney';
+
+// Knockout stage progression based on number of qualifiers
+// Returns array of stage keys from first round to final, e.g. ['QF','SF','F']
+function koStagesFor(n) {
+  // n must be a power of 2 for a clean bracket; we use the smallest pow2 >= n
+  const names = { 2: ['F'], 4: ['SF','F'], 8: ['QF','SF','F'], 16: ['R16','QF','SF','F'], 32: ['R32','R16','QF','SF','F'] };
+  let size = 2;
+  while (size < n) size *= 2;
+  return { size, stages: names[size] || ['F'] };
+}
+
+function koStageLabel(key) {
+  return { R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarterfinal', SF: 'Semifinal', F: 'Final' }[key] || key;
+}
 
 function defaultName(i) { return `Player ${i + 1}`; }
 
@@ -4040,6 +4186,414 @@ function renderPairsList() {
   });
 }
 
+// ===== TOURNEY SETUP FUNCTIONS =====
+function ensureTourneyPairNames() {
+  while (state.tourneyPairNames.length < state.tourneyPairs) {
+    state.tourneyPairNames.push(['', '']);
+  }
+  state.tourneyPairNames.length = state.tourneyPairs;
+}
+
+function tourneyQualTotal() {
+  return state.tourneyGroups * state.qualTop + state.qualBest3rd;
+}
+
+function renderTourneyConfig() {
+  document.getElementById('courtsValTourney').textContent = state.courts;
+  document.getElementById('pairsValTourney').textContent = state.tourneyPairs;
+  document.getElementById('groupsVal').textContent = state.tourneyGroups;
+  document.getElementById('qualTopVal').textContent = state.qualTop;
+  document.getElementById('qualBestVal').textContent = state.qualBest3rd;
+
+  const perGroup = (state.tourneyPairs / state.tourneyGroups);
+  document.getElementById('groupsHint').textContent = `≈ ${perGroup.toFixed(perGroup % 1 === 0 ? 0 : 1)} pair/grup`;
+
+  const total = tourneyQualTotal();
+  document.getElementById('qualTotalDisplay').textContent = total;
+
+  const { size, stages } = koStagesFor(total);
+  document.getElementById('qualTotalHint').textContent = `ke knockout (bracket ${size})`;
+
+  const koWrap = document.getElementById('koStages');
+  koWrap.innerHTML = '';
+  stages.forEach(key => {
+    if (!(key in state.koTargets)) {
+      state.koTargets[key] = key === 'F' ? 5 : key === 'SF' ? 5 : key === 'QF' ? 4 : 3;
+    }
+    const row = document.createElement('div');
+    row.className = 'ko-stage-row';
+    const matchCount = { R32: 16, R16: 8, QF: 4, SF: 2, F: 1 }[key] || 1;
+    row.innerHTML = `
+      <div>
+        <div class="ko-stage-name">${koStageLabel(key)}</div>
+        <div class="ko-stage-sub">${matchCount} match${matchCount > 1 ? 'es' : ''}</div>
+      </div>
+      <div class="ko-stage-target">
+        <select data-ko="${key}">
+          ${[3,4,5,6].map(n => `<option value="${n}" ${state.koTargets[key] === n ? 'selected' : ''}>Race to ${n}</option>`).join('')}
+        </select>
+      </div>`;
+    koWrap.appendChild(row);
+  });
+  koWrap.querySelectorAll('select').forEach(sel => {
+    sel.addEventListener('change', e => {
+      state.koTargets[e.target.dataset.ko] = parseInt(e.target.value);
+    });
+  });
+
+  // 3rd place toggle
+  const sw = document.getElementById('ko3rdSwitch');
+  if (sw) {
+    sw.classList.toggle('on', !!state.ko3rdPlace);
+    sw.onclick = () => {
+      state.ko3rdPlace = !state.ko3rdPlace;
+      sw.classList.toggle('on', state.ko3rdPlace);
+    };
+  }
+}
+
+function renderTourneyPairsList() {
+  ensureTourneyPairNames();
+  const list = document.getElementById('tourneyPairsList');
+  if (!list) return;
+  list.innerHTML = '';
+  for (let i = 0; i < state.tourneyPairs; i++) {
+    const row = document.createElement('div');
+    row.className = 'pair-row';
+    row.innerHTML = `
+      <div class="pair-header">Pair ${i+1}</div>
+      <div class="pair-inputs">
+        <input type="text" value="${state.tourneyPairNames[i][0] || ''}" placeholder="Player ${i*2+1}" data-tpair="${i}" data-slot="0">
+        <span class="amp">&</span>
+        <input type="text" value="${state.tourneyPairNames[i][1] || ''}" placeholder="Player ${i*2+2}" data-tpair="${i}" data-slot="1">
+      </div>`;
+    list.appendChild(row);
+  }
+  list.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const pIdx = parseInt(e.target.dataset.tpair);
+      const sIdx = parseInt(e.target.dataset.slot);
+      state.tourneyPairNames[pIdx][sIdx] = e.target.value;
+    });
+  });
+}
+
+function drawTourneyGroups() {
+  const n = state.tourneyPairs;
+  const g = state.tourneyGroups;
+  const indices = Array.from({ length: n }, (_, i) => i);
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+  const groups = Array.from({ length: g }, () => []);
+  indices.forEach((pairIdx, k) => { groups[k % g].push(pairIdx); });
+  state.tourneyDraw = groups;
+  return groups;
+}
+
+function tourneyPairLabel(i) {
+  const pair = state.tourneyPairNames[i] || ['', ''];
+  const a = pair[0] || `P${i*2+1}`;
+  const b = pair[1] || `P${i*2+2}`;
+  return `${a} & ${b}`;
+}
+
+// Round-robin pairings within one group (circle method).
+// Returns array of rounds; each round is array of [pairA, pairB] matchups.
+function roundRobinPairs(members) {
+  const arr = [...members];
+  if (arr.length % 2 === 1) arr.push(null); // bye
+  const n = arr.length;
+  const rounds = [];
+  for (let r = 0; r < n - 1; r++) {
+    const matchups = [];
+    for (let i = 0; i < n / 2; i++) {
+      const a = arr[i], b = arr[n - 1 - i];
+      if (a !== null && b !== null) matchups.push([a, b]);
+    }
+    rounds.push(matchups);
+    // rotate (keep first fixed)
+    arr.splice(1, 0, arr.pop());
+  }
+  return rounds;
+}
+
+// Generate full group-phase schedule.
+// Each MATCH occupies one court (2 pairs versus). Matches are packed into global
+// rounds of up to `courts` matches. We interleave by group so each round draws
+// from as many groups as possible, and no pair plays twice in the same round.
+function generateTourneyGroupSchedule() {
+  const perGroupRounds = state.tourneyDraw.map(g => roundRobinPairs(g));
+  const maxRRRounds = Math.max(...perGroupRounds.map(r => r.length), 0);
+
+  // Build per-group queues of matchups (each is [pairA, pairB] tagged with group)
+  const groupQueues = state.tourneyDraw.map((g, gi) => {
+    const q = [];
+    perGroupRounds[gi].forEach(rrRound => {
+      rrRound.forEach(([a, b]) => q.push({ group: gi, teamA: [a], teamB: [b] }));
+    });
+    return q;
+  });
+
+  const courts = Math.max(1, state.courts);
+  const matches = [];
+  let globalRound = 0;
+
+  // Keep pulling until all group queues are empty
+  const hasRemaining = () => groupQueues.some(q => q.length > 0);
+  while (hasRemaining()) {
+    const usedPairs = new Set();
+    let courtInRound = 0;
+    // Round-robin across groups: try to take one match from each group in turn
+    let progress = true;
+    while (courtInRound < courts && progress) {
+      progress = false;
+      for (let gi = 0; gi < groupQueues.length && courtInRound < courts; gi++) {
+        const q = groupQueues[gi];
+        // find first matchup in this group's queue whose pairs are free this round
+        const mIdx = q.findIndex(m => !usedPairs.has(m.teamA[0]) && !usedPairs.has(m.teamB[0]));
+        if (mIdx === -1) continue;
+        const m = q.splice(mIdx, 1)[0];
+        usedPairs.add(m.teamA[0]); usedPairs.add(m.teamB[0]);
+        matches.push({
+          group: m.group,
+          teamA: m.teamA,
+          teamB: m.teamB,
+          scoreA: 0, scoreB: 0,
+          done: false,
+          round: globalRound,
+          court: courtInRound
+        });
+        courtInRound++;
+        progress = true;
+      }
+    }
+    globalRound++;
+  }
+
+  state.tourneyGroupMatches = matches;
+  state.tourneyGroupRound = 0;
+  // Ensure court names exist for the courts actually used
+  const maxCourt = matches.reduce((mx, m) => Math.max(mx, m.court), 0);
+  if (!state.courtNames) state.courtNames = [];
+  for (let i = 0; i <= maxCourt; i++) {
+    if (!state.courtNames[i]) state.courtNames[i] = `Court ${i + 1}`;
+  }
+  return globalRound;
+}
+
+// Compute standings for one group (uses same wins>points>h2h logic)
+function computeGroupStandings(groupIdx) {
+  const members = state.tourneyDraw[groupIdx];
+  const stats = {};
+  members.forEach(pi => {
+    stats[pi] = { id: pi, name: tourneyPairLabel(pi), wins: 0, losses: 0, ties: 0, points: 0, diff: 0, games: 0 };
+  });
+  state.tourneyGroupMatches.forEach(m => {
+    if (m.group !== groupIdx || !m.done) return;
+    const a = m.teamA[0], b = m.teamB[0];
+    if (!(a in stats) || !(b in stats)) return;
+    stats[a].games++; stats[b].games++;
+    stats[a].points += m.scoreA; stats[b].points += m.scoreB;
+    stats[a].diff += (m.scoreA - m.scoreB); stats[b].diff += (m.scoreB - m.scoreA);
+    if (m.scoreA > m.scoreB) { stats[a].wins++; stats[b].losses++; }
+    else if (m.scoreB > m.scoreA) { stats[b].wins++; stats[a].losses++; }
+    else { stats[a].ties++; stats[b].ties++; }
+  });
+  // head-to-head within group
+  function h2h(aId, bId) {
+    let as = 0, bs = 0;
+    state.tourneyGroupMatches.forEach(m => {
+      if (m.group !== groupIdx || !m.done) return;
+      const aA = m.teamA[0] === aId, aB = m.teamB[0] === aId;
+      const bA = m.teamA[0] === bId, bB = m.teamB[0] === bId;
+      if ((aA && bB) || (aB && bA)) {
+        if (aA) { as += m.scoreA; bs += m.scoreB; } else { as += m.scoreB; bs += m.scoreA; }
+      }
+    });
+    return as - bs;
+  }
+  return Object.values(stats).sort((a, b) => {
+    if (b.wins !== a.wins) return b.wins - a.wins;
+    if (b.points !== a.points) return b.points - a.points;
+    return h2h(b.id, a.id);
+  });
+}
+
+// Resolve qualifiers: top N per group + best Nth-place across groups
+function resolveTourneyQualifiers() {
+  const groupStandings = state.tourneyDraw.map((_, gi) => computeGroupStandings(gi));
+  const qualified = [];
+  const qualInfo = [];
+  // Top N per group
+  groupStandings.forEach((gs, gi) => {
+    for (let i = 0; i < state.qualTop && i < gs.length; i++) {
+      qualified.push(gs[i].id);
+      qualInfo.push({ id: gs[i].id, group: gi, rank: i }); // rank 0 = winner, 1 = runner-up
+    }
+  });
+  // Best (qualTop+1)-th place across groups
+  if (state.qualBest3rd > 0) {
+    const nextPlace = state.qualTop;
+    const candidates = groupStandings
+      .map((gs, gi) => gs[nextPlace] ? { ...gs[nextPlace], _group: gi } : null)
+      .filter(Boolean)
+      .sort((a, b) => {
+        if (b.wins !== a.wins) return b.wins - a.wins;
+        if (b.points !== a.points) return b.points - a.points;
+        return b.diff - a.diff;
+      });
+    for (let i = 0; i < state.qualBest3rd && i < candidates.length; i++) {
+      qualified.push(candidates[i].id);
+      qualInfo.push({ id: candidates[i].id, group: candidates[i]._group, rank: nextPlace });
+    }
+  }
+  state.tourneyQualified = qualified;
+  state.tourneyQualInfo = qualInfo;
+  return qualified;
+}
+
+// ===== KNOCKOUT BRACKET GENERATION =====
+// Seed: group winners vs others (runner-up/best-3rd) from DIFFERENT groups, drawn (shuffled).
+function generateKnockoutBracket() {
+  const info = state.tourneyQualInfo.slice();
+  const { size, stages } = koStagesFor(info.length);
+
+  const winners = info.filter(q => q.rank === 0);
+  const others = info.filter(q => q.rank !== 0);
+  const shuffle = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
+  shuffle(winners); shuffle(others);
+
+  const firstRoundMatches = size / 2;
+  const pairs = [];
+  const usedIds = new Set();
+
+  // Better assignment: try to give every winner an opponent from a different group.
+  // Process winners in random order but retry assignment to minimize same-group clashes.
+  const assignOpponents = () => {
+    const localUsed = new Set();
+    const result = [];
+    const winOrder = shuffle(winners.slice());
+    let clashes = 0;
+    for (const w of winOrder) {
+      const pool = others.filter(o => !localUsed.has(o.id));
+      // prefer different group
+      let pick = pool.find(o => o.group !== w.group);
+      if (!pick) { pick = pool[0]; if (pick) clashes++; } // forced same-group
+      if (pick) localUsed.add(pick.id);
+      result.push([w, pick || null]);
+    }
+    return { result, clashes, localUsed };
+  };
+
+  // Try several random assignments, keep the one with fewest same-group clashes
+  let best = null;
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const a = assignOpponents();
+    if (!best || a.clashes < best.clashes) best = a;
+    if (best.clashes === 0) break;
+  }
+  best.result.forEach(([w, o]) => {
+    usedIds.add(w.id);
+    if (o) usedIds.add(o.id);
+    pairs.push([w, o]);
+  });
+
+  const remaining = info.filter(q => !usedIds.has(q.id));
+  shuffle(remaining);
+  while (remaining.length) {
+    const a = remaining.shift(); usedIds.add(a.id);
+    let bIdx = remaining.findIndex(x => x.group !== a.group);
+    if (bIdx === -1) bIdx = 0;
+    const b = remaining.length ? remaining.splice(bIdx, 1)[0] : null;
+    if (b) usedIds.add(b.id);
+    pairs.push([a, b]);
+  }
+
+  while (pairs.length < firstRoundMatches) pairs.push([null, null]);
+
+  const bracket = [];
+  const firstStage = stages[0];
+  pairs.forEach(([a, b], mi) => {
+    const teamA = a ? a.id : null;
+    const teamB = b ? b.id : null;
+    const done = (teamA !== null) !== (teamB !== null); // BYE auto-done
+    bracket.push({ stage: firstStage, mi, teamA, teamB, scoreA: 0, scoreB: 0, done, bye: done });
+  });
+
+  state.koBracket = bracket;
+  state.koStageView = firstStage;
+  state.koChampion = null;
+  state.ko3rdWinner = null;
+  if (!state.courtNames) state.courtNames = [];
+  return bracket;
+}
+
+function koMatchesForStage(stage) {
+  return state.koBracket.filter(m => m.stage === stage);
+}
+
+function koMatchWinner(m) {
+  if (m.teamA !== null && m.teamB === null) return m.teamA;
+  if (m.teamB !== null && m.teamA === null) return m.teamB;
+  if (!m.done) return null;
+  if (m.scoreA > m.scoreB) return m.teamA;
+  if (m.scoreB > m.scoreA) return m.teamB;
+  return null;
+}
+
+function koStageDone(stage) {
+  const matches = koMatchesForStage(stage);
+  return matches.length > 0 && matches.every(m => koMatchWinner(m) !== null);
+}
+
+function koAdvanceStage(currentStage) {
+  const { stages } = koStagesFor(state.tourneyQualInfo.length);
+  const curIdx = stages.indexOf(currentStage);
+  if (curIdx === -1 || curIdx >= stages.length - 1) {
+    const finalMatch = koMatchesForStage('F')[0];
+    if (finalMatch) state.koChampion = koMatchWinner(finalMatch);
+    return;
+  }
+  const nextStage = stages[curIdx + 1];
+  if (koMatchesForStage(nextStage).length > 0) { state.koStageView = nextStage; return; }
+
+  const curMatches = koMatchesForStage(currentStage).slice().sort((a, b) => a.mi - b.mi);
+  const winners = curMatches.map(m => koMatchWinner(m));
+  const newMatches = [];
+  for (let i = 0; i < winners.length; i += 2) {
+    const teamA = winners[i] ?? null;
+    const teamB = winners[i + 1] ?? null;
+    const done = (teamA !== null) !== (teamB !== null);
+    newMatches.push({ stage: nextStage, mi: i / 2, teamA, teamB, scoreA: 0, scoreB: 0, done, bye: done });
+  }
+  state.koBracket.push(...newMatches);
+
+  // Create 3rd-place match when building the Final, if enabled
+  if (nextStage === 'F' && state.ko3rdPlace) {
+    const sfMatches = koMatchesForStage('SF');
+    if (sfMatches.length === 2) {
+      const losers = sfMatches.map(m => {
+        const w = koMatchWinner(m);
+        return w === m.teamA ? m.teamB : m.teamA;
+      });
+      state.koBracket.push({ stage: '3P', mi: 0, teamA: losers[0] ?? null, teamB: losers[1] ?? null, scoreA: 0, scoreB: 0, done: false, bye: false });
+    }
+  }
+  state.koStageView = nextStage;
+}
+
+
+function tourneyGroupRoundCount() {
+  if (!state.tourneyGroupMatches.length) return 0;
+  return Math.max(...state.tourneyGroupMatches.map(m => m.round)) + 1;
+}
+
+function tourneyGroupAllDone() {
+  return state.tourneyGroupMatches.length > 0 && state.tourneyGroupMatches.every(m => m.done);
+}
+
 function updateStepperVals() {
   document.getElementById('courtsVal').textContent = state.courts;
   document.getElementById('pplCourtVal').textContent = state.playersPerCourt;
@@ -4063,13 +4617,29 @@ function updateStepperVals() {
 }
 
 function updateConfigVisibility() {
+  const tourney = isTourney();
   const teamMode = isTeam();
-  document.getElementById('configIndividual').style.display = teamMode ? 'none' : 'block';
-  document.getElementById('configTeam').style.display = teamMode ? 'block' : 'none';
-  document.getElementById('individualPlayersCard').style.display = teamMode ? 'none' : 'block';
-  document.getElementById('teamPairsCard').style.display = teamMode ? 'block' : 'none';
-  // Re-render player list so gender toggles show/hide based on format
-  if (!teamMode) renderPlayersList();
+  // Tournament mode: hide individual/team configs, show tourney config
+  document.getElementById('configIndividual').style.display = (tourney || teamMode) ? 'none' : 'block';
+  document.getElementById('configTeam').style.display = (teamMode && !tourney) ? 'block' : 'none';
+  document.getElementById('individualPlayersCard').style.display = (tourney || teamMode) ? 'none' : 'block';
+  document.getElementById('teamPairsCard').style.display = (teamMode && !tourney) ? 'block' : 'none';
+  const tourneyConfig = document.getElementById('configTourney');
+  const tourneyPairs = document.getElementById('tourneyPairsCard');
+  if (tourneyConfig) tourneyConfig.style.display = tourney ? 'block' : 'none';
+  if (tourneyPairs) tourneyPairs.style.display = tourney ? 'block' : 'none';
+  // Game Mode card is irrelevant for tourney (per-stage targets used instead)
+  const modeCard = document.getElementById('modeGrid');
+  if (modeCard) {
+    const modeWrap = modeCard.closest('.card');
+    if (modeWrap) modeWrap.style.display = tourney ? 'none' : 'block';
+  }
+  if (tourney) {
+    renderTourneyConfig();
+    renderTourneyPairsList();
+  } else if (!teamMode) {
+    renderPlayersList();
+  }
 }
 
 // Make the setup UI reflect the ACTUAL state (format/mode/name). Without this, a
@@ -4096,25 +4666,81 @@ function initSetup() {
 }
 
 // ========== FORMAT/MODE SELECTION ==========
+let _tourneyUnlocked = false;
+const TOURNEY_PASSWORD = 'STeroos2019';
+
 document.querySelectorAll('.format-card').forEach(card => {
   card.addEventListener('click', () => {
-    document.querySelectorAll('.format-card').forEach(c => c.classList.remove('selected'));
-    card.classList.add('selected');
-    state.format = card.dataset.format;
-    if (isTeam()) {
-      state.manualPairCount = false;
-      syncPairCount();
-      renderPairsList();
-    } else {
-      state.manualPlayerCount = false;
-      state.playersPerCourt = 8;
-      syncPlayerCount();
-      renderPlayersList();
+    // Password gate for tournament mode
+    if (card.dataset.format === 'tourney' && !_tourneyUnlocked) {
+      showTourneyPasswordModal(() => {
+        _tourneyUnlocked = true;
+        card.classList.add('tourney-unlocked');
+        selectFormatCard(card);
+      });
+      return;
     }
-    updateStepperVals();
-    updateConfigVisibility();
+    selectFormatCard(card);
   });
 });
+
+function selectFormatCard(card) {
+  document.querySelectorAll('.format-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  state.format = card.dataset.format;
+  if (isTourney()) {
+    ensureTourneyPairNames();
+  } else if (isTeam()) {
+    state.manualPairCount = false;
+    syncPairCount();
+    renderPairsList();
+  } else {
+    state.manualPlayerCount = false;
+    state.playersPerCourt = 8;
+    syncPlayerCount();
+    renderPlayersList();
+  }
+  updateStepperVals();
+  updateConfigVisibility();
+}
+
+function showTourneyPasswordModal(onSuccess) {
+  const existing = document.getElementById('tourneyPwModal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'tourneyPwModal';
+  modal.className = 'modal-backdrop show';
+  modal.innerHTML = `
+    <div class="modal">
+      <h3>🔒 Tournament Mode</h3>
+      <p>Mode tournament terkunci. Masukin password admin untuk lanjut.</p>
+      <input type="password" id="tourneyPwInput" placeholder="Password admin" autocomplete="off"
+        style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(45,107,78,0.3);background:rgba(245,240,230,0.95);font-size:15px;font-weight:600;color:#2d6b4e;margin:8px 0;box-sizing:border-box;">
+      <div id="tourneyPwError" style="display:none;color:#c0392b;font-size:12px;font-weight:700;margin-bottom:8px;">Password salah.</div>
+      <div class="modal-actions">
+        <button class="ghost-btn" id="tourneyPwCancel">Cancel</button>
+        <button class="primary-btn" id="tourneyPwOk">Buka</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  const input = document.getElementById('tourneyPwInput');
+  const err = document.getElementById('tourneyPwError');
+  setTimeout(() => input.focus(), 50);
+  const submit = () => {
+    if (input.value === TOURNEY_PASSWORD) {
+      modal.remove();
+      onSuccess();
+    } else {
+      err.style.display = 'block';
+      input.value = '';
+      input.focus();
+    }
+  };
+  document.getElementById('tourneyPwOk').addEventListener('click', submit);
+  document.getElementById('tourneyPwCancel').addEventListener('click', () => modal.remove());
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
 
 document.querySelectorAll('.mode-card').forEach(card => {
   card.addEventListener('click', () => {
@@ -4209,9 +4835,55 @@ document.getElementById('pairsStepper').addEventListener('click', e => {
   }
 });
 
+// ===== TOURNEY STEPPERS =====
+document.getElementById('courtsStepperTourney').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  const newVal = state.courts + parseInt(e.target.dataset.step);
+  if (newVal >= 1 && newVal <= 8) { state.courts = newVal; renderTourneyConfig(); }
+});
+document.getElementById('pairsStepperTourney').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  const newVal = state.tourneyPairs + parseInt(e.target.dataset.step);
+  if (newVal >= 4 && newVal <= 64) {
+    state.tourneyPairs = newVal;
+    // keep groups sensible
+    if (state.tourneyGroups > Math.floor(newVal / 2)) state.tourneyGroups = Math.max(1, Math.floor(newVal / 2));
+    ensureTourneyPairNames();
+    renderTourneyConfig();
+    renderTourneyPairsList();
+  }
+});
+document.getElementById('groupsStepper').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  const newVal = state.tourneyGroups + parseInt(e.target.dataset.step);
+  // need at least 2 pairs per group, at least 1 group
+  if (newVal >= 1 && newVal <= Math.floor(state.tourneyPairs / 2)) {
+    state.tourneyGroups = newVal;
+    renderTourneyConfig();
+  }
+});
+document.getElementById('qualTopStepper').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  const perGroup = Math.floor(state.tourneyPairs / state.tourneyGroups);
+  const newVal = state.qualTop + parseInt(e.target.dataset.step);
+  if (newVal >= 1 && newVal <= perGroup) { state.qualTop = newVal; renderTourneyConfig(); }
+});
+document.getElementById('qualBestStepper').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  const newVal = state.qualBest3rd + parseInt(e.target.dataset.step);
+  if (newVal >= 0 && newVal <= state.tourneyGroups) { state.qualBest3rd = newVal; renderTourneyConfig(); }
+});
+
 document.getElementById('shuffleBtn').addEventListener('click', () => {
   const shuffled = [...RANDOM_POOL].sort(() => Math.random() - 0.5);
-  if (isTeam()) {
+  if (isTourney()) {
+    ensureTourneyPairNames();
+    for (let i = 0; i < state.tourneyPairs; i++) {
+      state.tourneyPairNames[i][0] = shuffled[(i*2) % shuffled.length] || `Player ${i*2+1}`;
+      state.tourneyPairNames[i][1] = shuffled[(i*2+1) % shuffled.length] || `Player ${i*2+2}`;
+    }
+    renderTourneyPairsList();
+  } else if (isTeam()) {
     for (let i = 0; i < state.pairs; i++) {
       state.pairNames[i][0] = shuffled[i*2] || `Player ${i*2+1}`;
       state.pairNames[i][1] = shuffled[i*2+1] || `Player ${i*2+2}`;
@@ -4224,7 +4896,11 @@ document.getElementById('shuffleBtn').addEventListener('click', () => {
 });
 
 document.getElementById('resetNamesBtn').addEventListener('click', () => {
-  if (isTeam()) {
+  if (isTourney()) {
+    ensureTourneyPairNames();
+    for (let i = 0; i < state.tourneyPairs; i++) { state.tourneyPairNames[i][0] = ''; state.tourneyPairNames[i][1] = ''; }
+    renderTourneyPairsList();
+  } else if (isTeam()) {
     for (let i = 0; i < state.pairs; i++) {
       state.pairNames[i][0] = '';
       state.pairNames[i][1] = '';
@@ -4238,6 +4914,26 @@ document.getElementById('resetNamesBtn').addEventListener('click', () => {
 
 // ========== START ==========
 function startTournament() {
+  // ===== TOURNEY MODE (Session 1: setup + drawing) =====
+  if (isTourney()) {
+    ensureTourneyPairNames();
+    state.tourneyPairNames = state.tourneyPairNames.slice(0, state.tourneyPairs).map((p, i) => [
+      (p[0] || '').trim() || `Player ${i*2+1}`,
+      (p[1] || '').trim() || `Player ${i*2+2}`
+    ]);
+    state.tournamentName = (state.tournamentName || '').trim();
+    if (!state.roomId) state.roomId = generateRoomId();
+    if (state.tourneyPairs < state.tourneyGroups * 2) {
+      alert(`Minimal 2 pair per grup. ${state.tourneyPairs} pair ÷ ${state.tourneyGroups} grup tidak cukup.`);
+      return;
+    }
+    drawTourneyGroups();
+    state.tourneyPhase = 'groups';
+    state.started = true;
+    showTourneyDrawResult();
+    return;
+  }
+
   if (isTeam()) {
     state.pairNames = state.pairNames.map((p, i) => [
       (p[0] || '').trim() || `Player ${i*2+1}`,
@@ -4288,6 +4984,610 @@ function startTournament() {
   document.getElementById('resetBtn').style.display = 'flex';
   document.getElementById('saveBtn').style.display = 'flex';
   renderAll();
+}
+
+// ===== TOURNEY: show drawing result (Session 1 deliverable) =====
+function showTourneyDrawResult() {
+  let host = document.getElementById('tourneyDrawView');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'tourneyDrawView';
+    host.className = 'view';
+    host.style.cssText = 'padding:0;width:100%;max-width:100vw;overflow-x:hidden;box-sizing:border-box;';
+    document.querySelector('main')?.appendChild(host) || document.body.appendChild(host);
+  }
+  const groupLetters = 'ABCDEFGH';
+  const groupsHtml = state.tourneyDraw.map((grp, gi) => `
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-title" style="display:flex;align-items:center;gap:8px;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--green);color:var(--cream);font-weight:900;font-size:14px;">${groupLetters[gi]}</span>
+        Grup ${groupLetters[gi]}
+        <span style="font-size:12px;color:var(--cream-dim);font-weight:600;">· ${grp.length} pair</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+        ${grp.map((pi, idx) => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--primary-dark);border-radius:8px;">
+            <span style="font-size:12px;color:var(--cream-dim);font-weight:700;width:20px;">${idx+1}</span>
+            <span style="font-weight:700;color:var(--cream);">${escapeHtml(tourneyPairLabel(pi))}</span>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+
+  const total = tourneyQualTotal();
+  const { size, stages } = koStagesFor(total);
+  host.innerHTML = `
+    <div class="setup-wrap">
+      <div class="setup-title setup-hero"><h1>🏆 ${escapeHtml(state.tournamentName || 'Tournament')}</h1></div>
+      <div style="text-align:center;color:var(--cream-dim);font-size:13px;margin-bottom:16px;font-weight:600;">
+        ${state.tourneyPairs} pair · ${state.tourneyGroups} grup · ${total} lolos ke knockout
+      </div>
+      <div class="card" style="margin-bottom:16px;background:rgba(201,169,97,0.1);border:1px solid rgba(201,169,97,0.3);">
+        <div style="text-align:center;font-weight:800;color:var(--gold);font-size:14px;letter-spacing:0.5px;">HASIL DRAWING / KOCOK</div>
+        <div style="text-align:center;color:var(--cream-dim);font-size:12px;margin-top:4px;">Lolos: top ${state.qualTop}/grup${state.qualBest3rd > 0 ? ` + ${state.qualBest3rd} peringkat-3 terbaik` : ''}</div>
+      </div>
+      ${groupsHtml}
+      <div class="card" style="margin-top:8px;">
+        <div class="card-title">Format Knockout</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+          ${stages.map(k => `<div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--primary-dark);border-radius:8px;"><span style="font-weight:700;color:var(--cream);">${koStageLabel(k)}</span><span style="color:var(--gold);font-weight:700;">Race to ${state.koTargets[k] || 5}</span></div>`).join('')}
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:16px;">
+        <button class="ghost-btn" id="tourneyRedrawBtn">🔀 Kocok Ulang</button>
+        <button class="ghost-btn" id="tourneyBackSetupBtn">← Edit Setup</button>
+      </div>
+      <button class="primary-btn" id="tourneyStartGroupBtn" style="width:100%;margin-top:12px;padding:14px;font-size:15px;font-weight:800;">Mulai Fase Grup →</button>
+    </div>`;
+
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  host.classList.add('active');
+  const _bn = document.getElementById('bottomNav'); if (_bn) _bn.style.display = 'none';
+
+  // Always start at top when entering the draw result page
+  requestAnimationFrame(() => {
+    window.scrollTo(0, 0);
+    const mainEl = document.querySelector('main');
+    if (mainEl) mainEl.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+    if (document.body) document.body.scrollTop = 0;
+  });
+
+  document.getElementById('tourneyRedrawBtn').addEventListener('click', () => {
+    drawTourneyGroups();
+    showTourneyDrawResult();
+  });
+  document.getElementById('tourneyBackSetupBtn').addEventListener('click', () => {
+    state.started = false;
+    state.tourneyPhase = 'setup';
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-setup').classList.add('active');
+  });
+  document.getElementById('tourneyStartGroupBtn').addEventListener('click', () => {
+    generateTourneyGroupSchedule();
+    state.tourneyPhase = 'groups';
+    saveState();
+    renderTourneyGroupPhase();
+    // Always start at top of page
+    window.scrollTo(0, 0);
+    const mainEl = document.querySelector('main');
+    if (mainEl) mainEl.scrollTop = 0;
+  });
+
+  // Viewer mode: hide admin controls — viewers can see group composition only
+  if (IS_VIEWER) {
+    ['tourneyRedrawBtn', 'tourneyBackSetupBtn', 'tourneyStartGroupBtn'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+  }
+}
+
+// ===== TOURNEY: Group Phase UI (Session 2) =====
+function renderTourneyGroupPhase() {
+  let host = document.getElementById('tourneyDrawView');
+  if (!host) return;
+  const groupLetters = 'ABCDEFGH';
+  const roundCount = tourneyGroupRoundCount();
+  const cur = state.tourneyGroupRound;
+  const curMatches = state.tourneyGroupMatches.filter(m => m.round === cur);
+  const allDone = tourneyGroupAllDone();
+  const target = state.koTargets.F || 5; // group games use same "total of" as... use a group target
+  const groupTarget = state.mode || 5;
+
+  // Round pills
+  const pills = Array.from({ length: roundCount }, (_, i) => {
+    const rMatches = state.tourneyGroupMatches.filter(m => m.round === i);
+    const done = rMatches.every(m => m.done);
+    return `<button class="round-pill ${i === cur ? 'active' : ''} ${done ? 'scored' : ''}" data-tr="${i}"><span class="pill-label">R</span><span class="pill-num">${i+1}</span></button>`;
+  }).join('');
+
+  // Score cards — IDENTICAL structure to mabar mode (.sb-court-card / .sb-match-body)
+  const renderMatchCard = (m) => {
+    const idx = state.tourneyGroupMatches.indexOf(m);
+    const hasScore = m.done || m.scoreA > 0 || m.scoreB > 0;
+    const complete = m.done;
+    const winner = hasScore ? (m.scoreA > m.scoreB ? 'A' : m.scoreB > m.scoreA ? 'B' : null) : null;
+    const statusText = complete ? 'Done' : hasScore ? 'Live' : '';
+    const statusClass = complete ? 'done' : hasScore ? 'live' : '';
+    const courtName = (state.courtNames && state.courtNames[m.court]) || `Court ${m.court + 1}`;
+    const winDotA = winner === 'A' ? '<span class="sb-winner-dot"></span>' : '';
+    const winDotB = winner === 'B' ? '<span class="sb-winner-dot"></span>' : '';
+    return `
+      <div class="sb-court-card${complete ? ' complete' : ''}">
+        <div class="sb-court-header">
+          <div class="sb-court-name" data-court-idx="${m.court}" title="Tap to rename">${escapeHtml(courtName)} <span class="sb-edit-icon">✎</span></div>
+          ${statusText ? `<div class="sb-court-status ${statusClass}">${statusText}</div>` : ''}
+        </div>
+        <div class="sb-match-body">
+          <div class="sb-team left">
+            <div class="sb-player">${escapeHtml(tourneyPairLabel(m.teamA[0]))}</div>
+            ${winDotA}
+          </div>
+          <div class="sb-score-center">
+            <div class="sb-score-row">
+              <div class="sb-score-box ${winner === 'A' ? 'winner' : ''}">
+                <input class="sb-score-input tg-score" type="tel" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="done"
+                       value="${hasScore ? m.scoreA : ''}" data-mi="${idx}" data-side="A" placeholder="0">
+              </div>
+              <div class="sb-score-sep">:</div>
+              <div class="sb-score-box ${winner === 'B' ? 'winner' : ''}">
+                <input class="sb-score-input tg-score" type="tel" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="done"
+                       value="${hasScore ? m.scoreB : ''}" data-mi="${idx}" data-side="B" placeholder="0">
+              </div>
+            </div>
+            <div class="sb-vs-label">VS</div>
+          </div>
+          <div class="sb-team right">
+            <div class="sb-player">${escapeHtml(tourneyPairLabel(m.teamB[0]))}</div>
+            ${winDotB}
+          </div>
+        </div>
+      </div>`;
+  };
+
+  // Group the current round's matches by group, each group's cards wrapped in .sb-courts
+  const matchCards = state.tourneyDraw.map((grp, gi) => {
+    const groupMatches = curMatches.filter(m => m.group === gi);
+    if (!groupMatches.length) return '';
+    return `
+      <div class="tg-group-block" style="margin-bottom:20px;">
+        <div class="tg-group-label" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--green);color:var(--cream);font-weight:900;font-size:12px;">${groupLetters[gi]}</span>
+          <span style="font-weight:800;color:var(--gold);font-size:13px;letter-spacing:0.5px;">GRUP ${groupLetters[gi]}</span>
+        </div>
+        <div class="sb-courts">
+          ${groupMatches.map(renderMatchCard).join('')}
+        </div>
+      </div>`;
+  }).join('');
+
+  // Standings per group
+  const standingsHtml = state.tourneyDraw.map((grp, gi) => {
+    const gs = computeGroupStandings(gi);
+    const qualLine = state.qualTop;
+    const rows = gs.map((s, i) => {
+      const qualified = i < qualLine;
+      const isBest3rdZone = i === qualLine && state.qualBest3rd > 0;
+      return `
+        <tr style="${qualified ? 'background:rgba(45,107,78,0.12);' : isBest3rdZone ? 'background:rgba(201,169,97,0.10);' : ''}">
+          <td style="text-align:center;font-weight:800;color:${qualified ? 'var(--green-bright)' : isBest3rdZone ? 'var(--gold)' : 'var(--cream-dim)'};">${i+1}${qualified ? ' ✓' : ''}</td>
+          <td style="font-weight:700;color:var(--cream);">${escapeHtml(s.name)}</td>
+          <td style="text-align:center;">${s.wins}-${s.losses}-${s.ties}</td>
+          <td style="text-align:center;">${s.diff > 0 ? '+' : ''}${s.diff}</td>
+          <td style="text-align:center;font-weight:800;color:var(--gold);">${s.points}</td>
+        </tr>`;
+    }).join('');
+    return `
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-title" style="display:flex;align-items:center;gap:8px;">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--green);color:var(--cream);font-weight:900;font-size:13px;">${groupLetters[gi]}</span>
+          Grup ${groupLetters[gi]}
+        </div>
+        <table class="standing-table" style="width:100%;margin-top:8px;">
+          <thead><tr><th style="text-align:center;">#</th><th>Pair</th><th style="text-align:center;">W-L-T</th><th style="text-align:center;">+/−</th><th style="text-align:center;">Pts</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }).join('');
+
+  host.innerHTML = `
+    <div class="sb-page">
+      <div class="sb-tabs">
+        <button class="sb-tab active" id="tgTabScore">Score</button>
+        <button class="sb-tab" id="tgTabStandings">Standings</button>
+      </div>
+
+      <div id="tgScoreView">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div style="font-weight:800;color:var(--cream);font-size:15px;">Fase Grup · Ronde ${cur+1}/${roundCount}</div>
+        </div>
+        <div id="roundPillNavTourney" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:8px;">${pills}</div>
+        ${matchCards}
+        <button class="primary-btn" id="tgSaveRound" style="width:100%;margin-top:8px;padding:13px;font-weight:800;">Simpan Skor Ronde ${cur+1}</button>
+        ${allDone ? `<button class="end-game-btn" id="tgFinishGroups" style="width:100%;margin-top:10px;padding:14px;font-weight:800;">✓ Selesai Fase Grup → Knockout</button>` : ''}
+      </div>
+
+      <div id="tgStandingsView" style="display:none;">
+        <div style="font-weight:800;color:var(--cream);font-size:15px;margin-bottom:10px;">Klasemen Grup</div>
+        ${standingsHtml}
+        <div style="text-align:center;color:var(--cream-dim);font-size:12px;padding:8px 0;">
+          ✓ = lolos ke knockout · ${state.qualBest3rd > 0 ? `kuning = zona best-${state.qualTop+1==3?'3rd':(state.qualTop+1)+'th'}` : ''}
+        </div>
+      </div>
+    </div>`;
+
+  // Tab switching
+  document.getElementById('tgTabScore').addEventListener('click', () => {
+    document.getElementById('tgTabScore').classList.add('active');
+    document.getElementById('tgTabStandings').classList.remove('active');
+    document.getElementById('tgScoreView').style.display = '';
+    document.getElementById('tgStandingsView').style.display = 'none';
+  });
+  document.getElementById('tgTabStandings').addEventListener('click', () => {
+    document.getElementById('tgTabStandings').classList.add('active');
+    document.getElementById('tgTabScore').classList.remove('active');
+    document.getElementById('tgStandingsView').style.display = '';
+    document.getElementById('tgScoreView').style.display = 'none';
+  });
+
+  // Round pills
+  host.querySelectorAll('[data-tr]').forEach(p => {
+    p.addEventListener('click', () => {
+      state.tourneyGroupRound = parseInt(p.dataset.tr);
+      renderTourneyGroupPhase();
+    });
+  });
+
+  // Live score input — update winner highlight immediately on input
+  host.querySelectorAll('.tg-score').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const mi = parseInt(inp.dataset.mi);
+      const m = state.tourneyGroupMatches[mi];
+      if (!m) return;
+      const val = parseInt(inp.value) || 0;
+      if (inp.dataset.side === 'A') m.scoreA = val; else m.scoreB = val;
+      // Update winner highlight live
+      const card = inp.closest('.sb-court-card');
+      if (card) {
+        const boxes = card.querySelectorAll('.sb-score-box');
+        const hasScore = m.scoreA > 0 || m.scoreB > 0;
+        const winner = hasScore ? (m.scoreA > m.scoreB ? 'A' : m.scoreB > m.scoreA ? 'B' : null) : null;
+        boxes.forEach((box, bi) => {
+          box.classList.toggle('winner', (bi === 0 && winner === 'A') || (bi === 1 && winner === 'B'));
+        });
+
+      }
+      saveState();
+    });
+  });
+
+  // Save round scores
+  const saveBtn = document.getElementById('tgSaveRound');
+  if (saveBtn) saveBtn.addEventListener('click', () => {
+    host.querySelectorAll('.tg-score').forEach(inp => {
+      const mi = parseInt(inp.dataset.mi);
+      const m = state.tourneyGroupMatches[mi];
+      if (!m) return;
+      const val = parseInt(inp.value) || 0;
+      if (inp.dataset.side === 'A') m.scoreA = val; else m.scoreB = val;
+    });
+    curMatches.forEach(m => { m.done = true; });
+    saveState();
+    if (cur < roundCount - 1) state.tourneyGroupRound = cur + 1;
+    renderTourneyGroupPhase();
+  });
+
+  // Finish group phase
+  const finishBtn = document.getElementById('tgFinishGroups');
+  if (finishBtn) finishBtn.addEventListener('click', () => {
+    resolveTourneyQualifiers();
+    generateKnockoutBracket();
+    state.tourneyPhase = 'knockout';
+    saveState();
+    renderKnockout();
+  });
+
+  // Court rename — tap court name to edit (same as normal mode)
+  host.querySelectorAll('.sb-court-name[data-court-idx]').forEach(el => {
+    el.addEventListener('click', () => {
+      if (IS_VIEWER) return;
+      const idx = parseInt(el.dataset.courtIdx);
+      const currentName = (state.courtNames && state.courtNames[idx]) || `Court ${idx + 1}`;
+      const inp = document.createElement('input');
+      inp.className = 'sb-player-input';
+      inp.value = currentName;
+      inp.placeholder = `Court ${idx + 1}`;
+      inp.style.fontSize = '12px';
+      inp.style.width = '140px';
+      inp.style.letterSpacing = '1px';
+      el.replaceWith(inp);
+      inp.focus(); inp.select();
+      const commit = () => {
+        const name = inp.value.trim() || `Court ${idx + 1}`;
+        if (!state.courtNames) state.courtNames = [];
+        state.courtNames[idx] = name;
+        saveState();
+        renderTourneyGroupPhase();
+      };
+      inp.addEventListener('blur', commit);
+      inp.addEventListener('keydown', e => {
+        if (e.key === 'Enter') inp.blur();
+        if (e.key === 'Escape') { inp.value = currentName; inp.blur(); }
+      });
+    });
+  });
+
+  // Viewer mode: make everything read-only
+  if (IS_VIEWER) _applyTourneyViewerUI();
+
+  // Always start at the top of the page (avoid landing mid-scroll)
+  requestAnimationFrame(() => {
+    window.scrollTo(0, 0);
+    const mainEl = document.querySelector('main');
+    if (mainEl) mainEl.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+    if (document.body) document.body.scrollTop = 0;
+  });
+}
+
+// Viewer read-only treatment for tourney views
+window._applyTourneyViewerUI = function() {
+  const host = document.getElementById('tourneyDrawView');
+  if (!host) return;
+  // Disable all score inputs
+  host.querySelectorAll('.tg-score, input').forEach(inp => {
+    inp.readOnly = true;
+    inp.disabled = true;
+    inp.style.pointerEvents = 'none';
+  });
+  // Hide admin-only buttons (save, finish, redraw, edit setup, start group)
+  ['tgSaveRound', 'tgFinishGroups', 'tourneyRedrawBtn', 'tourneyBackSetupBtn', 'tourneyStartGroupBtn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  // Round pills stay tappable (viewers can browse rounds); standings tab stays
+};
+function _applyTourneyViewerUI() { return window._applyTourneyViewerUI(); }
+
+// ===== KNOCKOUT BRACKET UI (Session 3) =====
+function renderKnockout() {
+  let host = document.getElementById('tourneyDrawView');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'tourneyDrawView';
+    host.className = 'view';
+    host.style.cssText = 'padding:0;width:100%;max-width:100vw;overflow-x:hidden;box-sizing:border-box;';
+    document.querySelector('main')?.appendChild(host) || document.body.appendChild(host);
+  }
+  // Make this view active (hide others)
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  host.classList.add('active');
+  const _bn = document.getElementById('bottomNav'); if (_bn) _bn.style.display = 'none';
+  const { stages } = koStagesFor(state.tourneyQualInfo.length);
+  // Determine which stage to show: current view or first incomplete
+  let viewStage = state.koStageView || stages[0];
+  if (!stages.includes(viewStage) && viewStage !== '3P') viewStage = stages[0];
+
+  // Stage tabs (R16, QF, SF, F + 3P if enabled)
+  const allStages = stages.slice();
+  if (state.ko3rdPlace && koMatchesForStage('3P').length) {
+    // insert 3P right before F
+    const fIdx = allStages.indexOf('F');
+    allStages.splice(fIdx, 0, '3P');
+  }
+  const koStageShort = { R32: 'R32', R16: 'R16', QF: 'QF', SF: 'SF', F: 'Final', '3P': '🥉 3rd' };
+  const stagePills = allStages.map(s => {
+    const done = koStageDone(s);
+    const exists = koMatchesForStage(s).length > 0;
+    const locked = !exists;
+    return `<button class="round-pill ${s === viewStage ? 'active' : ''} ${done ? 'scored' : ''}" data-kostage="${s}" ${locked ? 'style="opacity:0.4;"' : ''}>
+      <span class="pill-num" style="font-size:13px;font-weight:800;">${koStageShort[s] || s}</span></button>`;
+  }).join('');
+
+  // Champion banner
+  let championHtml = '';
+  if (state.koChampion !== null) {
+    championHtml = `
+      <div class="card" style="background:linear-gradient(135deg,rgba(201,169,97,0.2),rgba(201,169,97,0.05));border:2px solid var(--gold);text-align:center;padding:20px;margin-bottom:14px;">
+        <div style="font-size:32px;margin-bottom:6px;">🏆</div>
+        <div style="font-size:12px;font-weight:800;letter-spacing:1px;color:var(--gold);">JUARA TOURNAMENT</div>
+        <div style="font-size:20px;font-weight:900;color:var(--cream);margin-top:6px;">${escapeHtml(tourneyPairLabel(state.koChampion))}</div>
+        ${state.ko3rdWinner !== null ? `<div style="font-size:12px;color:var(--cream-dim);margin-top:10px;">🥉 Juara 3: ${escapeHtml(tourneyPairLabel(state.ko3rdWinner))}</div>` : ''}
+      </div>`;
+  }
+
+  // Match cards for current stage
+  const target = state.koTargets[viewStage === '3P' ? 'SF' : viewStage] || 5;
+  const matches = koMatchesForStage(viewStage).slice().sort((a, b) => a.mi - b.mi);
+  const matchCards = matches.map((m, mIdx) => {
+    const gmi = state.koBracket.indexOf(m);
+    const winner = koMatchWinner(m);
+    const isBye = m.bye;
+    const courtName = (state.courtNames && state.courtNames[mIdx]) || `Court ${mIdx + 1}`;
+    const nameA = m.teamA !== null ? tourneyPairLabel(m.teamA) : '—';
+    const nameB = m.teamB !== null ? tourneyPairLabel(m.teamB) : (isBye ? 'BYE' : '—');
+    if (isBye) {
+      return `
+        <div class="sb-court-card complete">
+          <div class="sb-court-header">
+            <div class="sb-court-name">Court ${mIdx + 1}</div>
+            <div class="sb-court-status done">BYE</div>
+          </div>
+          <div class="sb-match-body">
+            <div class="sb-team left"><div class="sb-player">${escapeHtml(m.teamA !== null ? nameA : nameB)}</div><span class="sb-winner-dot"></span></div>
+            <div class="sb-score-center"><div style="font-size:11px;color:var(--cream-dim);font-weight:700;">lolos otomatis</div></div>
+            <div class="sb-team right"><div class="sb-player" style="opacity:0.5;">BYE</div></div>
+          </div>
+        </div>`;
+    }
+    const bothPresent = m.teamA !== null && m.teamB !== null;
+    return `
+      <div class="sb-court-card${m.done ? ' complete' : ''}">
+        <div class="sb-court-header">
+          <div class="sb-court-name" data-court-idx="${mIdx}" title="Tap to rename">${escapeHtml(courtName)} <span class="sb-edit-icon">✎</span></div>
+          <div class="sb-court-status ${m.done ? 'done' : (m.scoreA||m.scoreB) ? 'live' : ''}">${m.done ? 'Done' : (m.scoreA||m.scoreB) ? 'Live' : 'Race to ' + target}</div>
+        </div>
+        <div class="sb-match-body">
+          <div class="sb-team left">
+            <div class="sb-player">${escapeHtml(nameA)}</div>
+            ${winner === m.teamA && m.teamA !== null ? '<span class="sb-winner-dot"></span>' : ''}
+          </div>
+          <div class="sb-score-center">
+            <div class="sb-score-row">
+              <div class="sb-score-box ${winner === m.teamA && m.teamA !== null ? 'winner' : ''}">
+                <input class="sb-score-input ko-score" type="tel" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="done"
+                       value="${m.done || m.scoreA ? m.scoreA : ''}" data-gmi="${gmi}" data-side="A" placeholder="0" ${bothPresent ? '' : 'disabled'}>
+              </div>
+              <div class="sb-score-sep">:</div>
+              <div class="sb-score-box ${winner === m.teamB && m.teamB !== null ? 'winner' : ''}">
+                <input class="sb-score-input ko-score" type="tel" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="done"
+                       value="${m.done || m.scoreB ? m.scoreB : ''}" data-gmi="${gmi}" data-side="B" placeholder="0" ${bothPresent ? '' : 'disabled'}>
+              </div>
+            </div>
+            <div class="sb-vs-label">Race to ${target}</div>
+          </div>
+          <div class="sb-team right">
+            <div class="sb-player">${escapeHtml(nameB)}</div>
+            ${winner === m.teamB && m.teamB !== null ? '<span class="sb-winner-dot"></span>' : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  const stageDone = koStageDone(viewStage);
+  const isFinalStage = viewStage === 'F';
+  const next3pPending = state.ko3rdPlace && viewStage === 'F' && koMatchesForStage('3P').length && !koStageDone('3P');
+  let actionBtn = '';
+  if (!stageDone) {
+    actionBtn = `<button class="primary-btn" id="koSaveStage" style="width:100%;margin-top:8px;padding:13px;font-weight:800;">Simpan Skor ${koStageLabel(viewStage)}</button>`;
+  } else if (isFinalStage && state.koChampion === null) {
+    actionBtn = `<button class="end-game-btn" id="koFinishFinal" style="width:100%;margin-top:8px;padding:14px;font-weight:800;">🏆 Tentukan Juara</button>`;
+  } else if (!isFinalStage) {
+    const { stages: st } = koStagesFor(state.tourneyQualInfo.length);
+    const ci = st.indexOf(viewStage);
+    const nextLabel = ci < st.length - 1 ? koStageLabel(st[ci + 1]) : 'Final';
+    actionBtn = `<button class="primary-btn" id="koNextStage" style="width:100%;margin-top:8px;padding:13px;font-weight:800;">Lanjut ke ${nextLabel} →</button>`;
+  }
+
+  host.innerHTML = `
+    <div class="sb-page">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <span style="font-size:20px;">🏆</span>
+        <div>
+          <div style="font-weight:900;color:var(--cream);font-size:16px;">${escapeHtml(state.tournamentName || 'Tournament')}</div>
+          <div style="font-size:11px;color:var(--cream-dim);font-weight:600;">Fase Knockout</div>
+        </div>
+      </div>
+      ${championHtml}
+      <div id="koStagePills" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:12px;">${stagePills}</div>
+      <div style="font-weight:800;color:var(--gold);font-size:14px;margin-bottom:10px;letter-spacing:0.5px;">${koStageLabel(viewStage)}${viewStage === '3P' ? '' : ` · Race to ${target}`}</div>
+      ${matchCards}
+      ${actionBtn}
+    </div>`;
+
+  // Stage pill navigation
+  host.querySelectorAll('[data-kostage]').forEach(p => {
+    p.addEventListener('click', () => {
+      const s = p.dataset.kostage;
+      if (koMatchesForStage(s).length === 0) return; // locked
+      state.koStageView = s;
+      renderKnockout();
+    });
+  });
+
+  // Live score input
+  host.querySelectorAll('.ko-score').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const gmi = parseInt(inp.dataset.gmi);
+      const m = state.koBracket[gmi];
+      if (!m) return;
+      const val = parseInt(inp.value) || 0;
+      if (inp.dataset.side === 'A') m.scoreA = val; else m.scoreB = val;
+      const card = inp.closest('.sb-court-card');
+      if (card) {
+        const boxes = card.querySelectorAll('.sb-score-box');
+        const winA = m.scoreA > m.scoreB && (m.scoreA || m.scoreB);
+        const winB = m.scoreB > m.scoreA && (m.scoreA || m.scoreB);
+        boxes.forEach((box, bi) => box.classList.toggle('winner', (bi === 0 && winA) || (bi === 1 && winB)));
+      }
+      saveState();
+    });
+  });
+
+  // Save stage scores → mark matches done
+  const saveBtn = document.getElementById('koSaveStage');
+  if (saveBtn) saveBtn.addEventListener('click', () => {
+    const stageMatches = koMatchesForStage(viewStage);
+    let allValid = true;
+    stageMatches.forEach(m => {
+      if (m.bye) { m.done = true; return; }
+      if (m.teamA === null || m.teamB === null) { m.done = true; return; }
+      if (m.scoreA === m.scoreB) allValid = false; // golden point: no ties
+      m.done = true;
+    });
+    if (!allValid) {
+      alert('Skor seri tidak diperbolehkan (golden point). Pastikan tiap match ada pemenang.');
+      stageMatches.forEach(m => { if (m.scoreA === m.scoreB) m.done = false; });
+      return;
+    }
+    saveState();
+    renderKnockout();
+  });
+
+  // Advance to next stage
+  const nextBtn = document.getElementById('koNextStage');
+  if (nextBtn) nextBtn.addEventListener('click', () => {
+    koAdvanceStage(viewStage);
+    saveState();
+    renderKnockout();
+  });
+
+  // Finish final → champion
+  const finishBtn = document.getElementById('koFinishFinal');
+  if (finishBtn) finishBtn.addEventListener('click', () => {
+    // resolve 3rd place winner if applicable
+    if (state.ko3rdPlace) {
+      const tp = koMatchesForStage('3P')[0];
+      if (tp && koMatchWinner(tp) !== null) state.ko3rdWinner = koMatchWinner(tp);
+    }
+    koAdvanceStage('F');
+    state.tourneyPhase = 'done';
+    saveState();
+    renderKnockout();
+  });
+
+  // Court rename
+  host.querySelectorAll('.sb-court-name[data-court-idx]').forEach(el => {
+    el.addEventListener('click', () => {
+      if (IS_VIEWER) return;
+      const idx = parseInt(el.dataset.courtIdx);
+      const currentName = (state.courtNames && state.courtNames[idx]) || `Court ${idx + 1}`;
+      const inp = document.createElement('input');
+      inp.className = 'sb-player-input';
+      inp.value = currentName;
+      inp.style.cssText = 'font-size:12px;width:140px;letter-spacing:1px;';
+      el.replaceWith(inp);
+      inp.focus(); inp.select();
+      const commit = () => {
+        if (!state.courtNames) state.courtNames = [];
+        state.courtNames[idx] = inp.value.trim() || `Court ${idx + 1}`;
+        saveState(); renderKnockout();
+      };
+      inp.addEventListener('blur', commit);
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') { inp.value = currentName; inp.blur(); } });
+    });
+  });
+
+  if (IS_VIEWER) {
+    host.querySelectorAll('.ko-score, input').forEach(i => { i.readOnly = true; i.disabled = true; i.style.pointerEvents = 'none'; });
+    ['koSaveStage', 'koNextStage', 'koFinishFinal'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  }
+
+  requestAnimationFrame(() => {
+    window.scrollTo(0, 0);
+    const mainEl = document.querySelector('main'); if (mainEl) mainEl.scrollTop = 0;
+    document.documentElement.scrollTop = 0; if (document.body) document.body.scrollTop = 0;
+  });
 }
 
 // Generate upcoming rounds for schedule preview (on demand only, not at start)
@@ -6989,11 +8289,24 @@ function boot() {
   state.redactMode = true; // always start redacted
   if (restored && state.started) {
     initSetup();
-    showView('overview');
-    const _bn = document.getElementById('bottomNav'); if (_bn) _bn.style.display = 'flex';
-    document.getElementById('resetBtn').style.display = 'flex';
-    document.getElementById('saveBtn').style.display = 'flex';
-    renderAll();
+    // Tourney mode: restore the correct phase view
+    if (isTourney()) {
+      document.getElementById('resetBtn').style.display = 'flex';
+      document.getElementById('saveBtn').style.display = 'flex';
+      if (state.tourneyPhase === 'groups' && state.tourneyGroupMatches.length) {
+        renderTourneyGroupPhase();
+      } else if (state.tourneyPhase === 'knockout' || state.tourneyPhase === 'done') {
+        renderKnockout();
+      } else {
+        showTourneyDrawResult();
+      }
+    } else {
+      showView('overview');
+      const _bn = document.getElementById('bottomNav'); if (_bn) _bn.style.display = 'flex';
+      document.getElementById('resetBtn').style.display = 'flex';
+      document.getElementById('saveBtn').style.display = 'flex';
+      renderAll();
+    }
   } else {
     initSetup();
   }
@@ -7279,6 +8592,18 @@ async function pullFromFirebase() {
     // Restore viewer's position if they were browsing a specific round
     if (IS_VIEWER && wasViewing !== null) {
       state.currentRoundIdx = Math.min(savedRoundIdx, state.rounds.length - 1);
+    }
+    // Tourney mode: render the tournament phase view instead of normal overview
+    if (isTourney() && state.started) {
+      if (state.tourneyPhase === 'knockout' || state.tourneyPhase === 'done') {
+        renderKnockout();
+      } else if (state.tourneyPhase === 'groups' && state.tourneyGroupMatches.length) {
+        renderTourneyGroupPhase();
+      } else {
+        showTourneyDrawResult();
+      }
+      if (IS_VIEWER && typeof window._applyTourneyViewerUI === 'function' && state.tourneyPhase !== 'knockout' && state.tourneyPhase !== 'done') window._applyTourneyViewerUI();
+      return;
     }
     renderAll();
   } catch (e) {
@@ -8187,6 +9512,11 @@ body.has-bottom-nav main {
   backdrop-filter: var(--lq-blur-heavy);
   border-radius: var(--lq-radius) !important;
 }
+/* Modal text: dark on the light glass fill for strong readability */
+.modal h3 { color: #14301f !important; font-weight: 800 !important; }
+.modal p, .modal-sub { color: #2d4a38 !important; }
+.modal p strong, .modal-sub strong { color: #14301f !important; }
+.modal label { color: #2d4a38 !important; }
 .modal-backdrop { background: rgba(14,32,22,0.48) !important; }
 /* No blur on the backdrop: the modal inside it carries its own heavy blur,
    and nesting the two triggers the same Chrome Android sampling artifact. */
