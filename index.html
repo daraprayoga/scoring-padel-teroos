@@ -3795,7 +3795,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.22 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.23 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -4992,6 +4992,7 @@ function startTournament() {
   document.getElementById('resetBtn').style.display = 'flex';
   document.getElementById('saveBtn').style.display = 'flex';
   renderAll();
+  saveState(); // persist + push to Firebase NOW so viewers see the session immediately (not only after first score)
 }
 
 // ===== TOURNEY: show drawing result (Session 1 deliverable) =====
