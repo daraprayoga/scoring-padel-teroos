@@ -1961,10 +1961,7 @@
 /* Override global vars */
 html { --primary: var(--rc-forest); --surface: var(--rc-panel); --cream: var(--rc-cream); --cream-dim: var(--rc-cream-dim); --gold: var(--rc-gold); color: #2d6b4e; }
 
-/* html keeps a solid base color; body's background is owned by the
-   liquid-glass backdrop rule (search "v0.70.15") to avoid conflicts. */
-html { background: var(--rc-forest) !important; color: #2d6b4e !important; }
-body { color: #2d6b4e !important; }
+html, body { background: var(--rc-forest) !important; color: #2d6b4e !important; }
 
 /* ---------- Subtle noise texture on body ---------- */
 html::before {
@@ -2561,8 +2558,8 @@ main { background: var(--rc-forest) !important; }
   animation: nextGlow 1.8s ease-in-out infinite;
 }
 @keyframes nextGlow {
-  0%, 100% { box-shadow: 0 4px 20px rgba(201,169,97,0.55), 0 2px 8px rgba(0,0,0,0.18); }
-  50% { box-shadow: 0 6px 30px rgba(201,169,97,0.92), 0 2px 8px rgba(0,0,0,0.18); }
+  0%, 100% { box-shadow: 0 4px 20px rgba(201,169,97,0.45), 0 2px 8px rgba(0,0,0,0.15); }
+  50% { box-shadow: 0 4px 28px rgba(201,169,97,0.75), 0 2px 8px rgba(0,0,0,0.15); }
 }
 .sb-nav-next:hover { background: linear-gradient(135deg, #d9b971 0%, #b08830 100%) !important; transform: translateY(-2px) scale(1.03); box-shadow: 0 6px 28px rgba(201,169,97,0.6), 0 2px 8px rgba(0,0,0,0.2) !important; animation: none; }
 .sb-nav-next:active { transform: scale(0.96) !important; }
@@ -3148,11 +3145,7 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   .sb-page { padding: 8px 10px 60px; } /* extra bottom for bottom-nav */
   .sb-score-box { width: 52px; height: 58px; border-radius: 10px; }
   .sb-score-input { font-size: 30px; }
-  .sb-player { font-size: clamp(14px, 3.6vw, 15px); font-weight: 800; max-width: 116px; }
-  /* Dense 3-4 court grid on a phone: smaller than 1-2 courts but not tiny.
-     Overrides the global courts-count rule within this breakpoint. */
-  .sb-courts.courts-count-3 .sb-player,
-  .sb-courts.courts-count-4 .sb-player { font-size: clamp(12px, 3.1vw, 13px); max-width: 96px; }
+  .sb-player { font-size: 13px; font-weight: 800; max-width: 100px; }
   .sb-match-body { gap: 6px; padding: 10px 10px; }
   .sb-court-header { padding: 6px 12px; }
   #standingBody td { padding: 11px 8px; font-size: 13px; }
@@ -3795,7 +3788,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.24 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.12 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -4938,7 +4931,6 @@ function startTournament() {
     state.tourneyPhase = 'groups';
     state.started = true;
     showTourneyDrawResult();
-    saveState(); // persist + push to Firebase NOW so viewers see the session immediately
     return;
   }
 
@@ -4992,7 +4984,6 @@ function startTournament() {
   document.getElementById('resetBtn').style.display = 'flex';
   document.getElementById('saveBtn').style.display = 'flex';
   renderAll();
-  saveState(); // persist + push to Firebase NOW so viewers see the session immediately (not only after first score)
 }
 
 // ===== TOURNEY: show drawing result (Session 1 deliverable) =====
@@ -8570,15 +8561,7 @@ async function pushToFirebase() {
   try {
     const roomId = getRoomId();
     _currentRoomId = roomId;
-    const rawSnap = { ...state, endedAt: state.endedAt ? state.endedAt.toISOString() : null, _pushedAt: Date.now() };
-    // Firebase RTDB rejects the ENTIRE write if any value anywhere is
-    // `undefined` (tournament state has plenty: koChampion/ko3rdWinner before
-    // the final, holes in koBracket/tourneyGroupMatches arrays, empty
-    // koTargets, etc). A JSON round-trip drops undefined object keys and turns
-    // undefined array slots into null, both of which RTDB accepts. Without
-    // this, a single undefined silently fails the push and viewers hang on
-    // "Menunggu tournament...".
-    const snap = JSON.parse(JSON.stringify(rawSnap));
+    const snap = { ...state, endedAt: state.endedAt ? state.endedAt.toISOString() : null, _pushedAt: Date.now() };
     await _fbDb.ref(`tournaments/${roomId}`).set(snap);
   } catch (e) {
     console.warn('Firebase push failed:', e);
@@ -8928,44 +8911,23 @@ saveState = window.saveState;
             else state[k] = loaded[k];
           });
 
-          const _isTourney = (typeof isTourney === 'function') && isTourney();
-
-          if (!_isTourney) {
-            if (wasOnLive) {
-              // Following live — jump to latest round
-              state.currentRoundIdx = state.rounds.length - 1;
-            } else {
-              // Browsing history — stay on chosen round
-              state.currentRoundIdx = Math.min(prevRoundIdx, state.rounds.length - 1);
-            }
+          if (wasOnLive) {
+            // Following live — jump to latest round
+            state.currentRoundIdx = state.rounds.length - 1;
+          } else {
+            // Browsing history — stay on chosen round
+            state.currentRoundIdx = Math.min(prevRoundIdx, state.rounds.length - 1);
           }
 
           // First data arrival: dismiss waiting overlay, reveal app
           const waitOv = document.getElementById('viewerWaitOverlay');
-          const firstArrival = !!waitOv;
           if (waitOv) {
             waitOv.remove();
             const bn = document.getElementById('bottomNav');
             if (bn) bn.style.display = 'flex';
+            showView('overview');
           }
 
-          // Tournament: render the active phase view (groups / knockout / draw),
-          // NOT the round-robin overview that renderAll() produces.
-          if (_isTourney && state.started) {
-            if (state.tourneyPhase === 'knockout' || state.tourneyPhase === 'done') {
-              renderKnockout();
-            } else if (state.tourneyPhase === 'groups' && state.tourneyGroupMatches && state.tourneyGroupMatches.length) {
-              renderTourneyGroupPhase();
-            } else {
-              showTourneyDrawResult();
-            }
-            if (typeof window._applyTourneyViewerUI === 'function' && state.tourneyPhase !== 'knockout' && state.tourneyPhase !== 'done') window._applyTourneyViewerUI();
-            applyViewerUI();
-            maybeAutoOpenPodium();
-            return;
-          }
-
-          if (firstArrival) showView('overview');
           renderAll();
           applyViewerUI();
           maybeAutoOpenPodium();
@@ -8979,38 +8941,14 @@ saveState = window.saveState;
 
     if (!state.started) {
       // No data yet for this room — listener above will dismiss this overlay
-      const _rid = getRoomId();
       const overlay = document.createElement('div');
       overlay.id = 'viewerWaitOverlay';
       overlay.style.cssText = 'position:fixed;inset:0;z-index:9990;background:rgba(245,240,230,0.97);'
-        + 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center;';
+        + 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;';
       overlay.innerHTML = '<div style="font-size:32px">⏳</div>'
-        + '<div style="font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#2d6b4e;">Menunggu data...</div>'
-        + '<div style="font-size:11px;color:#4a8a6a;">Admin belum start atau room ID salah</div>'
-        + '<div id="viewerDiag" style="font-size:10px;color:#9a8f7a;margin-top:16px;line-height:1.6;max-width:300px;word-break:break-all;"></div>';
+        + '<div style="font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#2d6b4e;">Menunggu tournament...</div>'
+        + '<div style="font-size:11px;color:#4a8a6a;">Admin belum start atau room ID salah</div>';
       document.body.appendChild(overlay);
-
-      // Self-diagnostics: after a few seconds without data, surface WHY so this
-      // stops being a silent hang. Shows the room being queried + live FB state.
-      try {
-        const diag = document.getElementById('viewerDiag');
-        let _connected = null;
-        if (_fbDb) {
-          _fbDb.ref('.info/connected').on('value', s => { _connected = s.val() === true; });
-        }
-        setTimeout(() => {
-          const d = document.getElementById('viewerDiag');
-          if (!d || !document.getElementById('viewerWaitOverlay')) return; // data arrived, overlay gone
-          const fbState = !_fbDb ? '❌ Firebase SDK gagal load'
-            : _connected === true ? '✅ Firebase tersambung'
-            : _connected === false ? '❌ Firebase TIDAK tersambung (cek internet/blokir)'
-            : '… mengecek koneksi';
-          d.innerHTML = 'Room ID: <b>' + _rid + '</b><br>' + fbState
-            + '<br>Path: tournaments/' + _rid
-            + '<br><br>Kalau Room ID di atas beda dari yang admin punya, link share-nya salah. '
-            + 'Kalau sama tapi tetap kosong, admin belum push (admin perlu versi terbaru) atau Firebase rules nolak read.';
-        }, 6000);
-      } catch (e) { /* diagnostics are best-effort */ }
       return;
     }
 
@@ -9444,24 +9382,11 @@ body.viewer-mode .score-box:disabled {
 }
 
 /* ---------- Backdrop: clear glass needs rich color behind it ---------- */
-/* v0.70.16 — ROOT CAUSE of the scroll seam, finally pinned:
-   A gradient set on <html> OR <body> is a ROOT/canvas background. Its
-   percentage stops map to the initial containing block (the VIEWPORT),
-   not the document height. So `linear-gradient(180deg, 0% -> 100%)` runs
-   out at exactly one viewport; past that you see only its end color, with
-   a hard horizontal seam where the gradient stops. That single fact caused
-   the seam in v0.70.13 (gradient on html), v0.70.14 and v0.70.15 (gradient
-   on body) alike. The original v0.70.12 used a position:fixed body::before,
-   which was actually correct for the glow layer — the seam back then came
-   from a leftover scroll-attached linear gradient ON <html> showing through
-   behind it, not from the fixed layer.
-   Fix: ONE fixed, full-viewport backdrop element carries the base color and
-   all gradients. A position:fixed inset:0 box is exactly viewport-sized and
-   is re-pinned to the viewport every frame, so there is no document-vs-
-   viewport boundary for anything to seam at, at any scroll position or
-   orientation. <html> holds only a flat color for the overscroll area, and
-   no scroll-attached gradient exists anywhere to leak through. */
-html { background: var(--rc-forest) !important; }
+/* Painted on a FIXED ELEMENT (body::before), not background-attachment:fixed.
+   Chrome Android mis-samples fixed-attachment backgrounds under
+   backdrop-filter, producing hard-edged smear bands behind glass panels.
+   A fixed-position layer composites correctly. Visual is identical. */
+html { background: linear-gradient(180deg, #f6f1e7 0%, #ece5d4 100%) !important; }
 body { background: transparent !important; }
 body::before {
   content: '';
@@ -9469,13 +9394,11 @@ body::before {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background-color: #efe8d8;
-  background-image:
-    radial-gradient(900px 620px at 8% -4%,   rgba(45,107,78,0.22) 0%, rgba(45,107,78,0) 58%),
-    radial-gradient(1100px 760px at 104% 8%, rgba(201,169,97,0.18) 0%, rgba(201,169,97,0) 54%),
-    radial-gradient(1000px 900px at 50% 108%, rgba(29,59,42,0.18) 0%, rgba(29,59,42,0) 60%),
-    linear-gradient(180deg, #f6f1e7 0%, #efe8d8 52%, #ece5d4 100%);
-  background-repeat: no-repeat;
+  background:
+    radial-gradient(900px 620px at 10% -8%,  rgba(45,107,78,0.26) 0%, rgba(45,107,78,0) 60%),
+    radial-gradient(1100px 720px at 102% 16%, rgba(201,169,97,0.22) 0%, rgba(201,169,97,0) 55%),
+    radial-gradient(820px 920px at 50% 116%, rgba(29,59,42,0.22) 0%, rgba(29,59,42,0) 60%),
+    radial-gradient(500px 380px at 78% 64%,  rgba(120,170,120,0.10) 0%, rgba(120,170,120,0) 70%);
 }
 main, .view { background: transparent !important; }
 
@@ -10176,46 +10099,27 @@ body.viewer-mode #roundPillNav *,
   cursor: pointer !important;
 }
 
-/* Next Round — v0.70.18: vibrant, obvious gold. Two real problems were
-   dulling it: (1) the antique-gold palette (#c9a961 reads as grey-tan), and
-   (2) .sb-nav-btn (the button carries that class too) forces
-   `box-shadow: inset 0 1px 1px rgba(255,255,255,0.85) !important` — a white
-   inner highlight that veils the gold. We override the box-shadow with an
-   important OUTER gold glow (defeats the white inset), nuke every
-   pseudo-element overlay, and pulse the halo via `filter: drop-shadow`
-   (separate property, so the important box-shadow can't freeze it). */
-.sb-round-nav .sb-nav-next,
-.sb-nav-btn.sb-nav-next,
+/* Next Round: high-contrast gold gradient, static (no animation, no hover change). */
+.sb-nav-next,
 body.viewer-mode .sb-nav-next,
 .sb-nav-next:hover,
 .sb-nav-next:active,
 .sb-nav-next.lg-pressed {
-  background: linear-gradient(180deg, #d8b257 0%, #c9a961 30%, #b08e3e 72%, #9a7a28 100%) !important;
+  background: linear-gradient(135deg, #e8c97a 0%, #c9a961 55%, #a07830 100%) !important;
   color: #14301f !important;
-  border: 1.5px solid rgba(140,108,40,0.5) !important;
-  box-shadow: 0 3px 14px rgba(201,169,97,0.36), 0 1px 4px rgba(0,0,0,0.16) !important;
-  animation: nextGlowHalo 3s ease-in-out infinite !important;
+  border: 2px solid rgba(160,120,48,0.55) !important;
+  box-shadow: 0 4px 18px rgba(201,169,97,0.5), 0 2px 6px rgba(0,0,0,0.18) !important;
+  animation: none !important;
+  filter: none !important;
   transform: none !important;
   font-weight: 900 !important;
-  text-shadow: none !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
-  isolation: isolate;
-}
-/* Kill ALL overlay layers on the button, both states */
-.sb-nav-next::before, .sb-nav-next::after,
-.sb-nav-next.lg-pressed::before, .sb-nav-next.lg-pressed::after {
-  display: none !important;
-  content: none !important;
-  background: none !important;
-  box-shadow: none !important;
 }
 .sb-nav-next:active { transform: scale(0.96) !important; }
+.sb-nav-next::before,
+.sb-nav-next.lg-pressed::before { display: none !important; content: none !important; }
 .sb-nav-next > * { position: relative; z-index: 2; }
-@keyframes nextGlowHalo {
-  0%, 100% { filter: drop-shadow(0 0 1px rgba(201,169,97,0.22)); }
-  50%      { filter: drop-shadow(0 0 7px rgba(201,169,97,0.5)); }
-}
 
 /* Landscape (TV/showing): if content fits, don't force scroll. The
    has-bottom-nav padding (above) already clears the footer dock. */
