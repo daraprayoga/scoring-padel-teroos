@@ -3795,7 +3795,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.23 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.24 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -8979,14 +8979,38 @@ saveState = window.saveState;
 
     if (!state.started) {
       // No data yet for this room — listener above will dismiss this overlay
+      const _rid = getRoomId();
       const overlay = document.createElement('div');
       overlay.id = 'viewerWaitOverlay';
       overlay.style.cssText = 'position:fixed;inset:0;z-index:9990;background:rgba(245,240,230,0.97);'
-        + 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;';
+        + 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center;';
       overlay.innerHTML = '<div style="font-size:32px">⏳</div>'
-        + '<div style="font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#2d6b4e;">Menunggu tournament...</div>'
-        + '<div style="font-size:11px;color:#4a8a6a;">Admin belum start atau room ID salah</div>';
+        + '<div style="font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#2d6b4e;">Menunggu data...</div>'
+        + '<div style="font-size:11px;color:#4a8a6a;">Admin belum start atau room ID salah</div>'
+        + '<div id="viewerDiag" style="font-size:10px;color:#9a8f7a;margin-top:16px;line-height:1.6;max-width:300px;word-break:break-all;"></div>';
       document.body.appendChild(overlay);
+
+      // Self-diagnostics: after a few seconds without data, surface WHY so this
+      // stops being a silent hang. Shows the room being queried + live FB state.
+      try {
+        const diag = document.getElementById('viewerDiag');
+        let _connected = null;
+        if (_fbDb) {
+          _fbDb.ref('.info/connected').on('value', s => { _connected = s.val() === true; });
+        }
+        setTimeout(() => {
+          const d = document.getElementById('viewerDiag');
+          if (!d || !document.getElementById('viewerWaitOverlay')) return; // data arrived, overlay gone
+          const fbState = !_fbDb ? '❌ Firebase SDK gagal load'
+            : _connected === true ? '✅ Firebase tersambung'
+            : _connected === false ? '❌ Firebase TIDAK tersambung (cek internet/blokir)'
+            : '… mengecek koneksi';
+          d.innerHTML = 'Room ID: <b>' + _rid + '</b><br>' + fbState
+            + '<br>Path: tournaments/' + _rid
+            + '<br><br>Kalau Room ID di atas beda dari yang admin punya, link share-nya salah. '
+            + 'Kalau sama tapi tetap kosong, admin belum push (admin perlu versi terbaru) atau Firebase rules nolak read.';
+        }, 6000);
+      } catch (e) { /* diagnostics are best-effort */ }
       return;
     }
 
