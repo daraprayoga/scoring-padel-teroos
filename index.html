@@ -1961,7 +1961,10 @@
 /* Override global vars */
 html { --primary: var(--rc-forest); --surface: var(--rc-panel); --cream: var(--rc-cream); --cream-dim: var(--rc-cream-dim); --gold: var(--rc-gold); color: #2d6b4e; }
 
-html, body { background: var(--rc-forest) !important; color: #2d6b4e !important; }
+/* html keeps a solid base color; body's background is owned by the
+   liquid-glass backdrop rule (search "v0.70.15") to avoid conflicts. */
+html { background: var(--rc-forest) !important; color: #2d6b4e !important; }
+body { color: #2d6b4e !important; }
 
 /* ---------- Subtle noise texture on body ---------- */
 html::before {
@@ -2558,8 +2561,8 @@ main { background: var(--rc-forest) !important; }
   animation: nextGlow 1.8s ease-in-out infinite;
 }
 @keyframes nextGlow {
-  0%, 100% { box-shadow: 0 4px 20px rgba(201,169,97,0.45), 0 2px 8px rgba(0,0,0,0.15); }
-  50% { box-shadow: 0 4px 28px rgba(201,169,97,0.75), 0 2px 8px rgba(0,0,0,0.15); }
+  0%, 100% { box-shadow: 0 4px 20px rgba(201,169,97,0.55), 0 2px 8px rgba(0,0,0,0.18); }
+  50% { box-shadow: 0 6px 30px rgba(201,169,97,0.92), 0 2px 8px rgba(0,0,0,0.18); }
 }
 .sb-nav-next:hover { background: linear-gradient(135deg, #d9b971 0%, #b08830 100%) !important; transform: translateY(-2px) scale(1.03); box-shadow: 0 6px 28px rgba(201,169,97,0.6), 0 2px 8px rgba(0,0,0,0.2) !important; animation: none; }
 .sb-nav-next:active { transform: scale(0.96) !important; }
@@ -3788,7 +3791,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.13 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.20 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -9382,11 +9385,24 @@ body.viewer-mode .score-box:disabled {
 }
 
 /* ---------- Backdrop: clear glass needs rich color behind it ---------- */
-/* Painted on a FIXED ELEMENT (body::before), not background-attachment:fixed.
-   Chrome Android mis-samples fixed-attachment backgrounds under
-   backdrop-filter, producing hard-edged smear bands behind glass panels.
-   A fixed-position layer composites correctly. Visual is identical. */
-html { background: linear-gradient(180deg, #f6f1e7 0%, #ece5d4 100%) !important; }
+/* v0.70.16 — ROOT CAUSE of the scroll seam, finally pinned:
+   A gradient set on <html> OR <body> is a ROOT/canvas background. Its
+   percentage stops map to the initial containing block (the VIEWPORT),
+   not the document height. So `linear-gradient(180deg, 0% -> 100%)` runs
+   out at exactly one viewport; past that you see only its end color, with
+   a hard horizontal seam where the gradient stops. That single fact caused
+   the seam in v0.70.13 (gradient on html), v0.70.14 and v0.70.15 (gradient
+   on body) alike. The original v0.70.12 used a position:fixed body::before,
+   which was actually correct for the glow layer — the seam back then came
+   from a leftover scroll-attached linear gradient ON <html> showing through
+   behind it, not from the fixed layer.
+   Fix: ONE fixed, full-viewport backdrop element carries the base color and
+   all gradients. A position:fixed inset:0 box is exactly viewport-sized and
+   is re-pinned to the viewport every frame, so there is no document-vs-
+   viewport boundary for anything to seam at, at any scroll position or
+   orientation. <html> holds only a flat color for the overscroll area, and
+   no scroll-attached gradient exists anywhere to leak through. */
+html { background: var(--rc-forest) !important; }
 body { background: transparent !important; }
 body::before {
   content: '';
@@ -9394,18 +9410,13 @@ body::before {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  /* Force its own GPU compositing layer so Chromium doesn't retile this
-     fixed layer mid-scroll, which is what produces the hard-edged
-     banding/seam artifact during scroll on desktop Chrome/Edge. */
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  will-change: transform;
-  backface-visibility: hidden;
-  background:
-    radial-gradient(900px 620px at 10% -8%,  rgba(45,107,78,0.26) 0%, rgba(45,107,78,0) 60%),
-    radial-gradient(1100px 720px at 102% 16%, rgba(201,169,97,0.22) 0%, rgba(201,169,97,0) 55%),
-    radial-gradient(820px 920px at 50% 116%, rgba(29,59,42,0.22) 0%, rgba(29,59,42,0) 60%),
-    radial-gradient(500px 380px at 78% 64%,  rgba(120,170,120,0.10) 0%, rgba(120,170,120,0) 70%);
+  background-color: #efe8d8;
+  background-image:
+    radial-gradient(900px 620px at 8% -4%,   rgba(45,107,78,0.22) 0%, rgba(45,107,78,0) 58%),
+    radial-gradient(1100px 760px at 104% 8%, rgba(201,169,97,0.18) 0%, rgba(201,169,97,0) 54%),
+    radial-gradient(1000px 900px at 50% 108%, rgba(29,59,42,0.18) 0%, rgba(29,59,42,0) 60%),
+    linear-gradient(180deg, #f6f1e7 0%, #efe8d8 52%, #ece5d4 100%);
+  background-repeat: no-repeat;
 }
 main, .view { background: transparent !important; }
 
@@ -10106,27 +10117,46 @@ body.viewer-mode #roundPillNav *,
   cursor: pointer !important;
 }
 
-/* Next Round: high-contrast gold gradient, static (no animation, no hover change). */
-.sb-nav-next,
+/* Next Round — v0.70.18: vibrant, obvious gold. Two real problems were
+   dulling it: (1) the antique-gold palette (#c9a961 reads as grey-tan), and
+   (2) .sb-nav-btn (the button carries that class too) forces
+   `box-shadow: inset 0 1px 1px rgba(255,255,255,0.85) !important` — a white
+   inner highlight that veils the gold. We override the box-shadow with an
+   important OUTER gold glow (defeats the white inset), nuke every
+   pseudo-element overlay, and pulse the halo via `filter: drop-shadow`
+   (separate property, so the important box-shadow can't freeze it). */
+.sb-round-nav .sb-nav-next,
+.sb-nav-btn.sb-nav-next,
 body.viewer-mode .sb-nav-next,
 .sb-nav-next:hover,
 .sb-nav-next:active,
 .sb-nav-next.lg-pressed {
-  background: linear-gradient(135deg, #e8c97a 0%, #c9a961 55%, #a07830 100%) !important;
+  background: linear-gradient(180deg, #d8b257 0%, #c9a961 30%, #b08e3e 72%, #9a7a28 100%) !important;
   color: #14301f !important;
-  border: 2px solid rgba(160,120,48,0.55) !important;
-  box-shadow: 0 4px 18px rgba(201,169,97,0.5), 0 2px 6px rgba(0,0,0,0.18) !important;
-  animation: none !important;
-  filter: none !important;
+  border: 1.5px solid rgba(140,108,40,0.5) !important;
+  box-shadow: 0 3px 14px rgba(201,169,97,0.36), 0 1px 4px rgba(0,0,0,0.16) !important;
+  animation: nextGlowHalo 3s ease-in-out infinite !important;
   transform: none !important;
   font-weight: 900 !important;
+  text-shadow: none !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
+  isolation: isolate;
+}
+/* Kill ALL overlay layers on the button, both states */
+.sb-nav-next::before, .sb-nav-next::after,
+.sb-nav-next.lg-pressed::before, .sb-nav-next.lg-pressed::after {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+  box-shadow: none !important;
 }
 .sb-nav-next:active { transform: scale(0.96) !important; }
-.sb-nav-next::before,
-.sb-nav-next.lg-pressed::before { display: none !important; content: none !important; }
 .sb-nav-next > * { position: relative; z-index: 2; }
+@keyframes nextGlowHalo {
+  0%, 100% { filter: drop-shadow(0 0 1px rgba(201,169,97,0.22)); }
+  50%      { filter: drop-shadow(0 0 7px rgba(201,169,97,0.5)); }
+}
 
 /* Landscape (TV/showing): if content fits, don't force scroll. The
    has-bottom-nav padding (above) already clears the footer dock. */
