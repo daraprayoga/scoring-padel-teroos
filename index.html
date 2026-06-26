@@ -3795,7 +3795,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.21 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.22 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -4938,6 +4938,7 @@ function startTournament() {
     state.tourneyPhase = 'groups';
     state.started = true;
     showTourneyDrawResult();
+    saveState(); // persist + push to Firebase NOW so viewers see the session immediately
     return;
   }
 
@@ -8568,7 +8569,15 @@ async function pushToFirebase() {
   try {
     const roomId = getRoomId();
     _currentRoomId = roomId;
-    const snap = { ...state, endedAt: state.endedAt ? state.endedAt.toISOString() : null, _pushedAt: Date.now() };
+    const rawSnap = { ...state, endedAt: state.endedAt ? state.endedAt.toISOString() : null, _pushedAt: Date.now() };
+    // Firebase RTDB rejects the ENTIRE write if any value anywhere is
+    // `undefined` (tournament state has plenty: koChampion/ko3rdWinner before
+    // the final, holes in koBracket/tourneyGroupMatches arrays, empty
+    // koTargets, etc). A JSON round-trip drops undefined object keys and turns
+    // undefined array slots into null, both of which RTDB accepts. Without
+    // this, a single undefined silently fails the push and viewers hang on
+    // "Menunggu tournament...".
+    const snap = JSON.parse(JSON.stringify(rawSnap));
     await _fbDb.ref(`tournaments/${roomId}`).set(snap);
   } catch (e) {
     console.warn('Firebase push failed:', e);
@@ -8918,23 +8927,44 @@ saveState = window.saveState;
             else state[k] = loaded[k];
           });
 
-          if (wasOnLive) {
-            // Following live — jump to latest round
-            state.currentRoundIdx = state.rounds.length - 1;
-          } else {
-            // Browsing history — stay on chosen round
-            state.currentRoundIdx = Math.min(prevRoundIdx, state.rounds.length - 1);
+          const _isTourney = (typeof isTourney === 'function') && isTourney();
+
+          if (!_isTourney) {
+            if (wasOnLive) {
+              // Following live — jump to latest round
+              state.currentRoundIdx = state.rounds.length - 1;
+            } else {
+              // Browsing history — stay on chosen round
+              state.currentRoundIdx = Math.min(prevRoundIdx, state.rounds.length - 1);
+            }
           }
 
           // First data arrival: dismiss waiting overlay, reveal app
           const waitOv = document.getElementById('viewerWaitOverlay');
+          const firstArrival = !!waitOv;
           if (waitOv) {
             waitOv.remove();
             const bn = document.getElementById('bottomNav');
             if (bn) bn.style.display = 'flex';
-            showView('overview');
           }
 
+          // Tournament: render the active phase view (groups / knockout / draw),
+          // NOT the round-robin overview that renderAll() produces.
+          if (_isTourney && state.started) {
+            if (state.tourneyPhase === 'knockout' || state.tourneyPhase === 'done') {
+              renderKnockout();
+            } else if (state.tourneyPhase === 'groups' && state.tourneyGroupMatches && state.tourneyGroupMatches.length) {
+              renderTourneyGroupPhase();
+            } else {
+              showTourneyDrawResult();
+            }
+            if (typeof window._applyTourneyViewerUI === 'function' && state.tourneyPhase !== 'knockout' && state.tourneyPhase !== 'done') window._applyTourneyViewerUI();
+            applyViewerUI();
+            maybeAutoOpenPodium();
+            return;
+          }
+
+          if (firstArrival) showView('overview');
           renderAll();
           applyViewerUI();
           maybeAutoOpenPodium();
