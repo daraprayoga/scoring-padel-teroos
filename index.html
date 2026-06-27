@@ -3597,8 +3597,12 @@ try {
             <p>Partner rotate round-robin. Individual points. Fair sit-out.</p>
           </div>
           <div class="format-card" data-format="mixicano">
-            <h3>Mixicano</h3>
-            <p>Mixed gender. Partner rotate round-robin. 1M+1F per team. Individual points.</p>
+            <h3>Mix-Mexicano</h3>
+            <p>Mixed gender, Mexicano-style. Partner rotate by standings. 1M+1F per team. Individual points.</p>
+          </div>
+          <div class="format-card" data-format="mix_americano">
+            <h3>Mix-Americano</h3>
+            <p>Mixed gender, Americano-style. Partner rotate round-robin. 1M+1F per team. Individual points. Fair sit-out.</p>
           </div>
           <div class="format-card" data-format="team_mexicano">
             <h3>Team Mexicano</h3>
@@ -3795,7 +3799,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.25 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.26 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -4047,7 +4051,9 @@ const RANDOM_POOL = ['Kiki','Marsa','Dwita','Pomen','Renny','Bella','Fina','Tari
 
 // ========== HELPERS ==========
 const isTeam = () => state.format.startsWith('team_');
-const isMixicano = () => state.format === 'mixicano';
+const isMixicano = () => state.format === 'mixicano';       // true Mexicano-style: rank-based pairing
+const isMixAmericano = () => state.format === 'mix_americano'; // Americano-style: round-robin fairness
+const isMixedGender = () => isMixicano() || isMixAmericano();  // either mixed-gender format — gender UI/validation applies to both
 const isMexicano = () => state.format.endsWith('_mexicano');
 const isAmericano = () => state.format.endsWith('_americano');
 const isTourney = () => state.format === 'tourney';
@@ -4081,7 +4087,7 @@ function modeLabel(mode) {
 }
 
 function formatLabel(f) {
-  const map = { ind_mexicano:'Individual Mexicano', ind_americano:'Individual Americano', mixicano:'Mixicano', team_mexicano:'Team Mexicano', team_americano:'Team Americano' };
+  const map = { ind_mexicano:'Individual Mexicano', ind_americano:'Individual Americano', mixicano:'Mix-Mexicano', mix_americano:'Mix-Americano', team_mexicano:'Team Mexicano', team_americano:'Team Americano' };
   return map[f] || f;
 }
 
@@ -4146,8 +4152,8 @@ function renderPlayersList() {
   for (let i = 0; i < state.players; i++) {
     const gender = state.playerGenders[i] || '';
     const div = document.createElement('div');
-    div.className = 'player-input' + (isMixicano() ? ' player-input-mix' : '');
-    const genderHtml = isMixicano() ? `
+    div.className = 'player-input' + (isMixedGender() ? ' player-input-mix' : '');
+    const genderHtml = isMixedGender() ? `
       <div class="gender-toggle" data-idx="${i}">
         <button class="gender-btn ${gender === 'M' ? 'active-m' : ''}" data-gender="M" data-idx="${i}">M</button>
         <button class="gender-btn ${gender === 'F' ? 'active-f' : ''}" data-gender="F" data-idx="${i}">F</button>
@@ -4965,14 +4971,14 @@ function startTournament() {
   // Initialize court names
   state.courtNames = Array.from({length: state.courts}, (_, i) => `Court ${i + 1}`);
 
-  // Validate Mixicano: all players must have gender set
-  if (isMixicano()) {
+  // Validate mixed-gender formats (Mixicano + Mix Americano): all players need gender set
+  if (isMixedGender()) {
     const unset = [];
     for (let i = 0; i < state.players; i++) {
       if (!state.playerGenders[i]) unset.push(defaultName(i));
     }
     if (unset.length > 0) {
-      alert(`Set gender (M/F) for all players before starting Mixicano.\nMissing: ${unset.slice(0,5).join(', ')}${unset.length > 5 ? '...' : ''}`);
+      alert(`Set gender (M/F) for all players before starting ${formatLabel(state.format)}.\nMissing: ${unset.slice(0,5).join(', ')}${unset.length > 5 ? '...' : ''}`);
       return;
     }
     const males = state.playerGenders.filter(g => g === 'M').length;
@@ -5610,7 +5616,7 @@ function pregenerateUpcomingRounds() {
 
 // Regenerate all unscored future rounds (used when availability changes)
 function regenerateUnscoredFutureRounds() {
-  if (state.format !== 'ind_americano' && state.format !== 'team_americano' && state.format !== 'mixicano') return;
+  if (state.format !== 'ind_americano' && state.format !== 'team_americano' && state.format !== 'mix_americano') return;
   let firstUnscored = -1;
   for (let i = 0; i < state.rounds.length; i++) {
     const r = state.rounds[i];
@@ -6068,7 +6074,11 @@ function buildIndividualAmericanoRound(roundIdx) {
 //   2. Generate all possible M-F partner pairs (matchups)
 //   3. Priority queue: fewest times partnered → fewest games → random
 //   4. For each court: pick 2 M-F pairs that haven't partnered together as opponents yet
-function buildMixicanoRound(roundIdx) {
+// Mix Americano: round-robin partner fairness, gender-constrained (1M+1F per team).
+// This is the algorithm that used to live under the name "Mixicano" — it never
+// actually used standings, so it was Americano-style rotation mislabeled as
+// Mexicano. Renamed to match what it actually does; logic unchanged.
+function buildMixAmericanoRound(roundIdx) {
   const hist = buildHistory(roundIdx);
   const total = state.players;
 
@@ -6148,6 +6158,74 @@ function buildMixicanoRound(roundIdx) {
   return { courts, resting: finalResting };
 }
 
+// Mixicano (true mix-Mexicano): rank-based pairing, gender-constrained.
+// Round 0 / no scores yet → fair-by-games only (no rank exists). Once scored,
+// fewest-games-played sit-out tiebreaks by rank (mirrors buildMexicanoMatches),
+// then within each court's rank tier, cross-pair best M with 2nd-best F and
+// best F with 2nd-best M — the classic Mexicano 1+3-vs-2+4 cross-pair, kept
+// gender-balanced (1M+1F per team) instead of pure individual rank.
+function buildMixicanoRound(roundIdx) {
+  const hist = buildHistory(roundIdx);
+  const total = state.players;
+
+  const males = [], females = [];
+  for (let i = 0; i < total; i++) {
+    if (!isAvailable(i)) continue;
+    if (state.playerGenders[i] === 'M') males.push(i);
+    else if (state.playerGenders[i] === 'F') females.push(i);
+  }
+  const unavailable = [];
+  for (let i = 0; i < total; i++) if (!isAvailable(i)) unavailable.push(i);
+
+  const needPerGender = state.courts * 2;
+  const scoredRounds = state.rounds.filter(r =>
+    r && r.matches && r.matches.some(m => m.scoreA > 0 || m.scoreB > 0)
+  ).length;
+
+  let rankOf = {};
+  if (scoredRounds > 0) {
+    computeStandings().forEach((s, i) => { rankOf[s.id] = i; });
+  }
+
+  const sortFair = (pool) => [...pool].sort((a, b) => {
+    const gDiff = hist.games[a] - hist.games[b];
+    if (gDiff !== 0) return gDiff; // fewer games → must play
+    if (scoredRounds > 0) return (rankOf[a] ?? 999) - (rankOf[b] ?? 999); // tie → better rank plays
+    return Math.random() - 0.5; // no rank yet → arbitrary
+  }).slice(0, needPerGender);
+
+  const activeMales = males.length <= needPerGender ? males : sortFair(males);
+  const activeFemales = females.length <= needPerGender ? females : sortFair(females);
+  const sittingMales = males.filter(m => !activeMales.includes(m));
+  const sittingFemales = females.filter(f => !activeFemales.includes(f));
+  const resting = [...sittingMales, ...sittingFemales, ...unavailable];
+
+  // Rank order within the active pool (arbitrary/entry order if no scores yet)
+  if (scoredRounds === 0) {
+    [...activeMales, ...activeFemales].forEach((id, i) => { rankOf[id] = i; });
+  }
+  const sortedMales = [...activeMales].sort((a, b) => (rankOf[a] ?? 999) - (rankOf[b] ?? 999));
+  const sortedFemales = [...activeFemales].sort((a, b) => (rankOf[a] ?? 999) - (rankOf[b] ?? 999));
+
+  const courts = [];
+  for (let c = 0; c < state.courts; c++) {
+    const mGroup = sortedMales.slice(c * 2, c * 2 + 2);
+    const fGroup = sortedFemales.slice(c * 2, c * 2 + 2);
+    if (mGroup.length < 2 || fGroup.length < 2) break;
+    // Classic Mexicano cross-pair (rank1+rank3 vs rank2+rank4), gender-balanced:
+    // best M + 2nd F  vs  2nd M + best F
+    courts.push({ teamA: [mGroup[0], fGroup[1]], teamB: [mGroup[1], fGroup[0]] });
+  }
+
+  const matchedIds = new Set(courts.flatMap(c => [...c.teamA, ...c.teamB]));
+  const finalResting = [...resting];
+  for (const id of [...activeMales, ...activeFemales]) {
+    if (!matchedIds.has(id)) finalResting.push(id);
+  }
+
+  return { courts, resting: finalResting };
+}
+
 function generateRound(idx) {
   let matches, resting;
 
@@ -6179,9 +6257,19 @@ function generateRound(idx) {
     const total = state.players;
     const hist = buildHistory(idx);
 
-    if (isMixicano()) {
+    if (isMixAmericano()) {
+      const result = buildMixAmericanoRound(idx);
+      // Convert courts array from buildMixAmericanoRound into matches format
+      matches = result.courts.map((c, ci) => ({
+        court: ci,
+        teamA: c.teamA,
+        teamB: c.teamB,
+        scoreA: 0,
+        scoreB: 0
+      }));
+      resting = result.resting;
+    } else if (isMixicano()) {
       const result = buildMixicanoRound(idx);
-      // Convert courts array from buildMixicanoRound into matches format
       matches = result.courts.map((c, ci) => ({
         court: ci,
         teamA: c.teamA,
@@ -6508,7 +6596,7 @@ function renderAll() {
   });
 
   // Schedule button: only for Americano/Mixicano formats
-  const showSchedule = state.started && (state.format === 'ind_americano' || state.format === 'team_americano' || state.format === 'mixicano');
+  const showSchedule = state.started && (state.format === 'ind_americano' || state.format === 'team_americano' || state.format === 'mix_americano');
   const scheduleBtn = document.getElementById('openScheduleBtn');
   if (scheduleBtn) scheduleBtn.style.display = showSchedule ? '' : 'none';
 
@@ -10441,6 +10529,5 @@ body.viewer-mode #fullscreenBtn * {
 }
 </style>
 </body>
-</html>
 </html>
 </html>
