@@ -10572,6 +10572,32 @@ body.viewer-mode #fullscreenBtn * {
   }
 }
 </style>
+<style id="codex-header-only-sticky-v07030">
+/* v0.70.30 revision: only the main app header should be sticky.
+   The round/Next bar and round pills must scroll with the score cards so they
+   never cover the first court card. */
+body:not(.viewer-mode) .sb-topbar,
+body.viewer-mode .sb-topbar,
+body.viewer-url .sb-topbar,
+.viewer-url .sb-topbar {
+  position: static !important;
+  top: auto !important;
+  z-index: auto !important;
+}
+
+body:not(.viewer-mode) #roundPillNav,
+body.viewer-mode #roundPillNav,
+body.viewer-url #roundPillNav,
+.viewer-url #roundPillNav {
+  position: static !important;
+  top: auto !important;
+  z-index: auto !important;
+}
+
+header {
+  position: sticky !important;
+}
+</style>
 </body>
 </html>
 </html>
