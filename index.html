@@ -6471,11 +6471,17 @@ function handleRoundAction(action) {
       state.currentRoundIdx += 1;
     }
     renderAll();
+    scrollOverviewToTop();
   } else if (action === 'prev') {
-    if (state.currentRoundIdx > 0) { state.currentRoundIdx -= 1; renderAll(); }
+    if (state.currentRoundIdx > 0) {
+      state.currentRoundIdx -= 1;
+      renderAll();
+      scrollOverviewToTop();
+    }
   } else if (action === 'add') {
     generateRound(state.rounds.length);
     renderAll();
+    scrollOverviewToTop();
   } else if (action === 'delete') {
     if (state.rounds.length <= 1) return;
     document.getElementById('deleteRoundText').textContent = `Delete Round ${state.rounds.length}? Scores from this round will be removed.`;
@@ -7107,6 +7113,14 @@ function updateStandingTable() {
 }
 
 // ========== NAV ==========
+function scrollOverviewToTop() {
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    const main = document.querySelector('main');
+    if (main) main.scrollTop = 0;
+  });
+}
+
 function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + name).classList.add('active');
@@ -7114,7 +7128,10 @@ function showView(name) {
   document.querySelectorAll('.nav-btn, .bottom-tab[data-view]').forEach(b => {
     b.classList.toggle('active', b.dataset.view === name);
   });
-  if (name === 'overview') renderOverview();
+  if (name === 'overview') {
+    renderOverview();
+    scrollOverviewToTop();
+  }
 }
 
 document.querySelectorAll('.nav-btn, .bottom-tab[data-view]').forEach(b => {
@@ -10583,6 +10600,7 @@ body.viewer-url .sb-topbar,
   position: static !important;
   top: auto !important;
   z-index: auto !important;
+  margin-top: 8px !important;
 }
 
 body:not(.viewer-mode) #roundPillNav,
