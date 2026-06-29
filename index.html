@@ -3805,7 +3805,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.28 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.29 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -9179,6 +9179,24 @@ saveState = window.saveState;
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
+  // Publish the header's stuck bottom edge (safe-area top offset + its own
+  // height) as --app-header-h so the round-nav bar can stick flush below it
+  // rather than scrolling underneath the sticky header.
+  function syncHeaderH() {
+    const h = document.querySelector('header');
+    if (!h) return;
+    const topPx = parseFloat(getComputedStyle(h).top) || 0; // resolves env(safe-area-inset-top)
+    const height = h.getBoundingClientRect().height;
+    document.documentElement.style.setProperty('--app-header-h', (topPx + height) + 'px');
+  }
+  window.addEventListener('stateRendered', syncHeaderH);
+  window.addEventListener('resize', syncHeaderH);
+  window.addEventListener('orientationchange', syncHeaderH);
+  document.addEventListener('fullscreenchange', syncHeaderH);
+  document.addEventListener('webkitfullscreenchange', syncHeaderH);
+  syncHeaderH();
+  setTimeout(syncHeaderH, 300); // after fonts/layout settle
+
   // Reserve bottom padding on <main> while the bottom nav is visible.
   // Idempotent toggle: if the class state doesn't change, no mutation record is
   // produced, so observing bottomNav (a different element) cannot loop.
@@ -10243,13 +10261,16 @@ header, .bottom-nav { transition: background 0.3s ease, box-shadow 0.3s ease; }
 
 /* Viewer mode: beta banner is restyled green via JS, not hidden */
 
-/* Admin: only the app header sticks. Round prev/next bar scrolls naturally. */
+/* Admin: header sticks at top; the round prev/next bar sticks flush BELOW it
+   (was static, which let the Next Round button scroll under the header).
+   --app-header-h is measured in JS = header's stuck bottom edge. */
 body:not(.viewer-mode) .sb-topbar {
-  position: static !important;
-  top: auto !important;
-  z-index: auto !important;
-  transform: none !important;
-  -webkit-transform: none !important;
+  position: sticky !important;
+  top: var(--app-header-h, calc(env(safe-area-inset-top, 0px) + 52px)) !important;
+  z-index: 39 !important;
+  background: rgba(245,240,230,0.97) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  backdrop-filter: blur(14px) !important;
 }
 
 /* Sticky app header respects iOS notch/status-bar safe area. */
