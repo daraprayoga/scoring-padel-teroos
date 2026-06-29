@@ -10600,7 +10600,7 @@ body.viewer-url .sb-topbar,
   position: static !important;
   top: auto !important;
   z-index: auto !important;
-  margin-top: calc(var(--app-header-h, calc(env(safe-area-inset-top, 0px) + 58px)) + 10px) !important;
+  margin-top: 12px !important;
 }
 
 body:not(.viewer-mode) #roundPillNav,
@@ -10632,7 +10632,7 @@ body.viewer-url header,
   -webkit-backdrop-filter: blur(18px) saturate(1.24) !important;
   backdrop-filter: blur(18px) saturate(1.24) !important;
 }
-</style>
-</body>
-</html>
-</html>
+
+body:not(.viewer-mode)::before {
+  background: linear-gradient(180deg, rgba(252,249,242,0.86), rgba(247,242,232,0.72)) !important;
+  box-shadow: none !important;
