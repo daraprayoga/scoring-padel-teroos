@@ -68,6 +68,12 @@
     display: flex;
     align-items: flex-end;
   }
+  /* v0.70.28: beta-warning ribbon removed for admin. !important so it wins
+     regardless of the showPodium/closePodium inline style.display toggling
+     this same element is wired to. Scoped to :not(.viewer-mode) so the
+     viewer-mode "MODE NONTON" ribbon — which reuses this exact element — is
+     completely unaffected. NOT a v1 promotion, just hiding the warning. */
+  body:not(.viewer-mode) #betaBanner { display: none !important; }
   .beta-ticker {
     display: flex;
     white-space: nowrap;
@@ -3799,7 +3805,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.26 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.28 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -4935,7 +4941,12 @@ function startTournament() {
       (p[1] || '').trim() || `Player ${i*2+2}`
     ]);
     state.tournamentName = (state.tournamentName || '').trim();
-    if (!state.roomId) state.roomId = generateRoomId();
+    // Always a FRESH room per session — `if (!state.roomId)` used to keep
+    // whatever roomId localStorage restored from the LAST session, so the
+    // share link stayed tied to the device instead of this new session.
+    // startTournament() only ever runs from the Start button, never on
+    // resume, so regenerating here is always correct.
+    state.roomId = generateRoomId();
     if (state.tourneyPairs < state.tourneyGroups * 2) {
       alert(`Minimal 2 pair per grup. ${state.tourneyPairs} pair ÷ ${state.tourneyGroups} grup tidak cukup.`);
       return;
@@ -4958,7 +4969,8 @@ function startTournament() {
   }
   state.tournamentName = (state.tournamentName || '').trim();
   state.started = true;
-  if (!state.roomId) state.roomId = generateRoomId(); // UUID per session
+  // Always a FRESH room per session — see comment on the tourney branch above.
+  state.roomId = generateRoomId();
   state.ended = false;       // reset — a fresh tournament is never already ended
   state.endedAt = null;      // (stale `ended` from a restored session blocks player-swap, court rename, etc.)
   state.rounds = [];
