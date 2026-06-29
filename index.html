@@ -3805,7 +3805,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.29 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.30 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -9186,8 +9186,12 @@ saveState = window.saveState;
     const h = document.querySelector('header');
     if (!h) return;
     const topPx = parseFloat(getComputedStyle(h).top) || 0; // resolves env(safe-area-inset-top)
-    const height = h.getBoundingClientRect().height;
-    document.documentElement.style.setProperty('--app-header-h', (topPx + height) + 'px');
+    const headerBottom = topPx + h.getBoundingClientRect().height;
+    document.documentElement.style.setProperty('--app-header-h', headerBottom + 'px');
+    // Pills stack directly below the (also-sticky) round-nav bar.
+    const tb = document.querySelector('.sb-topbar');
+    const tbH = (tb && getComputedStyle(tb).display !== 'none') ? tb.getBoundingClientRect().height : 0;
+    document.documentElement.style.setProperty('--nav-pills-top', (headerBottom + tbH) + 'px');
   }
   window.addEventListener('stateRendered', syncHeaderH);
   window.addEventListener('resize', syncHeaderH);
@@ -10271,6 +10275,13 @@ body:not(.viewer-mode) .sb-topbar {
   background: rgba(245,240,230,0.97) !important;
   -webkit-backdrop-filter: blur(14px) !important;
   backdrop-filter: blur(14px) !important;
+}
+/* Round pills stack flush below the sticky round-nav bar (else they get
+   covered by it). --nav-pills-top = header bottom + round-nav bar height. */
+body:not(.viewer-mode) #roundPillNav {
+  position: sticky !important;
+  top: var(--nav-pills-top, calc(env(safe-area-inset-top, 0px) + 104px)) !important;
+  z-index: 38 !important;
 }
 
 /* Sticky app header respects iOS notch/status-bar safe area. */
