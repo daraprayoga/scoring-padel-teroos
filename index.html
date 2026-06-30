@@ -3806,7 +3806,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.33 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.34 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -8046,7 +8046,7 @@ function exportState() {
   const name = (state.tournamentName || 'tournament').replace(/[^a-z0-9]/gi, '-').toLowerCase();
   const date = new Date().toISOString().slice(0,10);
   a.href = url;
-  a.download = `teroos-${name}-${date}.json`;
+  a.download = `${name}-${date}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
