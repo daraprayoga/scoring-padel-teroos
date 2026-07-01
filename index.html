@@ -283,6 +283,28 @@
   .gender-btn.active-f { background: #7a2550; border-color: #d96a9f; color: #fff; }
   .player-input input::placeholder { color: var(--cream-dim); opacity: 0.5; }
 
+  /* Gender badge — inline M/F chip beside player names in Mix formats.
+     Colors mirror the setup gender toggle. Readable on both cream and forest bg. */
+  .gender-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 16px; height: 15px; padding: 0 4px; margin-left: 5px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9px; font-weight: 800; line-height: 1; letter-spacing: 0.5px;
+    vertical-align: middle; transform: translateY(-1px);
+    -webkit-user-select: none; user-select: none; flex-shrink: 0;
+  }
+  .gender-badge.m { background: rgba(74,144,217,0.16); color: #4a90d9; border: 1px solid rgba(74,144,217,0.45); }
+  .gender-badge.f { background: rgba(217,106,159,0.18); color: #d96a9f; border: 1px solid rgba(217,106,159,0.5); }
+  /* When live standings are redacted, hide the badge too so gender doesn't leak beside the ████ block. */
+  .redacted #standingBody .player-name-cell .gender-badge,
+  .redacted #standingTable tbody .player-name-cell .gender-badge { visibility: hidden; }
+
+  /* Score-card player carrying a gender badge: flex row so the name truncates
+     but the badge stays fully visible (never clipped by nowrap/overflow). */
+  .sb-player.has-badge { display: flex; align-items: center; }
+  .sb-player.has-badge .sb-player-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
   .pairs-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 10px; }
   .pair-row { background: rgba(255,255,255,0.65); border: 1px solid rgba(45,107,78,0.2); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
   .pair-header { font-size: 13px; color: var(--green-bright); font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
@@ -3806,7 +3828,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.34 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.35 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -4119,6 +4141,16 @@ function entityName(id) {
     return p ? `${p[0]} & ${p[1]}` : `Pair ${id + 1}`;
   }
   return state.playerNames[id] || defaultName(id);
+}
+
+// Gender badge HTML for a player id (index into state.playerGenders).
+// Returns '' unless the current format is Mix (Mixicano / Mix Americano) and
+// the gender is set. Used across score cards, standings, podium, and results.
+function genderBadge(id) {
+  if (!isMixedGender()) return '';
+  const g = state.playerGenders[id];
+  if (g !== 'M' && g !== 'F') return '';
+  return `<span class="gender-badge ${g === 'M' ? 'm' : 'f'}">${g}</span>`;
 }
 
 // ========== SETUP SYNC ==========
@@ -6718,7 +6750,12 @@ function renderOverview() {
       }
       return names.map((name, pi) => {
         const id = ids[pi];
-        return `<div class="sb-player" data-player-id="${id}" data-side="${side}" data-pi="${pi}">${escapeHtml(name || defaultName(id))}</div>`;
+        const badge = genderBadge(id);
+        const safe = escapeHtml(name || defaultName(id));
+        // With a badge, wrap the name in a truncating span so the badge is never
+        // clipped by .sb-player's nowrap/overflow ellipsis.
+        const inner = badge ? `<span class="sb-player-name">${safe}</span>${badge}` : safe;
+        return `<div class="sb-player${badge ? ' has-badge' : ''}" data-player-id="${id}" data-side="${side}" data-pi="${pi}">${inner}</div>`;
       }).join('');
     };
 
@@ -7099,7 +7136,7 @@ function updateStandingTable() {
     if (s.bonus) anyBonus = true;
     tr.innerHTML = `
       <td><span class="rank ${rankClass}">${i+1}</span></td>
-      <td class="player-name-cell">${escapeHtml(s.name)}${bonusMarker}</td>
+      <td class="player-name-cell">${escapeHtml(s.name)}${genderBadge(s.id)}${bonusMarker}</td>
       <td class="num">${s.games}</td>
       <td class="num ${sortBy === 'wins' ? 'sort-active' : ''}">${s.wins}</td>
       <td class="num">${s.losses}</td>
@@ -7648,20 +7685,23 @@ function buildResultsPages() {
       const courtName = (state.courtNames && state.courtNames[cIdx]) || `C${cIdx + 1}`;
       const aNames = getMatchPlayerNames(m, 'A');
       const bNames = getMatchPlayerNames(m, 'B');
+      const aIds = m.teamA || [];
+      const bIds = m.teamB || [];
       const winA = m.scoreA > m.scoreB;
       const winB = m.scoreB > m.scoreA;
 
-      const teamRow = (names, isWinner) => {
+      const teamRow = (names, ids, isWinner) => {
         const dot = isWinner ? `<span class="result-row-dot"></span>` : '';
-        return `<div class="result-row-team ${isWinner ? 'winner' : ''}">${dot}${names.map(n => escapeHtml(n || '—')).join(' & ')}</div>`;
+        const namesHtml = names.map((n, i) => `${escapeHtml(n || '—')}${genderBadge(ids[i])}`).join(' & ');
+        return `<div class="result-row-team ${isWinner ? 'winner' : ''}">${dot}${namesHtml}</div>`;
       };
 
       return `
         <div class="result-row ${winA ? 'row-win' : ''}">
           <div class="result-row-label">R${round}<br>${escapeHtml(courtName)}</div>
           <div class="result-row-teams">
-            ${teamRow(aNames, winA)}
-            ${teamRow(bNames, winB)}
+            ${teamRow(aNames, aIds, winA)}
+            ${teamRow(bNames, bIds, winB)}
           </div>
           <div class="result-row-score">
             <span class="result-row-num ${winA ? 'winner-score' : ''}">${m.scoreA}</span>
@@ -7759,7 +7799,7 @@ function showPodium() {
         <div class="podium-card" data-rank="${rankNumbers[i]}">
           <div>
             <div class="podium-place-label">Rank ${i+1}</div>
-            <div class="podium-name" data-pid="${s.id}" data-rank="${i}">${escapeHtml(s.name)}${nameStar}</div>
+            <div class="podium-name" data-pid="${s.id}" data-rank="${i}">${escapeHtml(s.name)}${genderBadge(s.id)}${nameStar}</div>
           </div>
           <div class="podium-stats">
             <div class="podium-stat-block">
@@ -7793,7 +7833,7 @@ function showPodium() {
     return `
       <tr class="${rankClass}">
         <td class="rank-cell">${idx + 1}</td>
-        <td class="name-cell" data-pid="${s.id}" data-rank="${idx}">${escapeHtml(s.name)}${bonusMarker}</td>
+        <td class="name-cell" data-pid="${s.id}" data-rank="${idx}">${escapeHtml(s.name)}${genderBadge(s.id)}${bonusMarker}</td>
         <td class="num-cell">${s.games}</td>
         <td class="num-cell">${winsDisplay}</td>
         <td class="num-cell">${s.diff > 0 ? '+' : ''}${s.diff}</td>
@@ -10666,5 +10706,6 @@ body:not(.viewer-mode)::before {
 }
 </style>
 </body>
+</html>
 </html>
 </html>
