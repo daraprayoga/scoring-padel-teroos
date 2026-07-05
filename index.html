@@ -3828,7 +3828,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.41 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.42 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -11102,24 +11102,18 @@ body.viewer-mode .sb-score-box.winner .match-score-input:disabled {
   window.addEventListener('touchcancel', finishDrag);
 })();
 </script>
-<style id="codex-revision-v07041">
-/* v0.70.41: fix judul "Mabar Session Setup" ketutupan header di admin.
-   Sebab: banner beta di-hide untuk admin (v0.70.28), padahal banner itu
-   yang membawa padding safe-area. Header sticky dengan top:env(sat)
-   lalu bergeser turun dari slot flow-nya dan menutup pita atas <main>.
-   Solusi: di admin (non-viewer, non-fullscreen) header menyerap
-   safe-area ke padding-nya sendiri dan stick di top:0, sehingga posisi
-   natural = posisi stuck. Geser nol, overlap mustahil, di semua posisi
-   scroll. Viewer mode tetap pakai banner, tidak disentuh. */
-body:not(.viewer-mode):not(.viewer-url):not(.fs-active) header {
-  top: 0 !important;
-  padding-top: calc(8px + var(--sat, 0px)) !important;
-}
-@media (max-width: 640px) {
-  body:not(.viewer-mode):not(.viewer-url):not(.fs-active) header {
-    top: 0 !important;
-    padding-top: calc(6px + var(--sat, 0px)) !important;
-  }
+<style id="codex-revision-v07042">
+/* v0.70.42: judul "Mabar Session Setup" ketutupan header di admin.
+   Sebab: banner beta hidden untuk admin (v0.70.28), padahal banner yang
+   membawa padding safe-area. Header sticky top:env(sat) bergeser turun
+   dari slot flow-nya dan menutup pita setinggi safe-area di atas <main>.
+   Score view sudah dikompensasi v0.70.30 lewat margin-top .sb-topbar
+   (calc(sat + 6px)); setup view belum. Fix di sisi konten setup dengan
+   idiom yang sama. Header TIDAK disentuh: revisi v0.70.41 yang mengubah
+   geometri header terbukti bikin regresi (Next Round kena lapisan glass)
+   dan dibuang, jangan dipakai. */
+body:not(.viewer-mode) #view-setup .setup-wrap {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 26px) !important;
 }
 </style>
 </body>
