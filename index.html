@@ -3828,7 +3828,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.42 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.45 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -11115,6 +11115,66 @@ body.viewer-mode .sb-score-box.winner .match-score-input:disabled {
 body:not(.viewer-mode) #view-setup .setup-wrap {
   padding-top: calc(env(safe-area-inset-top, 0px) + 26px) !important;
 }
+</style>
+<script id="codex-revision-v07044-js">
+/* v0.70.44: dock (#bottomNav) keliatan ikut kescroll di setup page.
+   CSS dock sudah position:fixed !important dan tidak ada ancestor yang
+   membentuk containing block, jadi penyebabnya bukan scroll biasa:
+   ini perilaku visual viewport iOS saat keyboard terbuka (Safari mem-pin
+   fixed ke layout viewport lalu menggeser visual viewport mengejar input
+   fokus). Setup adalah satu-satunya halaman ketik intensif, makanya cuma
+   terasa di sana. Fix: glue transform ke tepi bawah visual viewport.
+   Transform-only (compositor), dock memang tanpa backdrop-filter jadi
+   bebas risiko flicker repaint. Tidak mengubah style atau logika lain. */
+(function () {
+  var vv = window.visualViewport;
+  if (!vv) return;
+  var bn = document.getElementById('bottomNav');
+  if (!bn) return;
+  var raf = 0;
+  function apply() {
+    raf = 0;
+    var gap = window.innerHeight - vv.height - vv.offsetTop;
+    bn.style.transform = gap > 0.5 ? 'translateY(-' + gap + 'px)' : '';
+  }
+  function sync() { if (!raf) raf = requestAnimationFrame(apply); }
+  vv.addEventListener('resize', sync);
+  vv.addEventListener('scroll', sync);
+  window.addEventListener('orientationchange', function () { setTimeout(sync, 250); });
+  sync();
+})();
+</script>
+<style id="codex-revision-v07045">
+/* v0.70.45: dua fix.
+   [1] HAZE NEXT ROUND, AKAR PERMANEN. lg-press-effect (±baris 10210)
+   menempelkan pseudo ::before specular putih (gradient 160deg, putih
+   55% kiri-atas) menutupi seluruh muka .sb-nav-next, dan karena pseudo
+   itu positioned z-index:0 dia tercat DI ATAS teks tombol juga. Di
+   tombol gold lama terbaca gloss; di solid sage #256653 (v0.70.38)
+   terbaca selubung putih burem. Setiap recolor hanya mengecat elemen,
+   veil-nya tidak pernah mati, makanya bug ini berulang lintas versi.
+   ATURAN PERMANEN: jangan tambah specular pseudo, blur, atau
+   will-change ke .sb-nav-next. Warna tombol milik codex-revision-v07038.
+   [2] Pita warna beda di bawah dock: warna efektif halaman admin =
+   cream 0.82 di atas #f5f0e6 (body::before v0.70.30) ± #fbf7f0,
+   sedangkan html polos #f5f0e6. Area inset / rubber-band bawah
+   menampilkan html polos sehingga muncul pita. Samakan html-nya. */
+.sb-nav-next::before,
+.sb-nav-next::after {
+  content: none !important;
+  display: none !important;
+}
+.sb-nav-next { will-change: auto !important; }
+
+/* Profilaksis: blur di round bar statis tidak punya efek visual
+   (background 0.97 nyaris opaque) tapi menambah compositing layer
+   yang bisa merender anak-anaknya soft di iOS. Matikan. */
+body:not(.viewer-mode) .sb-topbar {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+html { background: #fbf7f0 !important; }
 </style>
 </body>
 </html>
