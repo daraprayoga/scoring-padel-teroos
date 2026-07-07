@@ -3683,8 +3683,7 @@ try {
               <div class="value" id="pplCourtVal">8</div>
               <button data-step="1">+</button>
             </div>
-            <div class="control-hint">4, 6, 7, 8, 10, 12</div>
-            <div id="pplCourtWarn" style="display:none;color:#b45309;font-size:11px;font-weight:700;margin-top:4px;">⚠️ &gt;8 orang/court: antrian giliran bisa lama.</div>
+            <div class="control-hint">Range 4-8</div>
           </div>
           <div class="control">
             <label>Total Players</label>
@@ -3828,7 +3827,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.45 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.46 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -4812,8 +4811,6 @@ document.getElementById('courtsStepper').addEventListener('click', e => {
     state.playersPerCourt = 8; // reset to default 8 per court
     state.manualPlayerCount = false;
     state.manualPairCount = false;
-    const warnEl = document.getElementById('pplCourtWarn');
-    if (warnEl) warnEl.style.display = 'none';
     syncPlayerCount();
     syncPairCount();
     renderPlayersList();
@@ -4842,18 +4839,17 @@ document.getElementById('courtsStepperTeam').addEventListener('click', e => {
 document.getElementById('pplCourtStepper').addEventListener('click', e => {
   if (e.target.tagName !== 'BUTTON') return;
   const step = parseInt(e.target.dataset.step);
-  const allowed = [4, 6, 7, 8, 10, 12];
+  const allowed = [4, 5, 6, 7, 8];
   const curIdx = allowed.indexOf(state.playersPerCourt);
-  const newIdx = curIdx + (step > 0 ? 1 : -1);
+  // Sesi lama bisa punya playersPerCourt 10/12 (allowed list lama). Kalau
+  // ketemu nilai di luar range baru, snap ke index 0 alih-alih diam.
+  const newIdx = curIdx === -1 ? 0 : curIdx + (step > 0 ? 1 : -1);
   if (newIdx >= 0 && newIdx < allowed.length) {
     state.playersPerCourt = allowed[newIdx];
     state.manualPlayerCount = false;
     syncPlayerCount();
     renderPlayersList();
     updateStepperVals();
-    // Warning if >8 per court
-    const warnEl = document.getElementById('pplCourtWarn');
-    if (warnEl) warnEl.style.display = state.playersPerCourt > 8 ? '' : 'none';
   }
 });
 
