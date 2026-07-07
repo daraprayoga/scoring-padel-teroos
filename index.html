@@ -3827,7 +3827,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.47 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.48 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -11172,6 +11172,166 @@ body:not(.viewer-mode) .sb-topbar {
 
 html { background: #fbf7f0 !important; }
 </style>
+<style id="codex-revision-v07048-css">
+/* v0.70.48: indikator kesehatan sync. Pill kecil di header (admin) +
+   banner staleness (viewer). Liquid glass ringan, tanpa blur. */
+#fbPushStatus {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(45,107,78,0.25);
+  background: rgba(255,255,255,0.65);
+  color: #2d6b4e;
+  white-space: nowrap;
+}
+#fbPushStatus::before {
+  content: '';
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #9a9a9a;
+  flex-shrink: 0;
+}
+#fbPushStatus.ok::before { background: #2d8a4e; box-shadow: 0 0 6px rgba(45,138,78,0.6); }
+#fbPushStatus.fail { border-color: rgba(160,56,56,0.5); color: #A03838; }
+#fbPushStatus.fail::before { background: #A03838; box-shadow: 0 0 6px rgba(160,56,56,0.6); }
+#fbPushStatus.off { border-color: rgba(180,83,9,0.45); color: #b45309; }
+#fbPushStatus.off::before { background: #b45309; }
+
+#viewerStaleBanner {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 400;
+  background: rgba(252,249,242,0.95);
+  border: 1px solid rgba(180,83,9,0.45);
+  color: #b45309;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(15,35,24,0.18);
+  white-space: nowrap;
+}
+</style>
+<script id="codex-revision-v07048-js">
+/* v0.70.48: mode nonton stuck di round 1 skor 0-0 padahal admin jalan.
+   Audit chain (input -> saveState 6667 -> wrapper 8834 -> pushToFirebase
+   8746 -> on('value') 9095) tidak menemukan cacat struktural; kedua sisi
+   gagal secara SILENT (console.warn saja, tak terlihat di iPhone).
+   Dua failure mode lapangan paling mungkin:
+   (1) HP viewer sleep -> websocket Firebase putus -> resume tidak pulih.
+   (2) Push admin ditolak diam-diam (rules / jaringan).
+   Fix + instrumentasi:
+   - visibilitychange: viewer re-pull penuh, admin re-push. Menyembuhkan (1).
+   - Patch pushToFirebase: status pill di header admin (LIVE hijau /
+     GAGAL merah + kode error / OFFLINE oranye via .info/connected),
+     plus satu retry otomatis 2 detik setelah gagal. Menyembuhkan
+     transient (2) dan membuat persistent (2) terlihat dalam 1 detik.
+   - Viewer: watchdog 30 detik; data lebih tua dari 90 detik memunculkan
+     banner umur data supaya stuck tidak pernah silent lagi.
+   Top-level let/const/function dari script utama berbagi global scope
+   dengan block ini, jadi patch by-name aman. */
+(function () {
+  'use strict';
+  if (typeof pushToFirebase !== 'function' || typeof state === 'undefined') return;
+
+  // ---------- status pill (admin) ----------
+  function ensurePill() {
+    let pill = document.getElementById('fbPushStatus');
+    if (pill) return pill;
+    pill = document.createElement('span');
+    pill.id = 'fbPushStatus';
+    const saveBtn = document.getElementById('saveBtn');
+    if (saveBtn && saveBtn.parentNode) saveBtn.parentNode.insertBefore(pill, saveBtn);
+    else document.querySelector('header')?.appendChild(pill);
+    return pill;
+  }
+  function setPill(cls, text) {
+    if (IS_VIEWER) return;
+    const pill = ensurePill();
+    pill.className = cls;
+    pill.textContent = text;
+    pill.style.display = state.started ? 'inline-flex' : 'none';
+  }
+  const fmtTime = () => new Date().toTimeString().slice(0, 8);
+
+  // ---------- patch pushToFirebase: report + retry-once ----------
+  const _origPush = pushToFirebase;
+  let _retryTimer = null;
+  pushToFirebase = async function () {
+    if (IS_VIEWER || !state.started) return;
+    if (!_fbDb) await initFirebase();
+    if (!_fbDb) { setPill('off', 'OFFLINE'); return; }
+    try {
+      const roomId = getRoomId();
+      _currentRoomId = roomId;
+      const rawSnap = { ...state, endedAt: state.endedAt ? state.endedAt.toISOString() : null, _pushedAt: Date.now() };
+      const snap = JSON.parse(JSON.stringify(rawSnap));
+      await _fbDb.ref(`tournaments/${roomId}`).set(snap);
+      setPill('ok', 'LIVE ' + fmtTime());
+      if (_retryTimer) { clearTimeout(_retryTimer); _retryTimer = null; }
+    } catch (e) {
+      const code = (e && (e.code || e.message)) ? String(e.code || e.message).slice(0, 28) : 'unknown';
+      console.warn('Firebase push failed:', e);
+      setPill('fail', 'PUSH GAGAL ' + code);
+      if (!_retryTimer) {
+        _retryTimer = setTimeout(() => { _retryTimer = null; pushToFirebase(); }, 2000);
+      }
+    }
+  };
+
+  // ---------- koneksi realtime -> pill OFFLINE ----------
+  (async function watchConn() {
+    if (!_fbDb) await initFirebase();
+    if (!_fbDb) return;
+    try {
+      _fbDb.ref('.info/connected').on('value', s => {
+        if (IS_VIEWER || !state.started) return;
+        if (s.val() !== true) setPill('off', 'OFFLINE');
+      });
+    } catch (e) { /* diagnostics best-effort */ }
+  })();
+
+  // ---------- visibilitychange: sembuhkan resume dari sleep ----------
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    if (IS_VIEWER) {
+      pullFromFirebase();
+    } else if (state.started) {
+      pushToFirebase();
+    }
+  });
+  window.addEventListener('pageshow', e => {
+    if (e.persisted && IS_VIEWER) pullFromFirebase();
+  });
+
+  // ---------- viewer staleness watchdog ----------
+  if (IS_VIEWER) {
+    setInterval(() => {
+      const last = window._lastPulledAt || 0;
+      let banner = document.getElementById('viewerStaleBanner');
+      if (!state.started || !last || state.ended) { if (banner) banner.remove(); return; }
+      const ageSec = Math.round((Date.now() - last) / 1000);
+      if (ageSec < 90) { if (banner) banner.remove(); return; }
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'viewerStaleBanner';
+        document.body.appendChild(banner);
+      }
+      const ageTxt = ageSec < 120 ? ageSec + ' detik' : Math.round(ageSec / 60) + ' menit';
+      banner.textContent = '⚠️ Data terakhir ' + ageTxt + ' lalu · tap untuk refresh';
+      banner.onclick = () => pullFromFirebase();
+    }, 30000);
+  }
+})();
+</script>
 </body>
 </html>
 </html>
