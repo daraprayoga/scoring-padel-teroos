@@ -3850,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.51 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.52 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -4130,6 +4130,24 @@ function koStageLabel(key) {
 
 function defaultName(i) { return `Player ${i + 1}`; }
 
+// v0.70.52: field nama yang isinya masih default ("Player 10" hasil bake
+// dari shuffle / session start / load JSON) langsung keblok semua saat
+// di-tap, jadi ngetik langsung nimpa — tidak perlu hapus satu-satu.
+// Nama custom TIDAK di-select-all supaya tidak kehapus tak sengaja oleh
+// satu keystroke nyasar. select() di-defer via rAF karena iOS Safari
+// suka membatalkan select() sinkron di handler focus (caret dari tap
+// mendarat setelah focus).
+function selectDefaultOnFocus(inp) {
+  inp.addEventListener('focus', e => {
+    const v = (e.target.value || '').trim();
+    if (!v || /^Player \d+$/i.test(v)) {
+      requestAnimationFrame(() => {
+        try { e.target.select(); } catch (_) {}
+      });
+    }
+  });
+}
+
 function modeInfo(mode) {
   if (mode.startsWith('points_')) return { type: 'fixed', target: parseInt(mode.split('_')[1]) };
   if (mode.startsWith('total_of_')) return { type: 'fixed', target: parseInt(mode.split('_')[2]) };
@@ -4228,7 +4246,7 @@ function renderPlayersList() {
     list.appendChild(div);
   }
   list.querySelectorAll('input[data-idx]').forEach(inp => {
-    inp.addEventListener('focus', e => { if (!e.target.value) e.target.select(); });
+    selectDefaultOnFocus(inp); // v0.70.52
     inp.addEventListener('input', e => { state.playerNames[parseInt(e.target.dataset.idx)] = e.target.value; });
   });
   list.querySelectorAll('.gender-btn').forEach(btn => {
@@ -4257,6 +4275,7 @@ function renderPairsList() {
     list.appendChild(row);
   }
   list.querySelectorAll('input').forEach(inp => {
+    selectDefaultOnFocus(inp); // v0.70.52
     inp.addEventListener('input', e => {
       const pIdx = parseInt(e.target.dataset.pair);
       const sIdx = parseInt(e.target.dataset.slot);
@@ -4349,6 +4368,7 @@ function renderTourneyPairsList() {
     list.appendChild(row);
   }
   list.querySelectorAll('input').forEach(inp => {
+    selectDefaultOnFocus(inp); // v0.70.52
     inp.addEventListener('input', e => {
       const pIdx = parseInt(e.target.dataset.tpair);
       const sIdx = parseInt(e.target.dataset.slot);
