@@ -3850,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.52 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.53 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -11672,6 +11672,41 @@ body.viewer-mode .sb-court-name { color: rgba(16,42,28,0.72) !important; }
   text-transform: uppercase;
   color: rgba(16,42,28,0.45);
   margin-top: 2px;
+}
+</style>
+<style id="codex-revision-v07053-css">
+/* v0.70.53: fix "GP TERTINGGAL" nembus keluar kotak kalau nama banyak.
+   AKAR (dua tempat, sama-sama nowrap dipaksa di container yang tidak
+   elastis):
+   - Portrait .gp-group: white-space:nowrap bikin satu baris panjang
+     "1 GP Caca, Dedi, Eka, Fani" tidak boleh wrap; overflow default
+     browser itu visible, jadi teksnya nembus lewat border .sb-rest,
+     bukan ke-clip dan bukan wrap.
+   - Landscape .rp-gp-name: flex item tanpa min-width:0. Default
+     min-width flex item itu 'auto' (selebar konten), jadi
+     overflow:hidden + ellipsis tidak pernah aktif; nama panjang
+     mendorong .rp-gp-item lebih lebar dari panel kanan.
+   FIX: keduanya balik ke wrap normal (bukan truncate/ellipsis) sesuai
+   direction — nama utuh selalu kebaca, cuma pindah baris. */
+.sb-rest-gp .gp-group {
+  white-space: normal !important;
+  word-break: break-word;
+  display: inline;
+}
+.rp-gp-item {
+  align-items: flex-start !important;
+}
+.rp-gp-name {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  word-break: break-word;
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.35;
+}
+.rp-gp-n {
+  margin-top: 1px;
 }
 </style>
 <style id="codex-revision-v07050-css">
