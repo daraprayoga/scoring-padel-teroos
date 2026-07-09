@@ -3581,6 +3581,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
   <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 20c.6-3.3 2.8-5.2 5.5-5.2s4.9 1.9 5.5 5.2"/><path d="M16 5.6a3.2 3.2 0 0 1 0 5.8M17 15.1c2 .7 3.1 2.4 3.5 4.9"/></symbol>
   <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.8-1.1 2-1.7 3.3-1.7H22"/><path d="m18 2 4 4-4 4"/><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"/><path d="M22 18h-5.9c-1.3 0-2.5-.6-3.3-1.7l-.5-.8"/><path d="m18 14 4 4-4 4"/></symbol>
   <symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></symbol>
 </svg>
 
 <button id="fsExitBtn" type="button" title="Keluar layar penuh" aria-label="Keluar layar penuh">⤢ Keluar Layar Penuh</button>
@@ -3849,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.50 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.51 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -3909,8 +3910,13 @@ try {
             </div>
             <!-- Sitting Out -->
             <div class="rp-section rp-sitout" id="rpSitout" style="display:none;">
-              <div class="rp-section-title">⏸ SITTING OUT</div>
+              <div class="rp-section-title"><svg class="icn" width="10" height="10" style="vertical-align:-1px;margin-right:2px;"><use href="#i-pause"/></svg>SITTING OUT</div>
               <div class="rp-sitout-list" id="rpSitoutList"></div>
+            </div>
+            <!-- GP Tertinggal (v0.70.51) -->
+            <div class="rp-section rp-gpbehind" id="rpGpBehind" style="display:none;">
+              <div class="rp-section-title"><svg class="icn" width="10" height="10" style="vertical-align:-1px;margin-right:2px;"><use href="#i-users"/></svg>GP TERTINGGAL</div>
+              <div class="rp-sitout-list" id="rpGpList"></div>
             </div>
             <!-- Next Round Preview -->
             <div class="rp-section rp-next" id="rpNext" style="display:none;">
@@ -5767,6 +5773,31 @@ function buildScoredGames() {
   return scoredGames;
 }
 
+// v0.70.51: siapa yang GP-nya masih tertinggal dari yang paling banyak main.
+// Sumber SAMA dengan rotasi sit-out: buildHistory().games — scheduled-inclusive
+// (round yang sudah digenerate ikut dihitung walau belum diskor), supaya info
+// yang dilihat host konsisten dengan keputusan algoritma rotasi.
+// Return null kalau belum mulai / semua rata / entitas available < 2.
+function gpBehindGroups() {
+  if (!state.started || !state.rounds || state.rounds.length === 0) return null;
+  const hist = buildHistory(state.rounds.length);
+  const n = isTeam() ? state.pairs : state.players;
+  const ids = [];
+  for (let i = 0; i < n; i++) { if (isAvailable(i)) ids.push(i); }
+  if (ids.length < 2) return null;
+  let max = 0;
+  ids.forEach(id => { if (hist.games[id] > max) max = hist.games[id]; });
+  const byGp = {};
+  ids.forEach(id => {
+    if (hist.games[id] < max) {
+      (byGp[hist.games[id]] = byGp[hist.games[id]] || []).push(id);
+    }
+  });
+  const gps = Object.keys(byGp).map(Number).sort((a, b) => a - b);
+  if (gps.length === 0) return null;
+  return { max, groups: gps.map(gp => ({ gp, names: byGp[gp].map(id => entityName(id)) })) };
+}
+
 // Fair sit-out selection: pick players with fewest games played to play this round.
 // Ties broken randomly for variety.
 // Returns true if entity (player or pair) is currently available to play
@@ -6880,11 +6911,23 @@ function renderOverview() {
     el.addEventListener('click', () => startPlayerEdit(el));
   });
 
-  // Sitting out
+  // Sitting out + GP tertinggal (v0.70.51) — dua-duanya info rotasi,
+  // tampil di admin DAN viewer (render path sama)
   const restEl = document.getElementById('sbRest');
-  if (round.resting && round.resting.length > 0) {
+  const gpInfo = gpBehindGroups();
+  const hasResting = round.resting && round.resting.length > 0;
+  if (hasResting || gpInfo) {
     restEl.style.display = 'block';
-    restEl.innerHTML = `<strong>${isTeam() ? 'PAIRS SITTING OUT' : 'SITTING OUT'}:</strong> ${round.resting.map(id => entityName(id)).join(' · ')}`;
+    let restHtml = '';
+    if (hasResting) {
+      restHtml += `<div class="sb-rest-row"><strong>${isTeam() ? 'PAIRS SITTING OUT' : 'SITTING OUT'}:</strong> ${round.resting.map(id => escapeHtml(entityName(id))).join(' · ')}</div>`;
+    }
+    if (gpInfo) {
+      restHtml += `<div class="sb-rest-row sb-rest-gp"><strong>GP TERTINGGAL:</strong> ${gpInfo.groups.map(g =>
+        `<span class="gp-group"><b>${g.gp} GP</b> ${g.names.map(nm => escapeHtml(nm)).join(', ')}</span>`
+      ).join(' <span class="gp-dot">·</span> ')} <span class="gp-max">max ${gpInfo.max}</span></div>`;
+    }
+    restEl.innerHTML = restHtml;
   } else {
     restEl.style.display = 'none';
   }
@@ -8671,6 +8714,21 @@ function updateLandscapePanel() {
       }).join('');
     } else {
       sitoutEl.style.display = 'none';
+    }
+  }
+
+  // GP tertinggal (v0.70.51) — list nama + badge GP, max sebagai catatan
+  const gpEl = document.getElementById('rpGpBehind');
+  const gpList = document.getElementById('rpGpList');
+  if (gpEl && gpList) {
+    const info = gpBehindGroups();
+    if (info) {
+      gpEl.style.display = '';
+      gpList.innerHTML = info.groups.map(g => g.names.map(nm =>
+        `<div class="rp-sitout-item rp-gp-item"><span class="rp-gp-name">${escapeHtml(nm)}</span><span class="rp-gp-n">${g.gp}</span></div>`
+      ).join('')).join('') + `<div class="rp-gp-maxnote">max ${info.max} GP</div>`;
+    } else {
+      gpEl.style.display = 'none';
     }
   }
 
@@ -11525,6 +11583,77 @@ body.viewer-mode .sb-court-name { color: rgba(16,42,28,0.72) !important; }
   }
 }
 </style>
+<style id="codex-revision-v07051-css">
+/* v0.70.51: info "GP TERTINGGAL" di bar sitting-out (portrait) dan
+   panel kanan landscape — admin dan viewer (render path sama).
+   Data dari buildHistory().games (scheduled-inclusive), sumber yang
+   sama dengan algoritma rotasi sit-out, jadi angka yang dilihat host
+   selalu konsisten dengan keputusan rotasi. Grup per GP naik, plus
+   chip "max N" sebagai acuan. Bar sekarang bisa tampil walau tidak
+   ada yang duduk round ini (imbalance historis tetap kelihatan).
+   Kurasi gold lanjutan: label .sb-rest strong turun dari gold ke ink,
+   konsisten dengan eyebrow court header v0.70.49 (info, bukan
+   penghormatan). */
+.sb-rest-row + .sb-rest-row {
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(29,59,42,0.08);
+}
+.sb-rest strong {
+  color: rgba(16,42,28,0.55) !important;
+}
+.sb-rest-gp .gp-group { white-space: nowrap; }
+.sb-rest-gp .gp-group b {
+  color: #14301f;
+  font-weight: 800;
+  margin-right: 4px;
+}
+.sb-rest-gp .gp-dot { opacity: 0.4; }
+.gp-max {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(29,59,42,0.07);
+  border: 1px solid rgba(29,59,42,0.14);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: rgba(16,42,28,0.6);
+  vertical-align: 1px;
+}
+/* Landscape: nama kiri, badge GP kanan */
+.rp-gp-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.rp-gp-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rp-gp-n {
+  flex-shrink: 0;
+  font-weight: 800;
+  font-size: 10px;
+  line-height: 16px;
+  color: #14301f;
+  background: rgba(255,255,255,0.6);
+  border: 1px solid rgba(29,59,42,0.15);
+  border-radius: 6px;
+  padding: 0 6px;
+}
+.rp-gp-maxnote {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(16,42,28,0.45);
+  margin-top: 2px;
+}
+</style>
 <style id="codex-revision-v07050-css">
 /* v0.70.50: fix motion dock pill. Laporan: pill "muncul dari luar layar"
    di kanan/kiri tombol saat ganti tab.
@@ -11623,4 +11752,5 @@ body.viewer-mode .sb-court-name { color: rgba(16,42,28,0.72) !important; }
 })();
 </script>
 </body>
+</html>
 </html>
