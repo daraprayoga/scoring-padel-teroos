@@ -3850,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.53 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.56 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -4010,7 +4010,7 @@ try {
   </div>
   <div class="podium-content" id="podiumContent"></div>
 </div>
-<button class="podium-share-btn" id="podiumShareBtn" type="button"><svg class="icn" width="16" height="16"><use href="#i-camera"/></svg>Share ke Story</button>
+<button class="podium-share-btn" id="podiumShareBtn" type="button"><svg class="icn" width="16" height="16"><use href="#i-camera"/></svg><span class="share-label">Share ke Story</span></button>
 <input type="file" id="storyPhotoInput" accept="image/*" style="display:none;">
 
 <!-- SCHEDULE MODAL -->
@@ -5214,8 +5214,12 @@ function renderTourneyGroupPhase() {
     const statusText = complete ? 'Done' : hasScore ? 'Live' : '';
     const statusClass = complete ? 'done' : hasScore ? 'live' : '';
     const courtName = (state.courtNames && state.courtNames[m.court]) || `Court ${m.court + 1}`;
-    const winDotA = winner === 'A' ? '<span class="sb-winner-dot"></span>' : '';
-    const winDotB = winner === 'B' ? '<span class="sb-winner-dot"></span>' : '';
+    // v0.70.56: dot SELALU dirender di dua sisi, cuma class 'win' yang
+    // toggle -- reservasi ruang permanen biar tinggi kolom tim (dan
+    // baris match-body) tidak goyang antara sebelum & sesudah ada
+    // pemenang.
+    const winDotA = `<span class="sb-winner-dot${winner === 'A' ? ' win' : ''}"></span>`;
+    const winDotB = `<span class="sb-winner-dot${winner === 'B' ? ' win' : ''}"></span>`;
     return `
       <div class="sb-court-card${complete ? ' complete' : ''}">
         <div class="sb-court-header">
@@ -5534,7 +5538,7 @@ function renderKnockout() {
         <div class="sb-match-body">
           <div class="sb-team left">
             <div class="sb-player">${escapeHtml(nameA)}</div>
-            ${winner === m.teamA && m.teamA !== null ? '<span class="sb-winner-dot"></span>' : ''}
+            <span class="sb-winner-dot${winner === m.teamA && m.teamA !== null ? ' win' : ''}"></span>
           </div>
           <div class="sb-score-center">
             <div class="sb-score-row">
@@ -5552,7 +5556,7 @@ function renderKnockout() {
           </div>
           <div class="sb-team right">
             <div class="sb-player">${escapeHtml(nameB)}</div>
-            ${winner === m.teamB && m.teamB !== null ? '<span class="sb-winner-dot"></span>' : ''}
+            <span class="sb-winner-dot${winner === m.teamB && m.teamB !== null ? ' win' : ''}"></span>
           </div>
         </div>
       </div>`;
@@ -6828,8 +6832,12 @@ function renderOverview() {
       }).join('');
     };
 
-    const winDotA = winner === 'A' ? '<span class="sb-winner-dot"></span>' : '';
-    const winDotB = winner === 'B' ? '<span class="sb-winner-dot"></span>' : '';
+    // v0.70.56: dot SELALU dirender di dua sisi, cuma class 'win' yang
+    // toggle -- reservasi ruang permanen biar tinggi kolom tim (dan
+    // baris match-body) tidak goyang antara sebelum & sesudah ada
+    // pemenang.
+    const winDotA = `<span class="sb-winner-dot${winner === 'A' ? ' win' : ''}"></span>`;
+    const winDotB = `<span class="sb-winner-dot${winner === 'B' ? ' win' : ''}"></span>`;
 
     card.innerHTML = `
       <div class="sb-court-header">
@@ -6994,16 +7002,23 @@ function refreshCourtCard(mIdx) {
     if (statusEl) { statusEl.textContent = 'Live'; statusEl.className = 'sb-court-status live'; }
   }
 
-  // Winner dot
-  const winDots = card.querySelectorAll('.sb-winner-dot');
-  winDots.forEach(d => d.remove());
-  if (winner === 'A') {
+  // Winner dot (v0.70.56): dot sudah SELALU ada di dua sisi sejak render
+  // pertama (lihat winDotA/winDotB) -- di sini cuma toggle class 'win',
+  // tidak remove/append node. Kalau card lama (pre-v0.70.56, sebelum
+  // refresh) belum punya slot dot di salah satu sisi, buat sekali lalu
+  // toggle -- jaga-jaga untuk card yang sempat dirender jalur lama.
+  let dotA = card.querySelector('.sb-team.left .sb-winner-dot');
+  if (!dotA) {
     const teamA = card.querySelector('.sb-team.left');
-    if (teamA) { const dot = document.createElement('span'); dot.className = 'sb-winner-dot'; teamA.appendChild(dot); }
-  } else if (winner === 'B') {
-    const teamB = card.querySelector('.sb-team.right');
-    if (teamB) { const dot = document.createElement('span'); dot.className = 'sb-winner-dot'; teamB.appendChild(dot); }
+    if (teamA) { dotA = document.createElement('span'); dotA.className = 'sb-winner-dot'; teamA.appendChild(dotA); }
   }
+  let dotB = card.querySelector('.sb-team.right .sb-winner-dot');
+  if (!dotB) {
+    const teamB = card.querySelector('.sb-team.right');
+    if (teamB) { dotB = document.createElement('span'); dotB.className = 'sb-winner-dot'; teamB.appendChild(dotB); }
+  }
+  if (dotA) dotA.classList.toggle('win', winner === 'A');
+  if (dotB) dotB.classList.toggle('win', winner === 'B');
 }
 
 // ===== SWAP PLAYER / PAIR MODAL =====
@@ -11709,6 +11724,178 @@ body.viewer-mode .sb-court-name { color: rgba(16,42,28,0.72) !important; }
   margin-top: 1px;
 }
 </style>
+<style id="codex-revision-v07054-css">
+/* v0.70.54: dua fix.
+
+   [A] VIEWER FULLSCREEN TIDAK BISA SCROLL (laptop / landscape).
+   Root cause: arsitektur scroll shell lama (v0.68.1) sengaja membuat
+   BODY bukan scroll container (overflow-y:visible) supaya HTML yang
+   scroll — trik ini perlu untuk sticky header di mobile Safari/Android.
+   Itu berfungsi normal di luar fullscreen. Begitu Fullscreen API aktif
+   pada <html> (documentElement), UA stylesheet browser mengunci ukuran
+   elemen fullscreen ke persis ukuran layar dan, secara empiris (paling
+   kentara di Chrome desktop), overflow-y:auto pada elemen fullscreen
+   itu sendiri tidak konsisten dipatuhi begitu box-nya dikunci native —
+   konten yang lebih tinggi dari satu layar (standings dengan banyak
+   baris, kentara di landscape karena tabel paling lebar tapi area
+   paling pendek) ke-clip tanpa cara untuk discroll.
+   FIX: saat body.fs-active (dipasang untuk fullscreen native MAUPUN
+   fallback, lihat enterFS/exitFS), jadikan <main> sendiri scroll
+   container dengan tinggi definitif — lepas total dari ketergantungan
+   pada html/body yang scroll. header tetap di atas (flex item biasa,
+   bukan lagi sticky-terhadap-html), main mengisi sisa tinggi dan
+   scroll sendiri. Ini bypass total kuirk fullscreen, karena main tidak
+   pernah jadi elemen fullscreen — perilakunya sama persis dengan
+   overflow-y:auto normal di elemen manapun yang bukan fullscreen
+   target.
+
+   [B] SCORE TILE "BEDA BESAR" 0-0 vs terisi.
+   Dimensi box (.sb-score-box) SELALU tetap 58×66px (atau 48×52 / 52×58
+   tergantung court-count / TV-fit) — tidak ada rule di manapun di file
+   ini yang mengubah width/height berdasarkan isi skor. Yang berubah
+   adalah BOBOT VISUAL: sejak v0.70.49 tile kalah/netral diturunkan ke
+   rgba(29,59,42,0.055) nyaris tak kelihatan, sementara tile menang
+   solid #256653 dengan glow shadow blur 15px. Saat 0-0 kedua tile
+   sama-sama gaya netral (simetris, kelihatan sama). Begitu satu tile
+   jadi winner, dia melebar SECARA VISUAL lewat glow di luar border,
+   sementara tile satunya nyaris menyatu ke background card — dua tile
+   dengan dimensi identik jadi terbaca beda besar. Fix: kasih tile
+   netral bayangan tipis yang sepadan (bukan disamakan, cuma cukup
+   supaya siluetnya kebaca) dan naikkan border sedikit, tanpa mengubah
+   arah desain "winner lebih menonjol". */
+
+/* --- [A] fullscreen scroll --- */
+body.fs-active {
+  height: 100vh !important;
+  height: 100dvh !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+body.fs-active main {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+/* header tidak lagi perlu nempel ke html-scroll saat fs-active — dia flex
+   item biasa di atas main, tetap kelihatan tanpa perlu position:sticky */
+body.fs-active header {
+  position: relative !important;
+  flex: 0 0 auto !important;
+}
+
+/* --- [B] score tile visual parity --- */
+.sb-score-box:not(.winner) {
+  border-color: rgba(29,59,42,0.20) !important;
+  box-shadow:
+    0 2px 6px rgba(20,46,32,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.45) !important;
+}
+</style>
+<style id="codex-revision-v07055-css">
+/* v0.70.55: koreksi axis dari fix v0.70.54 — laporan aslinya VERTICAL,
+   bukan horizontal seperti yang gue kira.
+
+   Ketemu akarnya: box winner (.sb-score-box.winner, rule aktif
+   terakhir ada di sekitar baris 11000) pakai
+   box-shadow: 0 5px 15px rgba(37,102,83,0.24) — offset-y 5px + blur
+   15px. Shadow itu ASIMETRIS: menyebar rata ~15px di atas/kiri/kanan
+   (blur doang, tanpa offset), tapi ~20px (offset 5 + blur 15) di
+   BAWAH box. Efeknya box winner secara visual "nambah tinggi" ke
+   bawah lebih jauh daripada ke arah lain — persis definisi "beda
+   besar vertically". Di 0-0 belum ada .winner sama sekali (dua tile
+   masih netral, shadow-nya seragam dari fix v0.70.54 kemarin), begitu
+   satu sisi menang, tile itu tiba-tiba punya jangkauan vertikal yang
+   nyata lebih jauh dari tile pasangannya di baris yang sama.
+
+   FIX: box-shadow winner diseragamkan ke resep yang SAMA PERSIS
+   (offset-y & blur) dengan shadow netral dari v0.70.54 — 0 2px 6px.
+   Jangkauan vertikal dua tile sekarang identik; yang beda tinggal
+   opacity warna (0.20 vs 0.06) buat kontras kemenangan, bukan lagi
+   ukuran jangkauannya. Selector di-mirror persis rule aktif terakhir
+   (baris ~11000) + diposisikan lebih akhir di file supaya menang di
+   cascade tanpa perlu neko-neko spesifisitas. */
+.sb-score-box.winner,
+body.viewer-mode .sb-score-box.winner,
+body.viewer-mode .sb-score-box.winner:disabled {
+  box-shadow:
+    0 2px 6px rgba(37,102,83,0.20),
+    inset 0 1px 0 rgba(255,255,255,0.24) !important;
+}
+</style>
+<style id="codex-revision-v07056-css">
+/* v0.70.56: tiga revisi.
+
+   [A] AKAR SEBENARNYA dari "tile beda tinggi" (v0.70.54/55 menambal
+   gejala di shadow, tapi request ini bilang penyebabnya dot). Ternyata
+   benar ada mekanisme lain: .sb-winner-dot itu bukan dekorasi di
+   dalam .sb-score-box (yang punya ::after terpisah, position:absolute,
+   tidak pernah masalah) -- dia span TERPISAH di kolom nama tim
+   (.sb-team, flex-direction:column), dan sebelumnya di-INSERT/REMOVE
+   dari DOM secara dinamis persis saat skor berubah dari 0-0 ke ada
+   pemenang (lihat refreshCourtCard, dipanggil tiap kali user ngetik).
+   Begitu dot itu muncul, kolom nama tim jadi baris tambahan lebih
+   tinggi, dan karena .sb-match-body adalah CSS grid satu baris dengan
+   align-items:center, kartu match ikut melebar ke bawah relatif
+   terhadap kartu tanpa dot. Fix sebelumnya (shadow parity) benar
+   secara matematis tapi bukan penyebab dominan -- ini yang dominan.
+
+   FIX: dot SEKARANG SELALU ada di DOM di kedua sisi sejak render
+   pertama (lihat perubahan winDotA/winDotB & refreshCourtCard di JS),
+   cuma class .win yang di-toggle. visibility:hidden (bukan display:
+   none) mempertahankan ruang; kolom nama tim jadi punya tinggi TETAP
+   baik ada pemenang atau belum -- baris match-body tidak pernah lagi
+   goyang antara 0-0 dan sudah diisi.
+
+   [B] Podium card name: Cormorant Garamond (serif) -> DM Sans, sesuai
+   permintaan. DM Sans 900 sudah ter-load (lihat <link> font di head),
+   jadi weight tetap konsisten, cuma keluarga fontnya yang ganti.
+
+   [C] Tombol "Share ke Story" dipindah dari center-bottom (nutupin
+   tengah layar, termasuk halaman standings yang dilihat lewat swipe
+   di podium) ke pojok kanan-bawah sebagai bulatan kecil (FAB), area
+   yang secara konvensi memang "milik" tombol aksi mengambang dan tidak
+   pernah dilewati alur baca konten. */
+
+/* --- [A] winner-dot: reservasi ruang permanen --- */
+.sb-winner-dot {
+  visibility: hidden;
+}
+.sb-winner-dot.win {
+  visibility: visible;
+}
+
+/* --- [B] podium name: DM Sans --- */
+.podium-name {
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif !important;
+}
+
+/* --- [C] share button: pojok kanan-bawah, FAB bulat --- */
+.podium-share-btn {
+  left: auto !important;
+  right: max(16px, env(safe-area-inset-right, 0px)) !important;
+  bottom: max(16px, env(safe-area-inset-bottom, 0px)) !important;
+  transform: none !important;
+  width: 52px;
+  height: 52px;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  gap: 0 !important;
+  justify-content: center !important;
+}
+.podium-share-btn span,
+.podium-share-btn .share-label {
+  /* Label teks disembunyikan di layout FAB — ikon saja sudah cukup
+     jelas maksudnya (kamera), dan bulatan kecil di pojok tidak punya
+     ruang untuk teks tanpa melebar lagi ke tengah. */
+  display: none;
+}
+.podium-share-btn:active {
+  transform: scale(0.92) !important;
+}
+</style>
 <style id="codex-revision-v07050-css">
 /* v0.70.50: fix motion dock pill. Laporan: pill "muncul dari luar layar"
    di kanan/kiri tombol saat ganti tab.
@@ -11807,5 +11994,4 @@ body.viewer-mode .sb-court-name { color: rgba(16,42,28,0.72) !important; }
 })();
 </script>
 </body>
-</html>
 </html>
