@@ -3850,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.57 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.59 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -11924,6 +11924,68 @@ body.viewer-mode .sb-score-box.winner:disabled {
   border-color: rgba(37,102,83,0.92) !important;
   box-shadow: 0 2px 6px rgba(37,102,83,0.20), inset 0 1px 0 rgba(255,255,255,0.24) !important;
   color: #fff !important;
+}
+</style>
+<style id="codex-revision-v07058-css">
+/* v0.70.58: dua tempat nama pemain kepotong pakai ellipsis, harusnya
+   wrap.
+
+   [A] Story Studio (Share ke Story) Template 1 & 2: .t1-name dan
+   .t2-name pakai white-space:nowrap + text-overflow:ellipsis + lebar
+   terbatas -- nama panjang jadi "Alexandra Putri..." Kanvas export
+   1080x1920 fixed, tapi kolom nama masing-masing flex item yang bebas
+   tumbuh ke atas/menyamping tanpa ganggu elemen lain (t1-slot kolom
+   independen; t2-row tinggi auto, .t2-rows tumpuk dari bawah lewat
+   bottom:160px) -- aman buat wrap 2 baris.
+
+   [B] Full standings (halaman podium ke-2): .name-cell (data pemain di
+   tabel) pakai overflow:hidden + ellipsis + max-width:0 (trik lama
+   buat maksa truncate di table-layout:auto). Header kolomnya sendiri
+   (.name-col) justru SUDAH benar (white-space:normal + word-break),
+   cuma body cell yang gak ikutan -- inkonsistensi lama. Disamakan ke
+   perilaku yang sama: wrap, bukan potong. */
+
+/* --- [A] Story Studio names --- */
+.ss-overlay .t1-name {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  word-break: break-word !important;
+  line-height: 1.15 !important;
+}
+.ss-overlay .t2-name {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  word-break: break-word !important;
+  line-height: 1.15 !important;
+  min-width: 0 !important;
+}
+
+/* --- [B] full standings name-cell --- */
+.podium-standings-table .name-cell {
+  overflow: visible !important;
+  text-overflow: unset !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  max-width: none !important;
+  line-height: 1.3 !important;
+}
+</style>
+<style id="codex-revision-v07059-css">
+/* v0.70.59: footer branding "Scoring by padel.teroos" / "Main asik,
+   skill naik!" / social row di ketiga halaman podium (champion,
+   standings, results) gak perlu muncul di viewer mode -- itu ajakan
+   share & branding buat host/pemain yang pegang HP, bukan buat orang
+   yang nonton doang di TV/layar bareng. Sembunyikan tiga-tiganya
+   sekaligus di viewer mode; layout tetap rapi karena masing-masing
+   footer sudah flex-shrink:0 di kolom flex-column -- begitu di-
+   display:none, ruang di bawahnya otomatis diisi konten di atasnya,
+   bukan nyisa gap kosong. */
+body.viewer-mode .podium-footer,
+body.viewer-mode .podium-standings-footer,
+body.viewer-mode .podium-results-footer {
+  display: none !important;
 }
 </style>
 <style id="codex-revision-v07050-css">
