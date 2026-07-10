@@ -3850,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.60 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.61 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -5797,24 +5797,49 @@ function buildScoredGames() {
   return scoredGames;
 }
 
+// v0.70.61: dulu pakai buildHistory().games (scheduled-inclusive, sama
+// dengan sumber algoritma rotasi sit-out) -- tapi itu bikin GP TERTINGGAL
+// ikut menghitung match yang baru di-generate tapi skornya masih 0-0,
+// padahal belum benar-benar dimainkan. Sekarang hitung PER MATCH: cuma
+// match yang skornya sudah diisi (scoreA>0 atau scoreB>0) yang dihitung
+// sebagai "sudah main". Granularitas per-match (bukan per-round) --
+// kalau court 1 selesai tapi court 2 di round yang sama masih 0-0,
+// pemain di court 2 TETAP tidak terhitung, meskipun satu round yang sama.
+function buildScoredGamesUpTo(uptoRoundIdx) {
+  const n = isTeam() ? state.pairs : state.players;
+  const games = new Array(n).fill(0);
+  for (let r = 0; r < Math.min(uptoRoundIdx, state.rounds.length); r++) {
+    const round = state.rounds[r];
+    if (!round || !round.matches) continue;
+    round.matches.forEach(m => {
+      if (!(m.scoreA > 0 || m.scoreB > 0)) return; // belum diinput, skip
+      m.teamA.forEach(id => { games[id]++; });
+      m.teamB.forEach(id => { games[id]++; });
+    });
+  }
+  return games;
+}
+
 // v0.70.51: siapa yang GP-nya masih tertinggal dari yang paling banyak main.
-// Sumber SAMA dengan rotasi sit-out: buildHistory().games — scheduled-inclusive
-// (round yang sudah digenerate ikut dihitung walau belum diskor), supaya info
-// yang dilihat host konsisten dengan keputusan algoritma rotasi.
+// v0.70.61: sumber diganti ke skor yang SUDAH diinput saja (lihat
+// buildScoredGamesUpTo di atas) -- sit-out rotation tetap pakai
+// buildHistory (scheduled-inclusive, itu benar untuk keperluan rotasi),
+// tapi angka yang ditampilkan ke host di sini sekarang murni "sudah main"
+// bukan "sudah dijadwalkan".
 // Return null kalau belum mulai / semua rata / entitas available < 2.
 function gpBehindGroups() {
   if (!state.started || !state.rounds || state.rounds.length === 0) return null;
-  const hist = buildHistory(state.rounds.length);
+  const games = buildScoredGamesUpTo(state.rounds.length);
   const n = isTeam() ? state.pairs : state.players;
   const ids = [];
   for (let i = 0; i < n; i++) { if (isAvailable(i)) ids.push(i); }
   if (ids.length < 2) return null;
   let max = 0;
-  ids.forEach(id => { if (hist.games[id] > max) max = hist.games[id]; });
+  ids.forEach(id => { if (games[id] > max) max = games[id]; });
   const byGp = {};
   ids.forEach(id => {
-    if (hist.games[id] < max) {
-      (byGp[hist.games[id]] = byGp[hist.games[id]] || []).push(id);
+    if (games[id] < max) {
+      (byGp[games[id]] = byGp[games[id]] || []).push(id);
     }
   });
   const gps = Object.keys(byGp).map(Number).sort((a, b) => a - b);
