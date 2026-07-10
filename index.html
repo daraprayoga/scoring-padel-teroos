@@ -3850,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.59 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.60 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -11986,6 +11986,23 @@ body.viewer-mode .podium-footer,
 body.viewer-mode .podium-standings-footer,
 body.viewer-mode .podium-results-footer {
   display: none !important;
+}
+</style>
+<style id="codex-revision-v07060-css">
+/* v0.70.60: regresi dari v0.70.56 -- waktu itu podium-share-btn
+   dipindah dari center-bottom ke bottom-right biar gak nutupin
+   standings, tapi gak dicek tabrakan sama #fsExitBtn ("Keluar Layar
+   Penuh") yang MEMANG SUDAH lebih dulu nangkring persis di pojok
+   kanan-bawah (bottom:~10px; right:12px) sejak fitur fullscreen ada.
+   Begitu podium dibuka SAAT fullscreen aktif di viewer mode, dua
+   tombol fixed itu numpuk persis di titik yang sama.
+   FIX: share-to-story pindah ke pojok KIRI-bawah. fsExitBtn di kanan
+   tidak disentuh sama sekali -- itu elemen yang sudah mapan dan
+   dipakai di semua konteks fullscreen, bukan cuma podium, jadi lebih
+   aman mindahin yang baru daripada yang lama. */
+.podium-share-btn {
+  left: max(16px, env(safe-area-inset-left, 0px)) !important;
+  right: auto !important;
 }
 </style>
 <style id="codex-revision-v07050-css">
