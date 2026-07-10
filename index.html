@@ -12186,8 +12186,16 @@ body.viewer-mode .podium-results-footer {
   opacity: 0 !important;
 }
 </style>
-<style id="codex-revision-v07065">
-/* v0.70.65: keep FORMAT descriptions calm at every interaction state. */
+<style id="codex-revision-v07066">
+/* v0.70.66: compact setup entry spacing below the sticky header. */
+body:not(.viewer-mode) #view-setup .setup-wrap {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 12px) !important;
+}
+#view-setup .setup-hero {
+  padding-top: 8px !important;
+}
+
+/* Keep the FORMAT description normal-weight on hover and selection. */
 .format-card:hover p,
 .format-card.selected p {
   font-weight: 400 !important;
