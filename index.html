@@ -12127,5 +12127,53 @@ body.viewer-mode .podium-results-footer {
   sync(false);
 })();
 </script>
+<style id="codex-revision-v07062">
+/* v0.70.62: higher-contrast format hover + solid Start action. */
+/* The warm gold and pale green were too close to the light card surface. */
+.format-card:hover h3,
+.format-card.selected h3 {
+  color: #725116 !important;
+}
+.format-card:hover p,
+.format-card.selected p {
+  color: #356a4d !important;
+  font-weight: 600;
+}
+
+/* Match the solid Next Round treatment; remove the glass highlight layer. */
+#startBtn,
+#startBtn:hover,
+#startBtn:active,
+#startBtn.lg-pressed {
+  background: #256653 !important;
+  background-image: none !important;
+  color: #fff !important;
+  border: 1px solid rgba(15,35,24,0.12) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 6px 16px rgba(37,102,83,0.26), inset 0 1px 0 rgba(255,255,255,0.18) !important;
+  animation: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+#startBtn:hover { background: #2b725f !important; }
+#startBtn:active,
+#startBtn.lg-pressed { background: #1f5647 !important; transform: scale(0.97) !important; }
+#startBtn::before,
+#startBtn::after { content: none !important; display: none !important; }
+#startBtn { will-change: auto !important; }
+</style>
+<style id="codex-revision-v07063">
+/* v0.70.63: redaction must not retain the dotted name underline. */
+.redacted #standingTable tbody .player-name-cell,
+.redacted #standingBody .player-name-cell,
+.redacted #standingTable tbody .player-name-cell *,
+.redacted #standingBody .player-name-cell * {
+  text-decoration: none !important;
+  text-decoration-line: none !important;
+  -webkit-text-decoration: none !important;
+}
+</style>
 </body>
 </html>
