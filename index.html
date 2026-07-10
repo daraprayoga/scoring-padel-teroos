@@ -3850,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.56 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.57 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -11894,6 +11894,36 @@ body.viewer-mode .sb-score-box.winner:disabled {
 }
 .podium-share-btn:active {
   transform: scale(0.92) !important;
+}
+</style>
+<style id="codex-revision-v07057-css">
+/* v0.70.57: podium page 3 (Results/match recap) punya bahasa visual
+   sendiri buat skor menang/kalah -- gak nyambung sama tile skor di
+   halaman input. Ketemu akarnya: .result-row-num.winner-score ada TIGA
+   definisi numpuk sepanjang file, dan yang MENANG cascade (paling
+   akhir, di dalam codex-revision-v07039) cuma tint tipis
+   rgba(37,102,83,0.10) -- jauh lebih lemah dari winner tile solid
+   #256653 di halaman input, jadi winner/loser di Results kelihatan
+   nyaris sama, gak ada kontras yang jelas kayak di scoreboard.
+
+   FIX: samain persis resep tile skor aktif dari halaman input --
+   loser: rgba(29,59,42,0.055) bg, border rgba(29,59,42,0.20), shadow
+   0 2px 6px (bahasa dari v0.70.49 + v0.70.54); winner: solid #256653,
+   border rgba(37,102,83,0.92), shadow sama persis (0 2px 6px, dari
+   v0.70.55 parity fix). Chip di Results tetap bentuk kecil (bukan
+   58x66 box, konteksnya beda: baris hasil bukan input skor), tapi
+   fill/border/shadow-nya kini satu bahasa yang sama. */
+.result-row-num {
+  background: rgba(29,59,42,0.055) !important;
+  border: 1px solid rgba(29,59,42,0.20) !important;
+  box-shadow: 0 2px 6px rgba(20,46,32,0.06), inset 0 1px 0 rgba(255,255,255,0.45) !important;
+  color: rgba(16,42,28,0.62) !important;
+}
+.result-row-num.winner-score {
+  background: #256653 !important;
+  border-color: rgba(37,102,83,0.92) !important;
+  box-shadow: 0 2px 6px rgba(37,102,83,0.20), inset 0 1px 0 rgba(255,255,255,0.24) !important;
+  color: #fff !important;
 }
 </style>
 <style id="codex-revision-v07050-css">
