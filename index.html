@@ -3850,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.61 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.62 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -6539,18 +6539,31 @@ function computeStandings() {
 
   return Object.values(stats).sort((a, b) => {
     const sortBy = state.sortBy || 'wins';
+    // v0.70.61-fix: h2h(...) mengembalikan 0 dalam DUA situasi yang beda
+    // total -- (1) sudah pernah main dan hasilnya benar-benar imbang, dan
+    // (2) belum pernah ketemu sama sekali. sort() memperlakukan return 0
+    // sebagai "urutan gak penting", jadi tanpa tiebreak lanjutan, ranking
+    // jatuh ke urutan insersi objek stats (berdasar index pair/pemain) --
+    // sama sekali bukan keputusan kompetitif. Fix: +/- (diff) jadi
+    // tiebreak berikutnya SEBELUM menyerah ke urutan asal, di ketiga mode.
     if (sortBy === 'wins') {
       if (b.wins   !== a.wins)   return b.wins   - a.wins;
       if (b.points !== a.points) return b.points - a.points;
-      return h2h(b.id, a.id); // positive = b outscored a in H2H = b ranks higher
+      const h = h2h(b.id, a.id);
+      if (h !== 0) return h;
+      return b.diff - a.diff;
     } else if (sortBy === 'diff') {
       if (b.points !== a.points) return b.points - a.points;
       if (b.wins   !== a.wins)   return b.wins   - a.wins;
-      return h2h(b.id, a.id);
+      const h = h2h(b.id, a.id);
+      if (h !== 0) return h;
+      return b.diff - a.diff;
     } else if (sortBy === 'winrate') {
       if (b.winRate !== a.winRate) return b.winRate - a.winRate;
       if (b.wins    !== a.wins)    return b.wins    - a.wins;
-      return h2h(b.id, a.id);
+      const h = h2h(b.id, a.id);
+      if (h !== 0) return h;
+      return b.diff - a.diff;
     }
     return 0;
   });
@@ -12202,4 +12215,5 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
 }
 </style>
 </body>
+</html>
 </html>
