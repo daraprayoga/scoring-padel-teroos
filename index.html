@@ -3850,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.77 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.79 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -7494,38 +7494,47 @@ const wlt = (p) => `${p.wins}-${p.losses}-${p.ties}`;
 
 // --- Templates (in our forest/cream/gold design language) ---
 function tplPodium() {
-  const t3 = computeStandings().slice(0, 3);
+  // v0.70.79: ikut competition ranking yang sama dengan podium layar.
+  // Kalau gak, foto story bisa nulis "2" buat orang yang di app-nya
+  // Champion bareng -- kontradiksi yang dilihat satu grup.
+  const ent = podiumRankEntries(computeStandings(), 3);
   const title = escapeHtml(state.tournamentName || 'Padel Tournament');
-  const slot = (p, i) => p ? `
-    <div class="t1-slot ${i === 0 ? 'champ' : ''}">
-      <div class="ss-ava t1-ava">${SS_AVA}<span class="t1-rank">${i + 1}</span></div>
-      <div class="t1-name">${escapeHtml(p.name)}</div>
-      <div class="t1-wlt">${wlt(p)}</div>
-      <div class="t1-pts">${p.points}</div>
+  const slot = (e) => e ? `
+    <div class="t1-slot ${e.rank === 1 ? 'champ' : ''}">
+      <div class="ss-ava t1-ava">${SS_AVA}<span class="t1-rank">${e.rank}</span></div>
+      <div class="t1-name">${escapeHtml(e.s.name)}</div>
+      <div class="t1-wlt">${wlt(e.s)}</div>
+      <div class="t1-pts">${e.s.points}</div>
     </div>` : '';
+  // Susunan visual podium: peringkat terbaik di tengah. Dengan juara
+  // kembar, dua-duanya duduk di tengah dan sisanya di kanan.
+  const r1 = ent.filter(e => e.rank === 1);
+  const rest = ent.filter(e => e.rank !== 1);
+  const left = rest.length > 1 ? [rest[0]] : (rest.length && r1.length === 1 ? [rest[0]] : []);
+  const right = rest.filter(e => !left.includes(e));
   return `
     <div class="ss-scrim-top"></div>
     <div class="ss-scrim-bot"></div>
     <div class="t1-title">${title}</div>
     <div class="ss-logo t1-logo">padel<span>.</span>teroos</div>
-    <div class="t1-podium">${slot(t3[1], 1)}${slot(t3[0], 0)}${slot(t3[2], 2)}</div>`;
+    <div class="t1-podium">${left.map(slot).join('')}${r1.map(slot).join('')}${right.map(slot).join('')}</div>`;
 }
 function tplTop3() {
-  const t3 = computeStandings().slice(0, 3);
-  const pos = ['1st', '2nd', '3rd'];
+  const ent = podiumRankEntries(computeStandings(), 3);
+  const pos = { 1: '1st', 2: '2nd', 3: '3rd' };
   const title = escapeHtml(state.tournamentName || 'Padel Tournament');
-  const row = (p, i) => p ? `
-    <div class="t2-row ${i === 0 ? 'r1' : ''}">
-      <div class="t2-pos">${pos[i]}</div>
+  const row = (e) => e ? `
+    <div class="t2-row ${e.rank === 1 ? 'r1' : ''}">
+      <div class="t2-pos">${pos[e.rank] || e.rank}</div>
       <div class="ss-ava t2-ava">${SS_AVA}</div>
-      <div class="t2-name">${escapeHtml(p.name)}</div>
-      <div class="t2-wlt">${wlt(p)}</div>
-      <div class="t2-pts">${p.points}</div>
+      <div class="t2-name">${escapeHtml(e.s.name)}</div>
+      <div class="t2-wlt">${wlt(e.s)}</div>
+      <div class="t2-pts">${e.s.points}</div>
     </div>` : '';
   return `
     <div class="ss-scrim-bot"></div>
     <div class="t2-title">${title}</div>
-    <div class="t2-rows">${row(t3[0], 0)}${row(t3[1], 1)}${row(t3[2], 2)}</div>
+    <div class="t2-rows">${ent.map(row).join('')}</div>
     <div class="ss-logo t2-logo">padel<span>.</span>teroos</div>`;
 }
 function tplStandings() {
@@ -7970,7 +7979,18 @@ function showPodium() {
   const slots = ['first', 'second', 'third'];
   const rankLabels = ['Champion', 'Runner-up', 'Third Place'];
   const rankNumbers = ['I', 'II', 'III'];
-  const tieNotes = podiumTieNotes(top3, rankLabels); // v0.70.64
+  // v0.70.79: entri podium sekarang RANK-driven, bukan index-driven.
+  // Dua entitas yang gak terpisahkan berbagi peringkat (1,1,3), jadi
+  // jumlah kartu bisa != 3 dan slot ditentukan rank, bukan posisi array.
+  const labelOf = (r) => rankLabels[r - 1] || `Peringkat ${r}`;
+  const entries = podiumRankEntries(standings, 3);
+  const tieNotes = podiumRankNotes(entries, labelOf);
+  // Susunan panggung. Normal (rank 1/2/3 beda semua): tetap pakai formasi
+  // klasik 2-1-3 lewat CSS order -- juara di TENGAH. Begitu ada peringkat
+  // kembar, formasi itu rusak: dua Runner-up dua-duanya order:1, dan
+  // Champion (order:2) terlempar ke paling KANAN. Jadi di kasus kembar,
+  // panggung disusun urut kiri-ke-kanan sesuai peringkat.
+  const hasSharedRank = entries.some((e, i) => entries.some((o, j) => i !== j && e.rank === o.rank));
 
   // Elegant line-style icons matching Reserve Cup aesthetic
   const crownIcon = `
@@ -8010,9 +8030,10 @@ function showPodium() {
 
   let slotsHtml = '';
   window.__podiumTieNotes = {}; // v0.70.75: reset tiap render, jangan bawa sisa sesi lama
-  for (let i = 0; i < 3; i++) {
-    if (!top3[i]) continue;
-    const s = top3[i];
+  for (let i = 0; i < entries.length; i++) {
+    const s = entries[i].s;
+    const rank = entries[i].rank;
+    const slotCls = slots[rank - 1] || 'third';
     const winsDisplay = String(s.wins);
     const nameStar = s.bonus ? `<span class="bonus-marker">&nbsp;+${s.bonusPoints}</span>` : '';
     // v0.70.64: catatan tiebreak, satu baris per lawan yang keteriannya
@@ -8026,13 +8047,7 @@ function showPodium() {
     // teksnya pindah ke modal "Alasan Peringkat" saat di-tap. Nol teks
     // panjang di kartu = masalah autosizing hilang di akarnya, bukan
     // ditambal.
-    const noteLines = (tieNotes[i] && tieNotes[i].length)
-      ? tieNotes[i].map(n =>
-          n.reason === 'H2H'
-            ? `Unggul H2H atas ${n.vsLabel}`
-            : `Unggul selisih poin (+/\u2212) atas ${n.vsLabel}`
-        )
-      : [];
+    const noteLines = (tieNotes[i] && tieNotes[i].length) ? tieNotes[i] : [];
     window.__podiumTieNotes = window.__podiumTieNotes || {};
     window.__podiumTieNotes[i] = noteLines;
     const notesHtml = noteLines.length
@@ -8044,13 +8059,13 @@ function showPodium() {
          </button>`
       : '';
     slotsHtml += `
-      <div class="podium-slot ${slots[i]}">
-        <div class="podium-icon">${icons[i]}</div>
-        <div class="podium-rank-label">${rankLabels[i].replace(' •','')}</div>
-        <div class="podium-card" data-rank="${rankNumbers[i]}">
+      <div class="podium-slot ${slotCls}" style="--slot-order:${i + 1};">
+        <div class="podium-icon">${icons[rank - 1] || icons[2]}</div>
+        <div class="podium-rank-label">${labelOf(rank)}</div>
+        <div class="podium-card" data-rank="${rankNumbers[rank - 1] || rank}">
           <div>
             <div class="podium-place-label">${s.wins}W · ${s.losses}L${s.ties ? ' · ' + s.ties + 'T' : ''}</div>
-            <div class="podium-name" data-pid="${s.id}" data-rank="${i}">${escapeHtml(s.name)}${genderBadge(s.id)}${nameStar}</div>
+            <div class="podium-name" data-pid="${s.id}" data-rank="${rank - 1}">${escapeHtml(s.name)}${genderBadge(s.id)}${nameStar}</div>
             ${notesHtml}
           </div>
           <div class="podium-stats">
@@ -8145,7 +8160,7 @@ function showPodium() {
         <h1>Final Podium</h1>
         <div class="subtitle" style="text-align:center;width:100%;display:block;">${escapeHtml(title)}<br><span style="font-size:0.75em;opacity:0.8;">${formatLabel(state.format)} · ${date}</span></div>
       </div>
-      <div class="podium-stage">
+      <div class="podium-stage${hasSharedRank ? ' ranks-tied' : ''}">
         ${slotsHtml}
       </div>
       <div class="podium-footer">
@@ -12747,6 +12762,32 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
   cursor: pointer !important;
 }
 </style>
+<style id="codex-revision-v07079-css">
+/* v0.70.79: susunan panggung saat ada peringkat kembar.
+
+   Formasi klasik podium (Runner-up kiri, Champion tengah, Third kanan)
+   dipasang lewat flex order: .first{order:2} .second{order:1}
+   .third{order:3}, semuanya !important. Formasi itu mengasumsikan
+   TEPAT satu kartu per peringkat. Begitu peringkat bisa kembar, dia
+   pecah: dua Runner-up dua-duanya order:1, dan Champion (order:2)
+   terlempar ke paling KANAN -- juara di pojok, jelas salah.
+
+   Jadi khusus kondisi kembar, panggung disusun urut kiri-ke-kanan
+   sesuai peringkat (--slot-order di-set per kartu dari JS).
+   Specificity 0,2,1 di sini sengaja lebih tinggi dari .podium-slot.first
+   (0,2,0) supaya menang lawan !important yang sudah ada -- ini SATU-
+   SATUNYA cara ngalahin !important tanpa nyentuh block lama. */
+.podium-stage.ranks-tied .podium-slot {
+  order: var(--slot-order) !important;
+}
+/* Juara kembar duduk berdampingan dengan tinggi kartu yang sama persis
+   (dua-duanya .first, jadi min-height 180px dan margin-top 0 sudah
+   otomatis identik). Gap dinaikin tipis biar dua kartu emas berdampingan
+   gak kelihatan nempel jadi satu blok. */
+.podium-stage.ranks-tied {
+  gap: 16px;
+}
+</style>
 <script id="codex-revision-v07075-js">
 /* v0.70.75: wiring tombol asterisk podium -> modal "Alasan Peringkat".
    Delegasi di document supaya tetap jalan tiap showPodium() re-render
@@ -12808,6 +12849,110 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
     if (m) m.classList.remove('show');
   });
 })();
+</script>
+<script id="codex-revision-v07079-js">
+/* v0.70.79: peringkat podium sadar-seri (competition ranking 1-1-3).
+
+   LAPORAN: Oka&Danang dan Dyo&Irwan sama PERSIS -- 5W, 19PTS, +13 --
+   tapi salah satu dipajang Champion dan satunya Runner-up, tanpa
+   catatan alasan apa pun. Itu BENAR menurut kode lama (podiumTieNotes
+   cuma nulis catatan kalau ada pemisah nyata: h2h>0 atau diff lebih
+   besar) dan justru itu bug-nya: kalau SELURUH rantai tiebreak buntu,
+   yang menentukan siapa Champion cuma urutan insersi array -- yaitu
+   nomor index pair. Bukan keputusan kompetitif. Gak ada alasan yang
+   bisa ditulis karena memang gak ada alasannya.
+
+   Perbaikan: kalau dua entitas gak terpisahkan, mereka BERBAGI
+   peringkat. Dua Champion, lalu yang berikutnya loncat ke peringkat 3
+   (competition ranking standar 1,1,3 -- bukan 1,1,2). Persis kayak
+   podium olahraga beneran waktu dua atlet catat waktu identik. */
+
+// Berapa kali dua entitas benar-benar saling berhadapan (match yang sudah
+// discore). Dipakai buat MEMBEDAKAN dua sebab h2hScoreDiff() == 0:
+// beneran imbang vs belum pernah ketemu. Dua-duanya bikin peringkat
+// berbagi, tapi kalimat penjelasannya ke user harus beda.
+function h2hMeetings(aId, bId) {
+  let n = 0;
+  for (const round of state.rounds) {
+    if (!round || !round.matches) continue;
+    for (const m of round.matches) {
+      if (m.scoreA === 0 && m.scoreB === 0) continue; // belum dimainkan
+      const aA = m.teamA.includes(aId), aB = m.teamB.includes(aId);
+      const bA = m.teamA.includes(bId), bB = m.teamB.includes(bId);
+      if ((aA && bB) || (aB && bA)) n++;
+    }
+  }
+  return n;
+}
+
+// Dua entitas TIDAK TERPISAHKAN kalau seluruh rantai tiebreak buntu.
+// Urutannya harus sama persis dengan comparator di computeStandings():
+// wins -> points -> h2h -> diff. Kalau keempatnya seri, gak ada dasar
+// kompetitif buat naruh salah satu di atas yang lain.
+function podiumUnsplittable(a, b) {
+  return a.wins === b.wins
+      && a.points === b.points
+      && h2hScoreDiff(a.id, b.id) === 0
+      && a.diff === b.diff;
+}
+
+// Competition ranking (1,1,3). Entitas baru gabung ke grup peringkat yang
+// sedang berjalan HANYA kalau dia tidak terpisahkan dari SETIAP anggota
+// grup itu -- bukan cuma dari tetangga terdekatnya. Alasannya: "tidak
+// terpisahkan" gak transitif. A bisa seri wins/points/diff sama B dan C,
+// tapi A pernah ngalahin C head-to-head. Kalau cuma ngecek tetangga, C
+// ikut kebawa naik ke peringkat A padahal A unggul H2H atas dia.
+function podiumRankEntries(standings, maxRank) {
+  maxRank = maxRank || 3;
+  const out = [];
+  let group = [];
+  let rank = 1;
+  for (let i = 0; i < standings.length; i++) {
+    const s = standings[i];
+    const joins = group.length > 0 && group.every(g => podiumUnsplittable(s, g));
+    if (!joins) {
+      rank = i + 1;   // peringkat = jumlah yang benar-benar di atas dia + 1
+      group = [];
+    }
+    if (rank > maxRank) break;
+    group.push(s);
+    out.push({ s, rank });
+  }
+  return out;
+}
+
+// Catatan alasan peringkat. Dua jenis:
+//   SHARED — kenapa dia BERBAGI peringkat (semua tiebreak buntu)
+//   H2H / DIFF — kenapa dia UNGGUL atas yang peringkatnya di bawah
+function podiumRankNotes(entries, labelOf) {
+  return entries.map((e, i) => {
+    const lines = [];
+    entries.forEach((o, j) => {
+      if (i === j) return;
+      const a = e.s, b = o.s;
+
+      // (1) BERBAGI peringkat -> jelasin kenapa gak bisa dipisah.
+      // Ditulis di KEDUA kartu (bukan cuma yang di atas), karena tiap
+      // kartu harus bisa dibaca berdiri sendiri.
+      if (e.rank === o.rank) {
+        const met = h2hMeetings(a.id, b.id);
+        lines.push(
+          `Seri mutlak dengan ${b.name}: menang, poin, dan selisih (+/\u2212) sama persis` +
+          (met === 0 ? ', dan belum pernah ketemu' : ', head-to-head imbang')
+        );
+        return;
+      }
+
+      // (2) UNGGUL atas yang peringkatnya di bawah -> sebutin pemisahnya.
+      if (o.rank < e.rank) return;                            // dia di atas gue, bukan urusan kartu ini
+      if (a.wins !== b.wins || a.points !== b.points) return; // gak pernah terikat, gak perlu catatan
+      const h = h2hScoreDiff(a.id, b.id);
+      if (h > 0) lines.push(`Unggul H2H atas ${labelOf(o.rank)}`);
+      else if (h === 0 && a.diff > b.diff) lines.push(`Unggul selisih poin (+/\u2212) atas ${labelOf(o.rank)}`);
+    });
+    return lines;
+  });
+}
 </script>
 </body>
 </html>
