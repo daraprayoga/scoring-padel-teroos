@@ -3850,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.63 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.67 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -5739,6 +5739,27 @@ function shuffle(arr) {
 
 // Build history matrices from completed rounds
 // Returns: { partnerCount[i][j], opponentCount[i][j], gamesPlayed[i] }
+// v0.70.64: dipromosikan keluar dari computeStandings (dulu closure lokal
+// bernama h2h di sana) supaya bisa dipakai ulang buat catatan tiebreak di
+// podium tanpa duplikasi logika. Semantik SAMA PERSIS, tidak diubah:
+// >0 = aId unggul atas bId secara skor akumulatif di semua pertemuan
+// langsung mereka; 0 = imbang ATAU belum pernah ketemu sama sekali.
+function h2hScoreDiff(aId, bId) {
+  let aScore = 0, bScore = 0;
+  for (const round of state.rounds) {
+    if (!round || !round.matches) continue;
+    for (const m of round.matches) {
+      const aOnA = m.teamA.includes(aId), aOnB = m.teamB.includes(aId);
+      const bOnA = m.teamA.includes(bId), bOnB = m.teamB.includes(bId);
+      if ((aOnA && bOnB) || (aOnB && bOnA)) {
+        if (aOnA) { aScore += (m.scoreA || 0); bScore += (m.scoreB || 0); }
+        else       { aScore += (m.scoreB || 0); bScore += (m.scoreA || 0); }
+      }
+    }
+  }
+  return aScore - bScore;
+}
+
 function buildHistory(uptoRoundIdx) {
   const n = isTeam() ? state.pairs : state.players;
   const partner = Array.from({length: n}, () => new Array(n).fill(0));
@@ -6566,23 +6587,10 @@ function computeStandings() {
   });
 
   // ===== HEAD-TO-HEAD helper =====
-  // Returns score diff from a's perspective in all direct matches vs b.
-  // >0 means a outscored b in their direct matches.
-  function h2h(aId, bId) {
-    let aScore = 0, bScore = 0;
-    for (const round of state.rounds) {
-      if (!round || !round.matches) continue;
-      for (const m of round.matches) {
-        const aOnA = m.teamA.includes(aId), aOnB = m.teamB.includes(aId);
-        const bOnA = m.teamA.includes(bId), bOnB = m.teamB.includes(bId);
-        if ((aOnA && bOnB) || (aOnB && bOnA)) {
-          if (aOnA) { aScore += (m.scoreA || 0); bScore += (m.scoreB || 0); }
-          else       { aScore += (m.scoreB || 0); bScore += (m.scoreA || 0); }
-        }
-      }
-    }
-    return aScore - bScore;
-  }
+  // v0.70.64: logika dipindah ke h2hScoreDiff (top-level, dekat
+  // buildHistory) supaya podiumTieNotes bisa pakai definisi yang SAMA
+  // PERSIS, bukan menduplikasi. `h2h` di sini cuma alias tipis.
+  const h2h = h2hScoreDiff;
 
   return Object.values(stats).sort((a, b) => {
     const sortBy = state.sortBy || 'wins';
@@ -7911,6 +7919,38 @@ function buildResultsPages() {
   return html;
 }
 
+// v0.70.64: catatan tiebreak podium. Kalau dua entitas top-3 SAMA
+// persis di kriteria utama (wins & points -- kriteria di ATAS h2h/diff
+// pada computeStandings), yang bikin urutan mereka berbeda pasti salah
+// satu dari dua hal: h2h (kalau memang pernah ketemu & hasilnya gak 0)
+// atau diff (fallback v0.70.61). Fungsi ini menelusuri urutan podium
+// yang SUDAH final dan menjelaskan alasan pemisahnya per pasangan,
+// bukan cuma versus tetangga langsung -- kalau juara terikat wins+points
+// dengan runner-up MAUPUN juara 3, dua-duanya dapat catatan sendiri
+// (persis kasus Franz/Dwi/Racka: satu entitas bisa unggul via h2h atas
+// satu lawan, dan via diff atas lawan yang lain, dalam podium yang sama).
+function podiumTieNotes(top3, rankLabels) {
+  const notes = top3.map(() => []);
+  for (let i = 0; i < top3.length; i++) {
+    if (!top3[i]) continue;
+    for (let j = 0; j < top3.length; j++) {
+      if (i === j || !top3[j]) continue;
+      if (j <= i) continue; // catat kenapa i (peringkat lebih baik) unggul atas j (lebih rendah)
+      const a = top3[i], b = top3[j];
+      if (a.wins !== b.wins || a.points !== b.points) continue; // gak terikat, gak perlu catatan
+      const h = h2hScoreDiff(a.id, b.id);
+      let reason = null;
+      if (h > 0) reason = 'H2H';
+      else if (h === 0 && a.diff > b.diff) reason = 'DIFF';
+      // h < 0 seharusnya mustahil (a tidak mungkin unggul di sort kalau kalah H2H
+      // langsung), dan h===0 && diff sama juga mustahil (a tidak akan lebih tinggi
+      // tanpa alasan) -- kalau toh kejadian karena data eksternal aneh, skip diam-diam.
+      if (reason) notes[i].push({ vsIdx: j, vsLabel: rankLabels[j], reason });
+    }
+  }
+  return notes;
+}
+
 function showPodium() {
   const standings = computeStandings();
   const top3 = standings.slice(0, 3);
@@ -7930,6 +7970,7 @@ function showPodium() {
   const slots = ['first', 'second', 'third'];
   const rankLabels = ['Champion', 'Runner-up', 'Third Place'];
   const rankNumbers = ['I', 'II', 'III'];
+  const tieNotes = podiumTieNotes(top3, rankLabels); // v0.70.64
 
   // Elegant line-style icons matching Reserve Cup aesthetic
   const crownIcon = `
@@ -7973,6 +8014,16 @@ function showPodium() {
     const s = top3[i];
     const winsDisplay = String(s.wins);
     const nameStar = s.bonus ? `<span class="bonus-marker">&nbsp;+${s.bonusPoints}</span>` : '';
+    // v0.70.64: catatan tiebreak, satu baris per lawan yang keteriannya
+    // dipisahkan h2h/diff. Cuma render kalau ADA (kasus normal tanpa
+    // dispute: array kosong, tidak nambah markup apa pun).
+    const notesHtml = tieNotes[i] && tieNotes[i].length
+      ? `<div class="podium-tie-note">${tieNotes[i].map(n =>
+          n.reason === 'H2H'
+            ? `Unggul H2H atas ${n.vsLabel}`
+            : `Unggul selisih poin (+/\u2212) atas ${n.vsLabel}`
+        ).join(' \u00b7 ')}</div>`
+      : '';
     slotsHtml += `
       <div class="podium-slot ${slots[i]}">
         <div class="podium-icon">${icons[i]}</div>
@@ -7981,11 +8032,16 @@ function showPodium() {
           <div>
             <div class="podium-place-label">${s.wins}W · ${s.losses}L${s.ties ? ' · ' + s.ties + 'T' : ''}</div>
             <div class="podium-name" data-pid="${s.id}" data-rank="${i}">${escapeHtml(s.name)}${genderBadge(s.id)}${nameStar}</div>
+            ${notesHtml}
           </div>
           <div class="podium-stats">
             <div class="podium-stat-block">
-              <div class="podium-stat-val">${s.games}</div>
-              <div class="podium-stat-key">GP</div>
+              <div class="podium-stat-val">${s.wins}</div>
+              <div class="podium-stat-key">WIN</div>
+            </div>
+            <div class="podium-stat-block pts">
+              <div class="podium-stat-val">${s.points}</div>
+              <div class="podium-stat-key">PTS</div>
             </div>
             <div class="podium-stat-block dark">
               <div class="podium-stat-val">${s.diff > 0 ? '+' : ''}${s.diff}</div>
@@ -7994,10 +8050,6 @@ function showPodium() {
             <div class="podium-stat-block">
               <div class="podium-stat-val">${s.games > 0 ? Math.round(s.winRate * 100) : 0}%</div>
               <div class="podium-stat-key">WR</div>
-            </div>
-            <div class="podium-stat-block pts">
-              <div class="podium-stat-val">${s.points}</div>
-              <div class="podium-stat-key">PTS</div>
             </div>
           </div>
         </div>
@@ -12261,5 +12313,35 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
   font-weight: 400 !important;
 }
 </style>
+<style id="codex-revision-v07067">
+/* v0.70.67: dua revisi podium (bukan style-only, ada JS di showPodium()
+   + h2hScoreDiff yang dipromosikan keluar dari computeStandings).
+
+   [1] Urutan stat block podium card: GP/+/-/WR/PTS -> WIN/PTS/+/-/WR
+   sesuai permintaan. Markup di showPodium() diubah langsung (GP diganti
+   WIN, diambil dari s.wins yang sudah ada di stats), CSS di sini cuma
+   nambah style buat class key "WIN" biar konsisten sama key lain
+   (GP/WR dst pola sebelumnya sama semua, tidak perlu override khusus --
+   .podium-stat-block/.pts/.dark tidak posisi-dependent, aman direorder).
+
+   [2] Catatan tiebreak (.podium-tie-note): muncul di bawah nama, HANYA
+   kalau entitas ini terikat wins+points sama entitas top-3 lain yang
+   peringkatnya di bawah dia -- kasus asli: 3 pair sama 6W/18PTS, satu
+   unggul H2H atas yang satu, unggul +/- atas yang lain (dua alasan
+   beda buat dua lawan berbeda, persis situasi Franz/Dwi/Racka).
+   Podium normal tanpa dispute: array kosong, TIDAK menambah markup
+   apa pun -- nol dampak visual di kasus umum. */
+.podium-tie-note {
+  margin-top: 4px;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: rgba(16,42,28,0.55);
+  line-height: 1.35;
+}
+.podium-slot.first .podium-tie-note { color: rgba(16,42,28,0.62); }
+</style>
 </body>
+</html>
 </html>
