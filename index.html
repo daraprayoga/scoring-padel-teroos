@@ -3850,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.69 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.70 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -12411,6 +12411,36 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
   .podium-tie-note { font-size: clamp(16px, 3vh, 28px) !important; }
 }
 .podium-tie-note::before { content: '*'; }
+</style>
+<style id="codex-revision-v07070">
+/* v0.70.70: note masih kegedean di device asli meski v07068/69 lolos
+   test computed-style -- karena testnya emang gak bisa nangkep ini.
+   WebKit Text Autosizer bekerja di RENDER TIME, bukan CSSOM computed
+   style, jadi jsdom (yang cuma nge-parse CSS, gak render pixel) buta
+   total terhadap bug ini.
+
+   AKAR: html,body di baris ~45 pakai -webkit-text-size-adjust: 100%
+   (persentase) -- itu konvensi yang KERJA di file ini. Fix v07068
+   kemarin pakai nilai none di .podium-tie-note. Safari historisnya
+   cuma benar-benar mengenali nilai persentase buat property ini;
+   'none' gampang di-drop diam-diam sebagai nilai tak dikenal dan
+   elemen jatuh balik ke behavior auto/default -- autosizer bebas
+   membesarkan teks yang wrapping di container sempit, walau computed
+   style tetap melaporkan angka yang gue set (makanya lolos test).
+   Fix: ganti ke 100%, PERSIS nilai yang sudah terbukti jalan di
+   html/body. -webkit-text-size-adjust:none dicabut total. */
+.podium-tie-note {
+  -webkit-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+}
+/* Lapis kedua: WebKit autosizer kadang mengacu ke leluhur block
+   terdekat, bukan cuma elemen teksnya sendiri. .podium-card belum
+   pernah deklarasi property ini di mana pun (sudah dicek), aman
+   ditambahkan tanpa mengganggu apa pun selain menutup celah ini. */
+.podium-card {
+  -webkit-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+}
 </style>
 </body>
 </html>
