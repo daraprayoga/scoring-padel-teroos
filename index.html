@@ -3850,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.68 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.69 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -12389,6 +12389,28 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
   letter-spacing: 0;
 }
 .podium-slot.first .podium-tie-note { color: rgba(16,42,28,0.58) !important; }
+</style>
+<style id="codex-revision-v07069">
+/* v0.70.69: dua penyesuaian note tiebreak podium.
+
+   [1] Font-size disamain PERSIS ke angka WIN (.podium-stat-val), di
+   SEMUA breakpoint -- bukan satu clamp pukul rata. .podium-stat-val
+   punya 3 nilai berbeda tergantung konteks: 20px desktop/base (tanpa
+   media query), 10px mobile portrait <=640px (blok TV-FIT v0.67),
+   clamp(16px,3vh,28px) landscape. Note sekarang mengikuti tiga-tiganya
+   satu-satu di scope media query yang SAMA, supaya di device manapun
+   ukurannya identik dengan angka WIN yang dilihat berdampingan.
+
+   [2] Asterisk ::before: spasi setelah '*' dihapus -- '* ' jadi '*',
+   nempel langsung ke kata pertama. */
+.podium-tie-note { font-size: 20px !important; }
+@media (max-width: 640px) {
+  .podium-tie-note { font-size: 10px !important; }
+}
+@media (orientation: landscape) {
+  .podium-tie-note { font-size: clamp(16px, 3vh, 28px) !important; }
+}
+.podium-tie-note::before { content: '*'; }
 </style>
 </body>
 </html>
