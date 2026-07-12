@@ -3850,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.67 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.68 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -12341,6 +12341,54 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
   line-height: 1.35;
 }
 .podium-slot.first .podium-tie-note { color: rgba(16,42,28,0.62); }
+</style>
+<style id="codex-revision-v07068">
+/* v0.70.68: redesign catatan tiebreak podium -- laporan UAT: note
+   kegedean, nyaris setara nama pemain, polos, gak estetik.
+
+   Dua hal sekaligus di sini:
+
+   (1) KENAPA BISA GEDE padahal v07067 set 10.5px: tidak ada rule lain
+   yang menarget class ini, tersangka terkuat adalah WebKit font
+   boosting di iOS -- teks kecil yang membentang selebar container
+   (persis anatomi note ini di dalam podium-card) di-inflate otomatis,
+   dan text-size-adjust di level html kadang tidak cukup di konteks
+   flex column. Pertahanan berlapis: setiap property di-lock
+   !important, -webkit-text-size-adjust:none langsung di elemen, dan
+   max-width 24ch supaya dia tidak pernah jadi wide text block yang
+   men-trigger boosting.
+
+   (2) REDESIGN jadi footnote editorial: DM Sans ITALIC (bukan serif,
+   konsisten keputusan nama podium), ukuran di-clamp selalu jauh di
+   bawah nama (nama mobile 10-12px / desktop 22px+, note 8.5-10.5px),
+   weight turun ke 600, warna ink redup, letter-spacing tipis, dan
+   asterisk EMAS di depan via ::before -- gold dipakai karena catatan
+   ini soal kehormatan peringkat (sesuai kurasi gold: penghormatan
+   saja), style asterisk tegak+bold kontras dengan body note yang
+   italic ringan, persis bahasa footnote cetak. Asterisk dari CSS,
+   bukan JS, supaya teks note tetap bersih untuk dipakai ulang. */
+.podium-tie-note {
+  display: block !important;
+  margin: 5px auto 0 !important;
+  max-width: 24ch !important;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif !important;
+  font-style: italic !important;
+  font-size: clamp(8.5px, 1.3vh, 10.5px) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.25px !important;
+  line-height: 1.45 !important;
+  color: rgba(16,42,28,0.5) !important;
+  -webkit-text-size-adjust: none !important;
+  text-size-adjust: none !important;
+}
+.podium-tie-note::before {
+  content: '* ';
+  font-style: normal;
+  font-weight: 800;
+  color: #8b6914;
+  letter-spacing: 0;
+}
+.podium-slot.first .podium-tie-note { color: rgba(16,42,28,0.58) !important; }
 </style>
 </body>
 </html>
