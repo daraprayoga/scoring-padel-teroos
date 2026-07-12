@@ -3850,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.75 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.77 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -8036,7 +8036,12 @@ function showPodium() {
     window.__podiumTieNotes = window.__podiumTieNotes || {};
     window.__podiumTieNotes[i] = noteLines;
     const notesHtml = noteLines.length
-      ? `<button type="button" class="podium-tie-btn" data-slot="${i}" aria-label="Alasan peringkat">*</button>`
+      ? `<button type="button" class="podium-tie-btn" data-slot="${i}" aria-label="Alasan peringkat">
+           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+             <circle cx="12" cy="6.4" r="1.6" fill="currentColor"/>
+             <path d="M12 10.8 V17.6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+           </svg>
+         </button>`
       : '';
     slotsHtml += `
       <div class="podium-slot ${slots[i]}">
@@ -9164,6 +9169,13 @@ saveState = window.saveState;
         if (el.closest && el.closest('#storyStudio')) return; // story studio controls stay usable
         if (el.closest && el.closest('#sbActions')) return; // handled separately
         if (el.id === 'ppClose') return; // player-profile card close — must stay usable once opened
+        // v0.70.77: note tiebreak podium HARUS tetap bisa di-tap di viewer mode.
+        // Ini justru konteks utamanya: link ?room= yang dishare ke grup, dan yang
+        // baca podium di situ persis orang yang nanya "kok dia juara, poinnya sama?".
+        // Tanpa dua baris ini, disable-pass di atas nyabut pointer-events dari
+        // tombolnya (dia <button>) dan bikin opacity 0.3 -- tombol mati + pudar.
+        if (el.classList && el.classList.contains('podium-tie-btn')) return;
+        if (el.closest && el.closest('#podiumTieModal')) return; // tombol Tutup di modal
         el.style.pointerEvents = 'none';
         el.style.opacity = '0.3';
         el.style.cursor = 'not-allowed';
@@ -12615,6 +12627,126 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
   box-shadow: inset 0 2px 5px rgba(0,0,0,0.35);
 }
 </style>
+<style id="codex-revision-v07076-css">
+/* v0.70.76: tombol note tiebreak -- glyph '*' teks diganti INFO icon SVG.
+
+   Kenapa ganti glyph, bukan cuma dipoles: asterisk itu penanda FOOTNOTE
+   (bilang "ada catatan"), dia gak pernah bilang "ini bisa di-tap". Info
+   glyph 'i' adalah affordance universal buat "tap buat penjelasan" --
+   sesuai fungsi aslinya di sini: buka modal alasan peringkat. Beban UX
+   pindah dari "user harus nebak" ke "user langsung ngerti".
+
+   Kenapa SVG, bukan karakter: '*' sebagai teks kena hinting font +
+   baseline drift (dia glyph superscript, duduknya nempel ke atas
+   em-box, makanya kelihatan mencong di lingkaran) DAN masih ikut
+   text-autosizer. SVG stroke geometris: presisi optik, mati total dari
+   autosizer, dan konsisten sama helper SVG lain di app ini.
+
+   Styling: lingkaran 20px, ring emas dua lapis (border + ring luar
+   halus), fill glass cream, specular highlight di atas. Press = inner
+   shadow makin dalam + specular geser turun, NOL scale. */
+.podium-tie-btn {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  margin: 6px auto 0 !important;
+  width: 20px !important;
+  height: 20px !important;
+  padding: 0 !important;
+  border: 1px solid rgba(201,169,97,0.62) !important;
+  border-radius: 50% !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(201,169,97,0.16) 100%) !important;
+  color: #8b6914 !important;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.85),
+    inset 0 -1px 2px rgba(139,105,20,0.10),
+    0 0 0 2px rgba(201,169,97,0.10) !important;
+  transition: box-shadow 0.14s ease, background 0.14s ease !important;
+}
+.podium-tie-btn svg {
+  width: 11px;
+  height: 11px;
+  display: block;
+}
+.podium-tie-btn:active {
+  background:
+    linear-gradient(180deg, rgba(201,169,97,0.22) 0%, rgba(201,169,97,0.30) 100%) !important;
+  box-shadow:
+    inset 0 2px 5px rgba(90,68,20,0.30),
+    inset 0 -1px 0 rgba(255,255,255,0.45),
+    0 0 0 2px rgba(201,169,97,0.14) !important;
+}
+/* Champion card duduk di atas tint emas -- ring dinaikin sedikit biar
+   tombolnya tetap kebaca, gak melebur ke background kartunya. */
+.podium-slot.first .podium-tie-btn {
+  border-color: rgba(139,105,20,0.55) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.82) 0%, rgba(201,169,97,0.20) 100%) !important;
+}
+
+/* Mark di header modal: glyph yang SAMA, ukuran naik. Konsistensi
+   ikon tombol -> ikon modal bikin user yakin dia buka hal yang bener. */
+.podium-tie-modal .ptm-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(201,169,97,0.45);
+  background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(201,169,97,0.18) 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+}
+.podium-tie-modal .ptm-mark svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+</style>
+<style id="codex-revision-v07077-css">
+/* v0.70.77: pastikan tombol note BENERAN clickable, di semua mode.
+
+   [1] VIEWER MODE (akar bug): applyViewerUI() punya disable-pass yang
+   nyabut pointer-events + set opacity 0.3 ke SEMUA <button> kecuali
+   allowlist. .podium-tie-btn belum ada di allowlist -> di link ?room=
+   (justru konteks utamanya: podium yang dishare ke grup) tombolnya
+   mati total dan pudar. Allowlist-nya udah ditambah di JS. Rule di
+   bawah ini lapis kedua: disable-pass nulis INLINE style, jadi cuma
+   !important yang bisa ngalahin -- kalau ada pass baru nanti yang lupa
+   allowlist lagi, tombol ini tetap hidup.
+
+   [2] STACKING: modal tadinya z-index 300. .podium-backdrop base-nya
+   200, TAPI applyViewerUI naikin jadi 300 inline, dan studio backdrop
+   duduk di 100002. Nilai 300 itu adu imbang yang cuma menang karena
+   urutan DOM -- rapuh. Dinaikin ke 100050: di atas podium, di atas
+   studio, di atas header (9999). */
+.podium-tie-btn {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+  position: relative;
+  z-index: 2;
+  /* Tap target 44px (guideline mobile) tanpa membesarkan lingkarannya:
+     area tap diperluas lewat ::before transparan, visual tetap 20px. */
+}
+.podium-tie-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+.podium-tie-modal {
+  z-index: 100050 !important;
+}
+.podium-tie-modal .ptm-close {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+}
+</style>
 <script id="codex-revision-v07075-js">
 /* v0.70.75: wiring tombol asterisk podium -> modal "Alasan Peringkat".
    Delegasi di document supaya tetap jalan tiap showPodium() re-render
@@ -12629,7 +12761,12 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
     m.innerHTML =
       '<div class="ptm-card" role="dialog" aria-modal="true" aria-labelledby="ptmTitle">' +
         '<div class="ptm-head">' +
-          '<div class="ptm-mark">*</div>' +
+          '<div class="ptm-mark">' +
+            '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">' +
+              '<circle cx="12" cy="6.4" r="1.6" fill="currentColor"/>' +
+              '<path d="M12 10.8 V17.6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>' +
+            '</svg>' +
+          '</div>' +
           '<div class="ptm-title" id="ptmTitle">Alasan Peringkat</div>' +
         '</div>' +
         '<div class="ptm-body" id="ptmBody"></div>' +
