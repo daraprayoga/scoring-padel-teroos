@@ -3850,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.62 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.63 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -5855,7 +5855,19 @@ function isAvailable(id) {
   return state.playerStatus[id] === 'available' || state.playerStatus[id] === undefined;
 }
 
-function selectPlayingPool(total, activeCount, gamesPlayed) {
+// v0.70.63: siapa yang duduk di round SEBELUM round yang sedang
+// digenerate. Dipakai sebagai tier tiebreak di semua jalur pemilihan
+// sit-out: GP dulu (prioritas #1, tidak berubah), lalu "kemarin duduk
+// harus main sekarang", baru tiebreak lama (rank / random). Ini
+// menutup celah double-rest yang muncul setiap kali GP seluruh field
+// seri (habis round genap di kasus 50% duduk) -- di titik itu tiebreak
+// lama (rank/random) buta terhadap siapa yang barusan duduk.
+function restedLastRoundSet(roundIdx) {
+  const rd = state.rounds[roundIdx - 1];
+  return new Set(rd && rd.resting ? rd.resting : []);
+}
+
+function selectPlayingPool(total, activeCount, gamesPlayed, lastResting) {
   // Filter to only available entities first
   const availableIds = [];
   for (let i = 0; i < total; i++) {
@@ -5872,10 +5884,12 @@ function selectPlayingPool(total, activeCount, gamesPlayed) {
     // All available players play, no rotation needed
     return { playing: shuffle(availableIds), resting: unavailable };
   }
-  // Sort available by gamesPlayed ASC, random tiebreak
-  const indices = availableIds.map(id => ({ id, games: gamesPlayed[id], rnd: Math.random() }));
+  // Sort available: GP ASC -> rested-last-round first (v0.70.63) -> random
+  const lr = lastResting || new Set();
+  const indices = availableIds.map(id => ({ id, games: gamesPlayed[id], rest: lr.has(id) ? 0 : 1, rnd: Math.random() }));
   indices.sort((a, b) => {
     if (a.games !== b.games) return a.games - b.games;
+    if (a.rest !== b.rest) return a.rest - b.rest;
     return a.rnd - b.rnd;
   });
   const playing = indices.slice(0, activeCount).map(x => x.id);
@@ -5969,7 +5983,7 @@ function buildMexicanoMatches(roundIdx) {
 
   if (scoredRounds === 0 || available.length <= activePlayers) {
     // Round 0 or everyone fits — random assignment
-    const pool = selectPlayingPool(total, activePlayers, hist.games);
+    const pool = selectPlayingPool(total, activePlayers, hist.games, restedLastRoundSet(roundIdx));
     const assignments = assignPlayersToCourts(pool.playing, state.courts, hist);
     return {
       matches: buildIndividualMatchesFromAssignments(assignments),
@@ -5985,10 +5999,14 @@ function buildMexicanoMatches(roundIdx) {
 
   // Step 2: sort available by games played ASC (fewest plays first = must play this round)
   // tiebreak: better rank plays, worse rank sits
+  const lrSet = restedLastRoundSet(roundIdx); // v0.70.63
   const sorted = [...available].sort((a, b) => {
     const gDiff = hist.games[a] - hist.games[b];
     if (gDiff !== 0) return gDiff; // fewer games → play
-    // same GP: better rank plays, worse rank sits (higher rankIdx = worse)
+    // v0.70.63: GP seri → yang kemarin duduk main duluan (anti double-rest)
+    const rDiff = (lrSet.has(a) ? 0 : 1) - (lrSet.has(b) ? 0 : 1);
+    if (rDiff !== 0) return rDiff;
+    // same GP & rest status: better rank plays, worse rank sits
     return (rankOf[a] ?? 999) - (rankOf[b] ?? 999);
   });
 
@@ -6040,7 +6058,7 @@ function buildTeamMexicanoMatches(roundIdx) {
   ).length;
 
   if (scoredRounds === 0 || available.length <= activePairs) {
-    const pool = selectPlayingPool(total, activePairs, hist.games);
+    const pool = selectPlayingPool(total, activePairs, hist.games, restedLastRoundSet(roundIdx));
     return { matches: buildTeamMatches(pool.playing), resting: pool.resting };
   }
 
@@ -6049,10 +6067,13 @@ function buildTeamMexicanoMatches(roundIdx) {
   const rankOf = {};
   standings.forEach((s, i) => { rankOf[s.id] = i; });
 
-  // Sort available: fewest GP first, tiebreak by rank (better rank plays)
+  // Sort available: GP ASC -> rested-last first (v0.70.63) -> rank
+  const lrSet = restedLastRoundSet(roundIdx);
   const sorted = [...available].sort((a, b) => {
     const gDiff = hist.games[a] - hist.games[b];
     if (gDiff !== 0) return gDiff;
+    const rDiff = (lrSet.has(a) ? 0 : 1) - (lrSet.has(b) ? 0 : 1);
+    if (rDiff !== 0) return rDiff;
     return (rankOf[a] ?? 999) - (rankOf[b] ?? 999);
   });
 
@@ -6178,14 +6199,33 @@ function buildTeamAmericanoRound(roundIdx) {
   const slots = activePairs - forced.length;
 
   // Monte-Carlo the bubble selection + pairing: try many fair playing-sets and keep the
-  // one with the fewest opponent repeats. Within the bubble, pairs that already rested
-  // twice in a row are pulled in first (rest cap).
+  // one with the fewest opponent repeats.
+  // v0.70.63 fix (dua akar dari laporan 24 pairs / 6 courts):
+  // (1) BUG: `best` disimpan TANPA property cost, jadi `r.cost < best.cost`
+  //     membandingkan lawan undefined -> false selamanya -> Monte-Carlo
+  //     mati total, round = hasil 1 percobaan greedy random. Itu sebabnya
+  //     repeat opponent lolos. Sekarang cost ikut disimpan + attempts 120.
+  // (2) Prioritas bubble ditambah tier "rested LAST round": dulu cuma
+  //     rested2 (2x berturut) yang ditarik masuk, artinya double-rest
+  //     dibolehin by design. Sekarang: rested2 (tier 0) -> rested round
+  //     kemarin (tier 1) -> sisanya (tier 2). Dengan slot cukup, semua
+  //     yang kemarin duduk PASTI main sekarang -> zero double-rest.
+  //     Konsekuensi matematis pada kasus tepat 50% duduk (24 pairs /
+  //     6 courts): field terbelah jadi 2 kohort tetap yang bergantian
+  //     main-duduk -- itu satu-satunya konfigurasi yang memenuhi "tidak
+  //     ada yang duduk 2x berturut-turut", bukan pilihan implementasi.
+  //     shuffle() sebelum sort + sort stabil (spec ES2019) = acak di
+  //     dalam tiap tier.
   let best = null;
-  for (let a = 0; a < 60; a++) {
-    const pool = shuffle(bubble).sort((x, y) => (rested2.has(x) ? 0 : 1) - (rested2.has(y) ? 0 : 1));
+  for (let a = 0; a < 120; a++) {
+    const pool = shuffle(bubble).sort((x, y) => {
+      const tx = rested2.has(x) ? 0 : (r1.has(x) ? 1 : 2);
+      const ty = rested2.has(y) ? 0 : (r1.has(y) ? 1 : 2);
+      return tx - ty;
+    });
     const pick = pool.slice(0, slots);
     const r = pairUp([...forced, ...pick]);
-    if (!best || r.cost < best.cost) best = { pairOrder: r.pairOrder, restBubble: pool.slice(slots) };
+    if (!best || r.cost < best.cost) best = { pairOrder: r.pairOrder, cost: r.cost, restBubble: pool.slice(slots) };
     if (best.cost === 0) break;
   }
 
@@ -6201,7 +6241,7 @@ function buildIndividualAmericanoRound(roundIdx) {
   const activePlayers = state.courts * 4;
   const hist = buildHistory(roundIdx);
 
-  const pool = selectPlayingPool(total, activePlayers, hist.games);
+  const pool = selectPlayingPool(total, activePlayers, hist.games, restedLastRoundSet(roundIdx));
   const resting = (pool && pool.resting) ? pool.resting : [];
 
   // Use enhanced Monte Carlo: more attempts, score on opponent repeat
@@ -6240,9 +6280,13 @@ function buildMixAmericanoRound(roundIdx) {
   const needPerGender = state.courts * 2;
 
   // Fair sit-out: sort by games played ASC, keep top needPerGender
+  const lrSet = restedLastRoundSet(roundIdx); // v0.70.63
   const sortByGames = (pool) => {
     return [...pool]
-      .sort((a, b) => hist.games[a] - hist.games[b] || Math.random() - 0.5)
+      .sort((a, b) =>
+        hist.games[a] - hist.games[b] ||
+        ((lrSet.has(a) ? 0 : 1) - (lrSet.has(b) ? 0 : 1)) ||
+        Math.random() - 0.5)
       .slice(0, needPerGender);
   };
 
@@ -6330,9 +6374,12 @@ function buildMixicanoRound(roundIdx) {
     computeStandings().forEach((s, i) => { rankOf[s.id] = i; });
   }
 
+  const lrSet = restedLastRoundSet(roundIdx); // v0.70.63
   const sortFair = (pool) => [...pool].sort((a, b) => {
     const gDiff = hist.games[a] - hist.games[b];
     if (gDiff !== 0) return gDiff; // fewer games → must play
+    const rDiff = (lrSet.has(a) ? 0 : 1) - (lrSet.has(b) ? 0 : 1); // v0.70.63 anti double-rest
+    if (rDiff !== 0) return rDiff;
     if (scoredRounds > 0) return (rankOf[a] ?? 999) - (rankOf[b] ?? 999); // tie → better rank plays
     return Math.random() - 0.5; // no rank yet → arbitrary
   }).slice(0, needPerGender);
@@ -6389,7 +6436,7 @@ function generateRound(idx) {
       resting = result.resting;
     } else {
       // Team Mexicano round 0: random
-      const pool = selectPlayingPool(total, activePairs, hist.games);
+      const pool = selectPlayingPool(total, activePairs, hist.games, restedLastRoundSet(idx));
       resting = (pool && pool.resting) ? pool.resting : [];
       matches = buildTeamMatches((pool && pool.playing) ? pool.playing : []);
     }
@@ -6432,7 +6479,7 @@ function generateRound(idx) {
       resting = result.resting;
     } else {
       // ind_mexicano round 0: random cross-court
-      const pool = selectPlayingPool(total, activePlayers, hist.games);
+      const pool = selectPlayingPool(total, activePlayers, hist.games, restedLastRoundSet(idx));
       resting = (pool && pool.resting) ? pool.resting : [];
       const poolPlaying = (pool && pool.playing) ? pool.playing : [];
       const assignments = assignPlayersToCourts(poolPlaying, state.courts, hist);
@@ -6446,7 +6493,7 @@ function generateRound(idx) {
     const total2 = isT ? state.pairs : state.players;
     const count = isT ? state.courts * 2 : state.courts * 4;
     const hist2 = buildHistory(idx);
-    const pool2 = selectPlayingPool(total2, count, hist2.games);
+    const pool2 = selectPlayingPool(total2, count, hist2.games, restedLastRoundSet(idx));
     resting = (pool2 && pool2.resting) ? pool2.resting : [];
     const playing2 = (pool2 && pool2.playing) ? pool2.playing : [];
     if (isT) {
@@ -12215,5 +12262,4 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
 }
 </style>
 </body>
-</html>
 </html>
