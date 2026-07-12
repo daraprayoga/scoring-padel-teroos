@@ -8018,11 +8018,11 @@ function showPodium() {
     // dipisahkan h2h/diff. Cuma render kalau ADA (kasus normal tanpa
     // dispute: array kosong, tidak nambah markup apa pun).
     const notesHtml = tieNotes[i] && tieNotes[i].length
-      ? `<span class="tie-reason-badge" data-reason="${tieNotes[i].map(n =>
+      ? `<div class="podium-tie-note">${tieNotes[i].map(n =>
           n.reason === 'H2H'
             ? `Unggul H2H atas ${n.vsLabel}`
             : `Unggul selisih poin (+/\u2212) atas ${n.vsLabel}`
-        ).join(' · ')}" title="Tap untuk lihat alasan peringkat">∗</span>`
+        ).join(' \u00b7 ')}</div>`
       : '';
     slotsHtml += `
       <div class="podium-slot ${slots[i]}">
@@ -8055,58 +8055,6 @@ function showPodium() {
         </div>
       </div>
     `;
-  }
-
-  // Tap to show reason modal (podium cards)
-  content.addEventListener('click', function(e) {
-    const badge = e.target.closest('.tie-reason-badge');
-    if (badge) {
-      e.stopImmediatePropagation();
-      const reasonText = badge.dataset.reason || '';
-      showPodiumReasonModal(reasonText);
-    }
-  });
-
-  function showPodiumReasonModal(reason) {
-    // Remove existing modal if any
-    const existing = document.getElementById('podiumReasonModal');
-    if (existing) existing.remove();
-
-    const modal = document.createElement('div');
-    modal.id = 'podiumReasonModal';
-    modal.style.cssText = `
-      position: fixed; inset: 0; z-index: 99999;
-      display: flex; align-items: center; justify-content: center;
-      background: rgba(15,35,24,0.65); padding: 20px;
-      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-    `;
-    modal.innerHTML = `
-      <div style="
-        background: #fff; border-radius: 20px; max-width: 340px; width: 100%;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.25);
-        border: 1px solid rgba(201,169,97,0.3); overflow: hidden;
-      ">
-        <div style="padding: 20px 20px 16px; border-bottom: 1px solid rgba(29,59,42,0.08);">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <div style="width:28px; height:28px; border-radius:50%; background:rgba(201,169,97,0.15); display:flex; align-items:center; justify-content:center; color:#8b6914; font-weight:800; font-size:16px;">∗</div>
-            <div style="font-weight:700; color:#1d3b2a; font-size:15px;">Alasan Peringkat</div>
-          </div>
-        </div>
-        <div style="padding: 20px; color:#3a2f1f; font-size:14.5px; line-height:1.55;">
-          ${reason}
-        </div>
-        <div style="padding: 12px 20px 20px; text-align:right;">
-          <button id="closeReasonModal" style="
-            background:#1d3b2a; color:#fff; border:none; border-radius:10px;
-            padding:10px 22px; font-size:14px; font-weight:600; cursor:pointer;
-          ">Tutup</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-
-    modal.querySelector('#closeReasonModal').onclick = () => modal.remove();
-    modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
   }
 
   // Build full standings rows
@@ -12494,30 +12442,34 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
   text-size-adjust: 100% !important;
 }
 
-/* v0.70.73+ : Subtle tap-able reason badge */
-.tie-reason-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  margin-left: 6px;
-  font-size: 13px;
-  font-weight: 800;
-  color: #8b6914;
-  background: rgba(201, 169, 97, 0.15);
-  border: 1px solid rgba(201, 169, 97, 0.35);
-  border-radius: 50%;
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.15s ease;
-  vertical-align: middle;
-  line-height: 1;
+/* v0.70.74: Better contrast & legibility on low-end Android ("kentang" HP)
+   Masalah: di device low-end, warna hijau muda + cream background jadi
+   sangat pudar, kontras jelek, teks susah dibaca.
+
+   Solusi: perkuat kontras di area Standings tanpa merusak tampilan premium
+   di HP high-end. */
+.podium-standings-table td,
+.podium-standings-table th {
+  color: #1d3b2a !important;
 }
-.tie-reason-badge:hover,
-.tie-reason-badge:active {
-  background: rgba(201, 169, 97, 0.28);
-  transform: scale(1.15);
+.podium-standings-table .name-cell {
+  color: #163726 !important;
+  font-weight: 600;
+}
+.podium-standings-table .num-cell,
+.podium-standings-table .pts-cell {
+  color: #1d3b2a !important;
+  font-weight: 700;
+}
+.podium-standings-table tr {
+  border-bottom: 1px solid rgba(29,59,42,0.12) !important;
+}
+.podium-standings-table tr:nth-child(even) {
+  background: rgba(29,59,42,0.035) !important;
+}
+.podium-standings-table .pts-cell {
+  color: #14301f !important;
+  font-weight: 800;
 }
 </style>
 </body>
