@@ -3850,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.70 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.75 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -8009,6 +8009,7 @@ function showPodium() {
   ];
 
   let slotsHtml = '';
+  window.__podiumTieNotes = {}; // v0.70.75: reset tiap render, jangan bawa sisa sesi lama
   for (let i = 0; i < 3; i++) {
     if (!top3[i]) continue;
     const s = top3[i];
@@ -8017,12 +8018,25 @@ function showPodium() {
     // v0.70.64: catatan tiebreak, satu baris per lawan yang keteriannya
     // dipisahkan h2h/diff. Cuma render kalau ADA (kasus normal tanpa
     // dispute: array kosong, tidak nambah markup apa pun).
-    const notesHtml = tieNotes[i] && tieNotes[i].length
-      ? `<div class="podium-tie-note">${tieNotes[i].map(n =>
+    // v0.70.75: note tiebreak TIDAK lagi dirender sebagai teks inline di
+    // dalam podium-card (sumber bug autosizer yang dikejar v07068-v07070:
+    // teks kecil yang wrapping di container sempit selalu bisa di-inflate
+    // WebKit Text Autosizer di render time, dan itu gak akan pernah
+    // ketangkep test computed-style). Sekarang: tombol asterisk KECIL,
+    // teksnya pindah ke modal "Alasan Peringkat" saat di-tap. Nol teks
+    // panjang di kartu = masalah autosizing hilang di akarnya, bukan
+    // ditambal.
+    const noteLines = (tieNotes[i] && tieNotes[i].length)
+      ? tieNotes[i].map(n =>
           n.reason === 'H2H'
             ? `Unggul H2H atas ${n.vsLabel}`
             : `Unggul selisih poin (+/\u2212) atas ${n.vsLabel}`
-        ).join(' \u00b7 ')}</div>`
+        )
+      : [];
+    window.__podiumTieNotes = window.__podiumTieNotes || {};
+    window.__podiumTieNotes[i] = noteLines;
+    const notesHtml = noteLines.length
+      ? `<button type="button" class="podium-tie-btn" data-slot="${i}" aria-label="Alasan peringkat">*</button>`
       : '';
     slotsHtml += `
       <div class="podium-slot ${slots[i]}">
@@ -12472,5 +12486,192 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
   font-weight: 800;
 }
 </style>
+<style id="codex-revision-v07075-css">
+/* v0.70.75: catatan tiebreak podium -> tombol asterisk kecil + modal.
+
+   AKAR yang ditutup di sini: v07068/69/70 semuanya nyoba MENGECILKAN
+   teks note yang dirender inline di dalam podium-card. Itu pertarungan
+   yang gak bisa dimenangin -- WebKit Text Autosizer jalan di render
+   time dan sasarannya PERSIS anatomi itu (teks kecil, wrapping, di
+   container sempit). Selama teksnya masih di kartu, dia selalu bisa
+   di-inflate lagi, dan test computed-style gak akan pernah lihat.
+
+   Solusi struktural: kartu cuma dapat tombol asterisk (satu karakter,
+   fixed 18px, gak pernah wrapping -> autosizer gak punya pegangan).
+   Kalimat panjangnya pindah ke modal. Ukuran note sebagai masalah
+   layout jadi hilang, bukan ditambal.
+
+   Tombol sengaja KECIL (18px) -- ini footnote, bukan CTA. Gold tipis
+   sesuai kurasi: emas cuma buat penghormatan peringkat. */
+.podium-tie-btn {
+  display: block;
+  margin: 5px auto 0;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  flex: 0 0 auto;
+  border: 1px solid rgba(201,169,97,0.55);
+  border-radius: 50%;
+  background: rgba(201,169,97,0.14);
+  color: #8b6914;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  text-align: center;
+  cursor: pointer;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Liquid Glass press: kedalaman inner shadow + geser specular, nol scale. */
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
+  transition: box-shadow 0.14s ease, background 0.14s ease;
+}
+.podium-tie-btn:active {
+  background: rgba(201,169,97,0.24);
+  box-shadow: inset 0 2px 4px rgba(90,68,20,0.28);
+}
+
+/* Modal "Alasan Peringkat" -- cream/ink, senada podium (bukan .modal
+   bawaan yang dark-themed; itu buat konteks scoring, bukan podium). */
+.podium-tie-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(24,48,34,0.62);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.podium-tie-modal.show { display: flex; }
+.podium-tie-modal .ptm-card {
+  width: 100%;
+  max-width: 380px;
+  background: #ffffff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(12,30,20,0.28);
+}
+.podium-tie-modal .ptm-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(29,59,42,0.12);
+}
+.podium-tie-modal .ptm-mark {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: rgba(201,169,97,0.16);
+  color: #8b6914;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 26px;
+  text-align: center;
+}
+.podium-tie-modal .ptm-title {
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #163726;
+  letter-spacing: 0.2px;
+}
+.podium-tie-modal .ptm-body {
+  padding: 16px 18px 4px;
+}
+.podium-tie-modal .ptm-line {
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: #1d3b2a;
+  margin: 0 0 6px;
+}
+.podium-tie-modal .ptm-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 18px 18px;
+}
+.podium-tie-modal .ptm-close {
+  border: 0;
+  border-radius: 10px;
+  padding: 11px 22px;
+  background: #14301f;
+  color: #f5f0e6;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.14);
+  transition: box-shadow 0.14s ease, background 0.14s ease;
+}
+.podium-tie-modal .ptm-close:active {
+  background: #0f2318;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.35);
+}
+</style>
+<script id="codex-revision-v07075-js">
+/* v0.70.75: wiring tombol asterisk podium -> modal "Alasan Peringkat".
+   Delegasi di document supaya tetap jalan tiap showPodium() re-render
+   isi #podiumContent (tombol dibuat ulang, listener tidak perlu). */
+(function () {
+  function ptmEl() {
+    var m = document.getElementById('podiumTieModal');
+    if (m) return m;
+    m = document.createElement('div');
+    m.id = 'podiumTieModal';
+    m.className = 'podium-tie-modal';
+    m.innerHTML =
+      '<div class="ptm-card" role="dialog" aria-modal="true" aria-labelledby="ptmTitle">' +
+        '<div class="ptm-head">' +
+          '<div class="ptm-mark">*</div>' +
+          '<div class="ptm-title" id="ptmTitle">Alasan Peringkat</div>' +
+        '</div>' +
+        '<div class="ptm-body" id="ptmBody"></div>' +
+        '<div class="ptm-actions">' +
+          '<button type="button" class="ptm-close" id="ptmClose">Tutup</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(m);
+    m.addEventListener('click', function (e) {
+      if (e.target === m || e.target.id === 'ptmClose') m.classList.remove('show');
+    });
+    return m;
+  }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.podium-tie-btn') : null;
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var slot = parseInt(btn.getAttribute('data-slot'), 10);
+    var store = window.__podiumTieNotes || {};
+    var lines = store[slot] || [];
+    if (!lines.length) return;
+    var m = ptmEl();
+    var body = m.querySelector('#ptmBody');
+    body.innerHTML = '';
+    lines.forEach(function (t) {
+      var p = document.createElement('p');
+      p.className = 'ptm-line';
+      p.textContent = t;
+      body.appendChild(p);
+    });
+    m.classList.add('show');
+  }, true);
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    var m = document.getElementById('podiumTieModal');
+    if (m) m.classList.remove('show');
+  });
+})();
+</script>
 </body>
+</html>
 </html>
