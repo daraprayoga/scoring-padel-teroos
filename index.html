@@ -3850,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.81 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.82 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -12861,6 +12861,47 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
 .podium-stat-block.dark {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
 }
+</style>
+<style id="codex-revision-v07082-css">
+/* v0.70.82: warna medali di tabel Full Standings HIDUP LAGI.
+
+   Akar: warna medali asli (v awal, line ~1135) ditulis buat TEMA GELAP
+   -- base .name-cell masih var(--cream), gold-nya #d9b971 pucat. Waktu
+   podium dipindah ke light theme, block restyle-nya nyapu SEMUA sel:
+     .podium-standings-table td { color:#1d3b2a !important }
+     .podium-standings-table .name-cell { color:#163726 !important }
+   Rule medali lama kalah dua kali: gak punya !important DAN datang
+   lebih dulu di cascade. Hasilnya semua baris polos, termasuk rank 1.
+
+   Fix: rule baru dengan specificity LEBIH TINGGI (0,3,1 vs 0,2,0) +
+   !important + posisi paling akhir -- menang di tiga sumbu sekaligus.
+   Warnanya BUKAN balikin #d9b971 (di background cream nyaris gak
+   kebaca), tapi ikut palet medali light-theme yang sudah dipakai
+   kartu podium di layar yang sama:
+     Champion #8b5e1a · Runner-up #666 · Third #8b5010
+   Satu layar, satu palet. Rank kembar otomatis ikut (dua baris
+   rank-bronze ya dua-duanya bronze -- class-nya dari rankById). */
+.podium-standings-table tr.rank-gold .rank-cell,
+.podium-standings-table tr.rank-gold .name-cell {
+  color: #8b5e1a !important;
+  font-weight: 800;
+}
+.podium-standings-table tr.rank-silver .rank-cell,
+.podium-standings-table tr.rank-silver .name-cell {
+  color: #666666 !important;
+  font-weight: 800;
+}
+.podium-standings-table tr.rank-bronze .rank-cell,
+.podium-standings-table tr.rank-bronze .name-cell {
+  color: #8b5010 !important;
+  font-weight: 800;
+}
+/* Tint baris tipis + akses cepat mata: baris medali dapat wash emas/
+   abu/tembaga sangat halus, cukup buat kepisah dari zebra-stripe biasa
+   tanpa ganggu keterbacaan angka di kolom kanan. */
+.podium-standings-table tr.rank-gold td   { background: rgba(201, 169, 97, 0.10); }
+.podium-standings-table tr.rank-silver td { background: rgba(130, 130, 130, 0.08); }
+.podium-standings-table tr.rank-bronze td { background: rgba(160, 96, 48, 0.08); }
 </style>
 <script id="codex-revision-v07075-js">
 /* v0.70.75: wiring tombol asterisk podium -> modal "Alasan Peringkat".
