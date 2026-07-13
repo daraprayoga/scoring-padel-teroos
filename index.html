@@ -3850,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.82 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.83 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -5918,6 +5918,80 @@ function selectPlayingPool(total, activeCount, gamesPlayed, lastResting) {
   return { playing: shuffle(playing), resting: [...restingFromRotation, ...unavailable] };
 }
 
+// v0.70.83: exact minimum-cost perfect matching, backtracking + branch-and-bound.
+//
+// AKAR MASALAH yang ini nutup: pairUp() lama (team americano) dan
+// assignPlayersToCourts() lama (individual/mix americano) sama-sama pakai
+// GREEDY -- urutin semua edge dari termurah, ambil satu-satu yang gak
+// bentrok. Greedy itu KEBOX: ngambil edge murah duluan bisa nyisain dua
+// entitas yang cuma punya satu edge sama-sama, dan itu edge mahal (repeat).
+//
+// Kasus nyata yang nemuin ini: 6 team_americano pair, P0-P1 udah pernah
+// ketemu (cost 1), sisanya cost 0. Greedy ambil P2-P3 dan P4-P5 duluan
+// (dua-duanya cost 0) -- padahal itu nyisain P0 dan P1 gak punya pilihan
+// lain selain ketemu lagi, sedangkan kombinasi P0-P2/P1-P3/P4-P5 (dan
+// beberapa kombinasi lain) sebetulnya ada dan totalnya sama-sama cost 0.
+// Greedy gak pernah mundur buat cek itu, backtracking iya.
+//
+// ids: daftar node (harus genap; ganjil -> null, caller yang nentuin siapa
+//   yang duduk sebelum manggil ini).
+// costFn(a, b): biaya masangin a & b. costFn = Infinity artinya dilarang
+//   (dipakai buat maksa bipartite di Mix Americano -- M-M dan F-F diblokir).
+// Return { pairs: [[a,b], ...], cost } atau null kalau gak ada matching valid.
+//
+// Ukuran realistis di app ini kecil (paling banter puluhan entitas per
+// round), dan mayoritas edge cost 0 di awal sesi, jadi branch-and-bound
+// dengan "coba edge termurah dulu" biasanya kelar hampir instan. MAX_STEPS
+// jaga-jaga kalau ada kasus pathological -- kalau kena cap, balikin yang
+// terbaik yang udah ketemu (masih lebih baik dari greedy, bukan macet).
+function minCostPerfectMatching(ids, costFn) {
+  const n = ids.length;
+  if (n === 0) return { pairs: [], cost: 0 };
+  if (n % 2 !== 0) return null;
+
+  const MAX_STEPS = 400000;
+  let steps = 0;
+  let best = null;
+  let bestCost = Infinity;
+  const used = new Array(n).fill(false);
+
+  function firstUnused() {
+    for (let i = 0; i < n; i++) if (!used[i]) return i;
+    return -1;
+  }
+
+  function backtrack(pairsSoFar, costSoFar) {
+    steps++;
+    if (steps > MAX_STEPS || costSoFar >= bestCost) return;
+    const i = firstUnused();
+    if (i === -1) { best = pairsSoFar.slice(); bestCost = costSoFar; return; }
+
+    const candidates = [];
+    for (let j = 0; j < n; j++) {
+      if (j === i || used[j]) continue;
+      const c = costFn(ids[i], ids[j]);
+      if (c === Infinity) continue;
+      candidates.push({ j, c });
+    }
+    candidates.sort((a, b) => a.c - b.c);
+
+    used[i] = true;
+    for (const { j, c } of candidates) {
+      if (costSoFar + c >= bestCost) break; // sisanya makin mahal, aman dipotong
+      used[j] = true;
+      pairsSoFar.push([ids[i], ids[j]]);
+      backtrack(pairsSoFar, costSoFar + c);
+      pairsSoFar.pop();
+      used[j] = false;
+      if (steps > MAX_STEPS) break;
+    }
+    used[i] = false;
+  }
+
+  backtrack([], 0);
+  return best ? { pairs: best, cost: bestCost } : null;
+}
+
 // Partnership cost: given a 4-player group [p0,p1,p2,p3] and pattern (0=p0+p1 vs p2+p3, etc),
 // return cost = partner repeats + opponent repeats.
 function pairingCost(group, pattern, hist) {
@@ -5931,34 +6005,57 @@ function pairingCost(group, pattern, hist) {
   return partnerCost * 3 + opponentCost;
 }
 
-// Distribute players into courts such that players who have played together least are grouped,
-// then pick best partner pattern per court.
-// This is a greedy algorithm — for tournament casual use it's plenty good.
+// Distribute players into courts: dua tahap, dua-duanya exact matching
+// (bukan greedy lagi, lihat catatan minCostPerfectMatching di atas).
+//   Tahap 1 -- PARTNER: match seluruh pool jadi pasangan, minimum total
+//     partner-repeat SECARA GLOBAL (bukan per-grup-of-4 kayak sebelumnya).
+//   Tahap 2 -- OPPONENT: treat tiap pasangan hasil tahap 1 sebagai satu
+//     "tim", match tim-tim itu jadi head-to-head per court, minimum total
+//     opponent-repeat GIVEN pasangan dari tahap 1.
+// Prioritas partner > opponent (partner dikali 3, sama kayak pairingCost
+// lama) tetap dipertahankan lewat URUTAN dua tahap ini, bukan pembobotan
+// dalam satu skor gabungan -- partner diselesaikan TUNTAS dulu (exact),
+// baru opponent dioptimalkan di atas hasil itu. Attempts luar (shuffle
+// pool tiap percobaan) buat eksplorasi tie-break yang beda-beda, karena
+// dua tahap berurutan tetap bukan optimum gabungan sempurna (partner
+// tertentu bisa buka opponent-matching yang lebih murah dibanding partner
+// lain yang cost partnernya sama).
 function assignPlayersToCourts(playing, courts, hist) {
   if (!playing || playing.length < 4) return [];
-  const attempts = 30;
+  const need = courts * 4;
+  const OUTER_ATTEMPTS = 20;
   let best = null;
   let bestCost = Infinity;
 
-  for (let a = 0; a < attempts; a++) {
-    const shuffled = shuffle(playing);
-    let totalCost = 0;
-    const matches = [];
-    for (let c = 0; c < courts; c++) {
-      const group = shuffled.slice(c*4, c*4+4);
-      if (group.length < 4) continue;
-      let bestPat = 0;
-      let bestPatCost = pairingCost(group, 0, hist);
-      for (let p = 1; p < 3; p++) {
-        const cost = pairingCost(group, p, hist);
-        if (cost < bestPatCost) { bestPatCost = cost; bestPat = p; }
-      }
-      totalCost += bestPatCost;
-      matches.push({ group, pattern: bestPat, court: c });
-    }
+  for (let a = 0; a < OUTER_ATTEMPTS; a++) {
+    let pool = shuffle(playing).slice(0, need);
+    if (pool.length % 2 !== 0) pool = pool.slice(0, -1);
+    if (pool.length < 4) continue;
+
+    const partnerMatch = minCostPerfectMatching(pool, (x, y) => hist.partner[x][y]);
+    if (!partnerMatch) continue;
+
+    const teams = partnerMatch.pairs;
+    const teamIds = teams.map((_, i) => i);
+    const teamCost = (i, j) => {
+      const [a0, a1] = teams[i], [b0, b1] = teams[j];
+      return hist.opponent[a0][b0] + hist.opponent[a0][b1] + hist.opponent[a1][b0] + hist.opponent[a1][b1];
+    };
+    const teamMatch = minCostPerfectMatching(teamIds, teamCost);
+    if (!teamMatch) continue;
+
+    const totalCost = partnerMatch.cost * 3 + teamMatch.cost;
     if (totalCost < bestCost) {
       bestCost = totalCost;
-      best = matches;
+      // pattern 0 = group[0]+group[1] vs group[2]+group[3] -- persis
+      // susunan tim yang sudah ditentukan dua tahap di atas, gak perlu
+      // nyoba pattern 1/2 lagi (itulah bedanya sama kode lama yang nyoba
+      // 3 pattern per grup ACAK -- di sini grupnya udah gak acak).
+      best = teamMatch.pairs.map(([ti, tj], c) => ({
+        group: [...teams[ti], ...teams[tj]],
+        pattern: 0,
+        court: c
+      }));
       if (bestCost === 0) break;
     }
   }
@@ -6182,29 +6279,34 @@ function buildTeamAmericanoRound(roundIdx) {
   const r1 = restedNBack(1), r2 = restedNBack(2);
   const rested2 = new Set([...r1].filter(id => r2.has(id)));
 
-  // Greedily pair a playing set into `courts` matches, minimizing opponent repeats.
-  // Returns { pairOrder, cost (sum of times-faced), used }.
+  // Greedily pair a playing set into `courts` matches — v0.70.83: exact
+  // matching (lihat minCostPerfectMatching), bukan greedy sort-lalu-ambil
+  // lagi. Kalau jumlahnya ganjil, satu entitas harus istirahat; daripada
+  // nebak siapa (kode lama efektifnya acak lewat shuffle di pemanggil),
+  // di sini SEMUA kemungkinan "siapa yang istirahat" dicoba dan yang
+  // hasilnya paling murah dipakai. N di titik ini selalu kecil (jumlah
+  // pair yang available di satu skenario), jadi exhaustive ini murah.
   const pairUp = (playing) => {
-    const matchups = getAllMatchups(playing);
-    matchups.sort((x, y) => {
-      const d = hist.opponent[x[0]][x[1]] - hist.opponent[y[0]][y[1]];
-      return d !== 0 ? d : Math.random() - 0.5;
-    });
-    const used = new Set(); const chosen = [];
-    for (const [a, b] of matchups) {
-      if (chosen.length >= courts) break;
-      if (used.has(a) || used.has(b)) continue;
-      chosen.push([a, b]); used.add(a); used.add(b);
+    const dropCandidates = playing.length % 2 === 0 ? [null] : playing;
+    let best = null;
+    for (const drop of dropCandidates) {
+      const pool = drop === null ? playing : playing.filter(id => id !== drop);
+      if (pool.length < 2) continue;
+      const m = minCostPerfectMatching(pool, (a, b) => hist.opponent[a][b]);
+      if (!m) continue;
+      if (!best || m.cost < best.cost) {
+        best = { pairOrder: m.pairs.flat(), cost: m.cost, used: new Set(m.pairs.flat()) };
+      }
+      if (best.cost === 0) break;
     }
-    let cost = 0; const order = [];
-    chosen.forEach(([a, b]) => { cost += hist.opponent[a][b]; order.push(a, b); });
-    return { pairOrder: order, cost, used };
+    return best || { pairOrder: [], cost: Infinity, used: new Set() };
   };
 
-  // Everyone available fits on court — only the pairing needs optimizing.
+  // Everyone available fits on court — pairUp() sekarang exact (deterministic),
+  // gak ada lagi tiebreak acak di dalamnya, jadi manggilnya SEKALI cukup.
+  // Loop 25x yang lama itu sisa dari jaman pairUp masih greedy+random.
   if (available.length <= activePairs) {
-    let best = null;
-    for (let a = 0; a < 25; a++) { const r = pairUp(available); if (!best || r.cost < best.cost) best = r; if (best.cost === 0) break; }
+    const best = pairUp(available);
     const resting = [...unavailable, ...available.filter(id => !best.used.has(id))];
     return { pairOrder: best.pairOrder, resting };
   }
@@ -6257,18 +6359,59 @@ function buildTeamAmericanoRound(roundIdx) {
 // Individual Americano: exhaustive opponent tracking.
 // Each court = 4 players forming 2 teams of 2.
 // Priority: minimize repeat opponents first, then repeat partners.
+// Biaya total (partner*3 + opponent) dari hasil assignPlayersToCourts,
+// dihitung ulang dari `hist` -- dipakai buat MEMBANDINGKAN antar pilihan
+// pool yang beda-beda (lihat buildIndividualAmericanoRound). pattern
+// selalu 0 sekarang (partner sudah ditentukan tahap 1 di
+// assignPlayersToCourts), jadi group[0]+group[1] vs group[2]+group[3]
+// bisa diasumsikan tanpa perlu switch pattern lagi.
+function assignmentCost(assignments, hist) {
+  let cost = 0;
+  assignments.forEach(({ group }) => {
+    const [a, b, c, d] = group;
+    cost += (hist.partner[a][b] + hist.partner[c][d]) * 3;
+    cost += hist.opponent[a][c] + hist.opponent[a][d] + hist.opponent[b][c] + hist.opponent[b][d];
+  });
+  return cost;
+}
+
 function buildIndividualAmericanoRound(roundIdx) {
   const total = state.players;
   const activePlayers = state.courts * 4;
   const hist = buildHistory(roundIdx);
+  const lastResting = restedLastRoundSet(roundIdx);
 
-  const pool = selectPlayingPool(total, activePlayers, hist.games, restedLastRoundSet(roundIdx));
-  const resting = (pool && pool.resting) ? pool.resting : [];
-
-  // Use enhanced Monte Carlo: more attempts, score on opponent repeat
-  const poolPlaying = (pool && pool.playing) ? pool.playing : [];
-  const assignments = assignPlayersToCourts(poolPlaying, state.courts, hist);
-  return { assignments, resting };
+  // v0.70.83: selectPlayingPool nentuin SIAPA yang wajib main lewat tier
+  // GP asc -> rested-last-round-dulu -> random. Waktu occupancy PAS 50%,
+  // tier "rested last round" itu sendiri sudah pas activeCount -- nol
+  // bubble, nol ruang gerak, siapa pun yang menang tiebreak acak toh
+  // hasilnya sama saja (dua kohort tetap yang gantian, itu KONSEKUENSI
+  // MATEMATIS dari "zero rest 2x berturut-turut" di occupancy 50%, bukan
+  // pilihan implementasi -- lihat catatan sama di buildTeamAmericanoRound).
+  //
+  // Tapi begitu occupancy BUKAN 50% pas (jumlah pemain ganjil, atau court
+  // gak pas separuh), tier "rested last round" LEBIH KECIL dari
+  // activeCount -- ada bubble kandidat GP-sama yang rebutan sisa slot,
+  // dan versi lama cuma nyoba SATU kali pilihan acak dari situ lalu
+  // nyerah walau kombinasi yang lebih baik ada. Sekarang dicoba beberapa
+  // kali (pool DAN pairing sama-sama punya elemen acak) dan diambil yang
+  // total opponent-repeat-nya paling rendah -- prinsip yang sama yang
+  // sudah dipakai buildTeamAmericanoRound buat bubble-nya.
+  const POOL_ATTEMPTS = 15;
+  let best = null, bestCost = Infinity, bestResting = [];
+  for (let a = 0; a < POOL_ATTEMPTS; a++) {
+    const pool = selectPlayingPool(total, activePlayers, hist.games, lastResting);
+    const poolPlaying = (pool && pool.playing) ? pool.playing : [];
+    const assignments = assignPlayersToCourts(poolPlaying, state.courts, hist);
+    const cost = assignmentCost(assignments, hist);
+    if (cost < bestCost) {
+      bestCost = cost;
+      best = assignments;
+      bestResting = (pool && pool.resting) ? pool.resting : [];
+      if (bestCost === 0) break;
+    }
+  }
+  return { assignments: best || [], resting: bestResting };
 }
 
 // ===== MIXICANO ROUND GENERATION =====
@@ -6282,88 +6425,96 @@ function buildIndividualAmericanoRound(roundIdx) {
 // This is the algorithm that used to live under the name "Mixicano" — it never
 // actually used standings, so it was Americano-style rotation mislabeled as
 // Mexicano. Renamed to match what it actually does; logic unchanged.
+// Mix Americano: dua tahap exact matching, sama prinsipnya dengan
+// assignPlayersToCourts (individual) -- lihat catatan minCostPerfectMatching
+// di atas soal kenapa greedy diganti.
+//   Tahap 1 -- PARTNER (bipartite M x F): match laki-laki & perempuan aktif
+//     jadi pasangan, minimum total partner-repeat. Bipartite dipaksa lewat
+//     costFn yang balikin Infinity buat kombinasi M-M atau F-F, jadi
+//     matching yang valid PASTI cross-gender.
+//   Tahap 2 -- OPPONENT: pasangan M-F dari tahap 1 di-treat sebagai satu
+//     "tim", di-match head-to-head per court, minimum opponent-repeat.
 function buildMixAmericanoRound(roundIdx) {
   const hist = buildHistory(roundIdx);
   const total = state.players;
 
-  // Separate available players by gender
   const males = [], females = [];
   for (let i = 0; i < total; i++) {
     if (!isAvailable(i)) continue;
     if (state.playerGenders[i] === 'M') males.push(i);
     else if (state.playerGenders[i] === 'F') females.push(i);
   }
-
   const unavailable = [];
   for (let i = 0; i < total; i++) if (!isAvailable(i)) unavailable.push(i);
 
-  // We need courts * 2 males and courts * 2 females
   const needPerGender = state.courts * 2;
-
-  // Fair sit-out: sort by games played ASC, keep top needPerGender
   const lrSet = restedLastRoundSet(roundIdx); // v0.70.63
-  const sortByGames = (pool) => {
-    return [...pool]
-      .sort((a, b) =>
-        hist.games[a] - hist.games[b] ||
-        ((lrSet.has(a) ? 0 : 1) - (lrSet.has(b) ? 0 : 1)) ||
-        Math.random() - 0.5)
-      .slice(0, needPerGender);
-  };
+  const fairnessSort = (pool) => [...pool].sort((a, b) =>
+    hist.games[a] - hist.games[b] ||
+    ((lrSet.has(a) ? 0 : 1) - (lrSet.has(b) ? 0 : 1)) ||
+    Math.random() - 0.5);
 
-  const activeMales = males.length <= needPerGender ? males : sortByGames(males);
-  const activeFemales = females.length <= needPerGender ? females : sortByGames(females);
-  const sittingMales = males.filter(m => !activeMales.includes(m));
-  const sittingFemales = females.filter(f => !activeFemales.includes(f));
-  const resting = [...sittingMales, ...sittingFemales, ...unavailable];
+  // v0.70.83: sama prinsipnya dengan buildIndividualAmericanoRound -- kalau
+  // occupancy per gender BUKAN pas separuh, ada bubble siapa yang duduk
+  // yang belum dieksplorasi. Dicoba beberapa kali (sit-out DAN matching
+  // dua-duanya punya elemen acak), diambil total opponent-repeat paling
+  // rendah. Di occupancy pas 50% per gender, semua attempt bakal
+  // konvergen ke kohort yang sama (dipaksa zero-2x-rest), jadi loop ini
+  // gak nyakitin, cuma gak nemu perbaikan tambahan di kasus itu.
+  const POOL_ATTEMPTS = 15;
+  let best = null, bestCost = Infinity, bestResting = [];
 
-  // All possible M-F partner pairs among active players
-  const mfPairs = [];
-  for (const m of activeMales)
-    for (const f of activeFemales)
-      mfPairs.push([m, f]);
+  for (let attempt = 0; attempt < POOL_ATTEMPTS; attempt++) {
+    let activeMales = males.length <= needPerGender ? males : fairnessSort(males).slice(0, needPerGender);
+    let activeFemales = females.length <= needPerGender ? females : fairnessSort(females).slice(0, needPerGender);
+    const sittingMales = males.filter(m => !activeMales.includes(m));
+    const sittingFemales = females.filter(f => !activeFemales.includes(f));
+    const resting = [...sittingMales, ...sittingFemales, ...unavailable];
 
-  // Score each M-F pair: primary = times partnered, secondary = games sum
-  mfPairs.sort((x, y) => {
-    const partnerDiff = hist.partner[x[0]][x[1]] - hist.partner[y[0]][y[1]];
-    if (partnerDiff !== 0) return partnerDiff;
-    return (hist.games[x[0]] + hist.games[x[1]]) - (hist.games[y[0]] + hist.games[y[1]]);
-  });
-
-  // Greedily assign M-F pairs to courts
-  // Each court = 2 M-F pairs (4 players total), facing each other
-  const usedPlayers = new Set();
-  const courts = [];
-
-  for (const [m1, f1] of mfPairs) {
-    if (courts.length >= state.courts) break;
-    if (usedPlayers.has(m1) || usedPlayers.has(f1)) continue;
-
-    // Find best second M-F pair for this court: minimize opponent repeats
-    let bestPair = null, bestCost = Infinity;
-    for (const [m2, f2] of mfPairs) {
-      if (m2 === m1 || f2 === f1) continue;
-      if (usedPlayers.has(m2) || usedPlayers.has(f2)) continue;
-      // Opponent repeat cost: how many times has team [m1,f1] faced [m2,f2]?
-      const cost = hist.opponent[m1][m2] + hist.opponent[m1][f2] +
-                   hist.opponent[f1][m2] + hist.opponent[f1][f2];
-      if (cost < bestCost) { bestCost = cost; bestPair = [m2, f2]; }
+    // Court butuh 1M+1F per tim, jumlah M & F aktif harus sama persis.
+    if (activeMales.length !== activeFemales.length) {
+      const n = Math.min(activeMales.length, activeFemales.length);
+      if (activeMales.length > n) {
+        const extra = fairnessSort(activeMales); resting.push(...extra.slice(n)); activeMales = extra.slice(0, n);
+      }
+      if (activeFemales.length > n) {
+        const extra = fairnessSort(activeFemales); resting.push(...extra.slice(n)); activeFemales = extra.slice(0, n);
+      }
     }
-    if (!bestPair) continue;
+    if (activeMales.length < 2) continue;
 
-    const [m2, f2] = bestPair;
-    courts.push({ teamA: [m1, f1], teamB: [m2, f2] });
-    usedPlayers.add(m1); usedPlayers.add(f1);
-    usedPlayers.add(m2); usedPlayers.add(f2);
+    const combined = [...activeMales, ...activeFemales];
+    const maleSet = new Set(activeMales);
+    const partnerMatch = minCostPerfectMatching(combined, (a, b) => {
+      if (maleSet.has(a) === maleSet.has(b)) return Infinity; // paksa cross-gender
+      return hist.partner[a][b];
+    });
+    if (!partnerMatch) continue;
+
+    const teams = partnerMatch.pairs.map(([a, b]) => maleSet.has(a) ? [a, b] : [b, a]); // normalisasi [M, F]
+    const teamIds = teams.map((_, i) => i);
+    const teamCost = (i, j) => {
+      const [m1, f1] = teams[i], [m2, f2] = teams[j];
+      return hist.opponent[m1][m2] + hist.opponent[m1][f2] + hist.opponent[f1][m2] + hist.opponent[f1][f2];
+    };
+    const teamMatch = minCostPerfectMatching(teamIds, teamCost);
+    if (!teamMatch) continue;
+
+    const courts = teamMatch.pairs.map(([ti, tj]) => ({ teamA: teams[ti], teamB: teams[tj] }));
+    const usedPlayers = new Set(courts.flatMap(c => [...c.teamA, ...c.teamB]));
+    const finalResting = [...resting];
+    for (const id of combined) if (!usedPlayers.has(id)) finalResting.push(id);
+
+    const totalCost = partnerMatch.cost * 3 + teamMatch.cost;
+    if (totalCost < bestCost) {
+      bestCost = totalCost;
+      best = courts;
+      bestResting = finalResting;
+      if (bestCost === 0) break;
+    }
   }
 
-  // Any active players not assigned → also sit out
-  const finalResting = [...resting];
-  for (const id of [...activeMales, ...activeFemales]) {
-    if (!usedPlayers.has(id)) finalResting.push(id);
-  }
-
-  return { courts, resting: finalResting };
+  return { courts: best || [], resting: bestResting };
 }
 
 // Mixicano (true mix-Mexicano): rank-based pairing, gender-constrained.
@@ -13066,6 +13217,11 @@ function podiumRankNotes(entries, labelOf) {
       else if (h === 0 && a.diff > b.diff) lines.push(`Unggul selisih poin (+/\u2212) atas ${labelOf(o.rank)}`);
     });
     return lines;
+  });
+}
+</script>
+</body>
+</html>
   });
 }
 </script>
