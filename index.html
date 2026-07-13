@@ -3850,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.83 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.84 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -6829,6 +6829,21 @@ function handleRoundAction(action) {
       scrollOverviewToTop();
     }
   } else if (action === 'add') {
+    // v0.70.84: "+ Add Round" lewat gate yang sama kayak "Next Round".
+    // Sebelum ini, tombol Next punya guard "input skor dulu" buat
+    // Mexicano (karena round berikutnya di-generate berdasarkan
+    // klasemen SETELAH match terakhir), tapi tombol Add manggil
+    // generateRound() langsung tanpa guard -- kalau round berjalan
+    // belum discore, round Mexicano baru bakal ke-generate dari
+    // klasemen yang gak berarti (semua 0W/0PTS), bukan hasil sungguhan.
+    if (isMexicano()) {
+      const round = state.rounds[state.currentRoundIdx];
+      const hasScore = round && round.matches && round.matches.some(m => m.scoreA > 0 || m.scoreB > 0);
+      if (!hasScore) {
+        showToast('Input skor dulu sebelum menambah round baru');
+        return;
+      }
+    }
     generateRound(state.rounds.length);
     renderAll();
     scrollOverviewToTop();
@@ -13217,11 +13232,6 @@ function podiumRankNotes(entries, labelOf) {
       else if (h === 0 && a.diff > b.diff) lines.push(`Unggul selisih poin (+/\u2212) atas ${labelOf(o.rank)}`);
     });
     return lines;
-  });
-}
-</script>
-</body>
-</html>
   });
 }
 </script>
