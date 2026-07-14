@@ -3850,7 +3850,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.84 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.85 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -5918,6 +5918,78 @@ function selectPlayingPool(total, activeCount, gamesPlayed, lastResting) {
   return { playing: shuffle(playing), resting: [...restingFromRotation, ...unavailable] };
 }
 
+// ============================================================================
+// v0.70.85: eksplorasi pool "soft-rest" -- jawaban untuk kriteria #5
+// (8 orang 1 court HARUS keputar semua, bukan kebelah 4-4 permanen).
+//
+// AKAR: semua builder punya tie-break bubble "yang kemarin duduk main
+// duluan" sebagai ATURAN KAKU. Di occupancy pas 50% (8p/1c, 16p/2c, dst)
+// aturan itu satu-satunya penentu -- dan satu-satunya konfigurasi yang
+// memenuhinya adalah dua kohort tetap yang gantian main-duduk. Akibatnya
+// pemain cuma pernah ketemu 3 orang yang sama selamanya (persis keluhan
+// di screenshot: Ivo/Shella/Nora/Dina muter berempat doang).
+//
+// TRADE-OFF MATEMATIS yang harus diputuskan, bukan bug: di 50% occupancy,
+// "tidak ada yang duduk 2x berturut-turut" dan "semua keputar" TIDAK BISA
+// dua-duanya. Bukti singkat: kalau 4 yang kemarin duduk semua wajib main
+// sekarang, mereka mengisi SEMUA slot -> kohort kunci. Supaya campur,
+// minimal satu yang kemarin duduk harus duduk lagi. Kriteria #5 menang,
+// jadi anti-double-rest diturunkan dari ATURAN jadi PENALTI (soft).
+//
+// Yang TIDAK dikorbankan (dua-duanya tetap terjamin secara struktural):
+//   - GP spread <= 1 KAPAN PUN sesi diakhiri: tier GP tetap kaku --
+//     yang GP-nya lebih rendah dari cutoff WAJIB main, yang di atas
+//     cutoff PASTI duduk, bubble cuma yang GP-nya persis di cutoff.
+//   - Cap istirahat 2x berturut tetap KAKU (rested2 selalu ditarik masuk)
+//     -- yang dilonggarkan cuma 1x-berturut jadi penalti.
+// ============================================================================
+const DOUBLE_REST_PENALTY = 0.75; // < 1 repeat: variasi lawan menang tipis atas dobel duduk
+
+function restedTwoBackSet(roundIdx) {
+  const r1 = restedLastRoundSet(roundIdx);
+  const rd2 = state.rounds[roundIdx - 2];
+  const r2 = new Set(rd2 && rd2.resting ? rd2.resting : []);
+  return new Set([...r1].filter(id => r2.has(id)));
+}
+
+// Bagi pool jadi tier GP. forced = wajib main, above = pasti duduk,
+// bubble = rebutan `slots` sisa. Pemilihan anggota bubble MANAPUN tetap
+// menjaga GP spread <= 1 kapan pun sesi berhenti.
+function gpTiers(available, activeCount, gamesArr) {
+  if (available.length <= activeCount) {
+    return { forced: [...available], bubble: [], above: [], slots: 0 };
+  }
+  const byGP = [...available].sort((x, y) => gamesArr[x] - gamesArr[y]);
+  const cutoff = gamesArr[byGP[activeCount - 1]];
+  return {
+    forced: available.filter(id => gamesArr[id] < cutoff),
+    bubble: available.filter(id => gamesArr[id] === cutoff),
+    above: available.filter(id => gamesArr[id] > cutoff),
+    slots: activeCount - available.filter(id => gamesArr[id] < cutoff).length
+  };
+}
+
+// Sampler bubble. rested2 SELALU di depan (cap istirahat 2x itu kaku).
+// strategy 'rest': yang kemarin duduk didahulukan (pro zero-double-rest).
+// strategy 'free': acak murni (pro variasi lawan). Kandidat dari dua
+// strategi diadu lewat skor matchup + penalti double-rest; yang menang
+// yang dipakai. Jadi double-rest cuma terjadi kalau BAYARANNYA setimpal
+// (variasi lawan yang didapat lebih besar dari penaltinya).
+function sampleBubble(bubble, slots, r1, rested2, strategy) {
+  const pool = shuffle(bubble).sort((x, y) => {
+    const tx = rested2.has(x) ? 0 : (strategy === 'rest' && r1.has(x) ? 1 : 2);
+    const ty = rested2.has(y) ? 0 : (strategy === 'rest' && r1.has(y) ? 1 : 2);
+    return tx - ty;
+  });
+  return { pick: pool.slice(0, slots), sit: pool.slice(slots) };
+}
+
+function doubleRestCount(sitters, r1) {
+  let n = 0;
+  for (const id of sitters) if (r1.has(id)) n++;
+  return n;
+}
+
 // v0.70.83: exact minimum-cost perfect matching, backtracking + branch-and-bound.
 //
 // AKAR MASALAH yang ini nutup: pairUp() lama (team americano) dan
@@ -6115,41 +6187,62 @@ function buildMexicanoMatches(roundIdx) {
   const rankOf = {};
   standings.forEach((s, i) => { rankOf[s.id] = i; });
 
-  // Step 2: sort available by games played ASC (fewest plays first = must play this round)
-  // tiebreak: better rank plays, worse rank sits
-  const lrSet = restedLastRoundSet(roundIdx); // v0.70.63
-  const sorted = [...available].sort((a, b) => {
-    const gDiff = hist.games[a] - hist.games[b];
-    if (gDiff !== 0) return gDiff; // fewer games → play
-    // v0.70.63: GP seri → yang kemarin duduk main duluan (anti double-rest)
-    const rDiff = (lrSet.has(a) ? 0 : 1) - (lrSet.has(b) ? 0 : 1);
-    if (rDiff !== 0) return rDiff;
-    // same GP & rest status: better rank plays, worse rank sits
-    return (rankOf[a] ?? 999) - (rankOf[b] ?? 999);
-  });
+  // v0.70.85: bubble GP-seri dieksplorasi soft-rest (lihat gpTiers),
+  // supaya di occupancy 50% pemain gak kebelah jadi 2 kohort tetap.
+  // Pairing di dalam pool TETAP murni rank-based (kriteria Mexicano:
+  // match berikutnya refer klasemen setelah skor terakhir) -- yang
+  // dieksplorasi cuma SIAPA yang main, bukan CARA masangnya.
+  const r1 = restedLastRoundSet(roundIdx);
+  const rested2 = restedTwoBackSet(roundIdx);
+  const { forced, bubble, above, slots } = gpTiers(available, activePlayers, hist.games);
 
-  // Top activePlayers get to play, rest sit out
-  const playing = sorted.slice(0, activePlayers);
-  const resting = [...sorted.slice(activePlayers), ...unavailable];
-
-  // Sort playing by rank for Mexicano court assignment (rank 1+3 vs 2+4)
-  playing.sort((a, b) => (rankOf[a] ?? 999) - (rankOf[b] ?? 999));
-
-  const matches = [];
-  for (let c = 0; c < state.courts; c++) {
-    const group = playing.slice(c * 4, c * 4 + 4);
-    if (group.length < 4) break;
-    matches.push({
-      court: c,
-      teamA: [group[0], group[2]],
-      teamB: [group[1], group[3]],
-      scoreA: 0, scoreB: 0
+  const buildFromPlaying = (playingArr) => {
+    const playing = [...playingArr].sort((a, b) => (rankOf[a] ?? 999) - (rankOf[b] ?? 999));
+    const matches = [];
+    for (let c = 0; c < state.courts; c++) {
+      const group = playing.slice(c * 4, c * 4 + 4);
+      if (group.length < 4) break;
+      matches.push({
+        court: c,
+        teamA: [group[0], group[2]],
+        teamB: [group[1], group[3]],
+        scoreA: 0, scoreB: 0
+      });
+    }
+    return matches;
+  };
+  const matchesCost = (matches) => {
+    let cost = 0;
+    matches.forEach(m => {
+      m.teamA.forEach(a => m.teamB.forEach(b => { cost += hist.opponent[a][b]; }));
+      cost += hist.partner[m.teamA[0]][m.teamA[1]] + hist.partner[m.teamB[0]][m.teamB[1]];
     });
+    return cost;
+  };
+
+  const POOL_ATTEMPTS = 16;
+  let best = null, bestScore = Infinity, bestResting = [];
+  for (let a = 0; a < POOL_ATTEMPTS; a++) {
+    const { pick, sit } = sampleBubble(bubble, slots, r1, rested2, a % 2 === 0 ? 'rest' : 'free');
+    const playing = [...forced, ...pick];
+    if (playing.length < 4) continue;
+    const matches = buildFromPlaying(playing);
+    const score = matchesCost(matches) + DOUBLE_REST_PENALTY * doubleRestCount(sit, r1);
+    if (score < bestScore) {
+      bestScore = score;
+      best = { matches, playing };
+      bestResting = [...sit, ...above, ...unavailable];
+      if (bestScore === 0) break;
+    }
   }
+  if (!best) return { matches: [], resting: [...available, ...unavailable] };
+
+  const matches = best.matches;
+  const resting = bestResting;
 
   // Safety: unmatched → resting
   const matchedIds = new Set(matches.flatMap(m => [...m.teamA, ...m.teamB]));
-  for (const id of playing) {
+  for (const id of best.playing) {
     if (!matchedIds.has(id)) resting.push(id);
   }
 
@@ -6185,25 +6278,34 @@ function buildTeamMexicanoMatches(roundIdx) {
   const rankOf = {};
   standings.forEach((s, i) => { rankOf[s.id] = i; });
 
-  // Sort available: GP ASC -> rested-last first (v0.70.63) -> rank
-  const lrSet = restedLastRoundSet(roundIdx);
-  const sorted = [...available].sort((a, b) => {
-    const gDiff = hist.games[a] - hist.games[b];
-    if (gDiff !== 0) return gDiff;
-    const rDiff = (lrSet.has(a) ? 0 : 1) - (lrSet.has(b) ? 0 : 1);
-    if (rDiff !== 0) return rDiff;
-    return (rankOf[a] ?? 999) - (rankOf[b] ?? 999);
-  });
+  // v0.70.85: bubble GP-seri dieksplorasi soft-rest (lihat gpTiers) --
+  // sama seperti individual mexicano. Pairing tetap murni rank-based.
+  const r1 = restedLastRoundSet(roundIdx);
+  const rested2 = restedTwoBackSet(roundIdx);
+  const { forced, bubble, above, slots } = gpTiers(available, activePairs, hist.games);
 
-  const playing = sorted.slice(0, activePairs);
-  const resting = [...sorted.slice(activePairs), ...unavailable];
+  const POOL_ATTEMPTS = 16;
+  let best = null, bestScore = Infinity, bestResting = [];
+  for (let a = 0; a < POOL_ATTEMPTS; a++) {
+    const { pick, sit } = sampleBubble(bubble, slots, r1, rested2, a % 2 === 0 ? 'rest' : 'free');
+    const playing = [...forced, ...pick].sort((x, y) => (rankOf[x] ?? 999) - (rankOf[y] ?? 999));
+    if (playing.length < 2) continue;
+    const matches = buildTeamMatches(playing);
+    let score = DOUBLE_REST_PENALTY * doubleRestCount(sit, r1);
+    matches.forEach(m => { score += hist.opponent[m.teamA[0]][m.teamB[0]]; });
+    if (score < bestScore) {
+      bestScore = score;
+      best = { matches, playing };
+      bestResting = [...sit, ...above, ...unavailable];
+      if (bestScore === 0) break;
+    }
+  }
+  if (!best) return { matches: [], resting: [...available, ...unavailable] };
 
-  // Sort playing by rank for Mexicano court assignment (rank 1+2 vs 3+4 etc)
-  playing.sort((a, b) => (rankOf[a] ?? 999) - (rankOf[b] ?? 999));
-
-  const matches = buildTeamMatches(playing);
+  const matches = best.matches;
+  const resting = bestResting;
   const matchedIds = new Set(matches.flatMap(m => [...m.teamA, ...m.teamB]));
-  for (const id of playing) {
+  for (const id of best.playing) {
     if (!matchedIds.has(id)) resting.push(id);
   }
 
@@ -6323,33 +6425,18 @@ function buildTeamAmericanoRound(roundIdx) {
 
   // Monte-Carlo the bubble selection + pairing: try many fair playing-sets and keep the
   // one with the fewest opponent repeats.
-  // v0.70.63 fix (dua akar dari laporan 24 pairs / 6 courts):
-  // (1) BUG: `best` disimpan TANPA property cost, jadi `r.cost < best.cost`
-  //     membandingkan lawan undefined -> false selamanya -> Monte-Carlo
-  //     mati total, round = hasil 1 percobaan greedy random. Itu sebabnya
-  //     repeat opponent lolos. Sekarang cost ikut disimpan + attempts 120.
-  // (2) Prioritas bubble ditambah tier "rested LAST round": dulu cuma
-  //     rested2 (2x berturut) yang ditarik masuk, artinya double-rest
-  //     dibolehin by design. Sekarang: rested2 (tier 0) -> rested round
-  //     kemarin (tier 1) -> sisanya (tier 2). Dengan slot cukup, semua
-  //     yang kemarin duduk PASTI main sekarang -> zero double-rest.
-  //     Konsekuensi matematis pada kasus tepat 50% duduk (24 pairs /
-  //     6 courts): field terbelah jadi 2 kohort tetap yang bergantian
-  //     main-duduk -- itu satu-satunya konfigurasi yang memenuhi "tidak
-  //     ada yang duduk 2x berturut-turut", bukan pilihan implementasi.
-  //     shuffle() sebelum sort + sort stabil (spec ES2019) = acak di
-  //     dalam tiap tier.
+  // v0.70.85: tier "rested LAST round" diturunkan dari aturan kaku jadi
+  // penalti (lihat catatan gpTiers/sampleBubble). Dulu di occupancy 50%
+  // tier itu MEMAKSA dua kohort tetap -- sekarang strategi 'rest' dan
+  // 'free' diadu per attempt, dan skor = cost matchup + penalti
+  // double-rest. rested2 tetap kaku (gak ada yang duduk 3x berturut).
   let best = null;
   for (let a = 0; a < 120; a++) {
-    const pool = shuffle(bubble).sort((x, y) => {
-      const tx = rested2.has(x) ? 0 : (r1.has(x) ? 1 : 2);
-      const ty = rested2.has(y) ? 0 : (r1.has(y) ? 1 : 2);
-      return tx - ty;
-    });
-    const pick = pool.slice(0, slots);
+    const { pick, sit } = sampleBubble(bubble, slots, r1, rested2, a % 2 === 0 ? 'rest' : 'free');
     const r = pairUp([...forced, ...pick]);
-    if (!best || r.cost < best.cost) best = { pairOrder: r.pairOrder, cost: r.cost, restBubble: pool.slice(slots) };
-    if (best.cost === 0) break;
+    const score = r.cost + DOUBLE_REST_PENALTY * doubleRestCount(sit, r1);
+    if (!best || score < best.score) best = { pairOrder: r.pairOrder, score, restBubble: sit };
+    if (best.score === 0) break;
   }
 
   const resting = [...best.restBubble, ...aboveCutoff, ...unavailable];
@@ -6379,39 +6466,35 @@ function buildIndividualAmericanoRound(roundIdx) {
   const total = state.players;
   const activePlayers = state.courts * 4;
   const hist = buildHistory(roundIdx);
-  const lastResting = restedLastRoundSet(roundIdx);
+  const r1 = restedLastRoundSet(roundIdx);
+  const rested2 = restedTwoBackSet(roundIdx);
 
-  // v0.70.83: selectPlayingPool nentuin SIAPA yang wajib main lewat tier
-  // GP asc -> rested-last-round-dulu -> random. Waktu occupancy PAS 50%,
-  // tier "rested last round" itu sendiri sudah pas activeCount -- nol
-  // bubble, nol ruang gerak, siapa pun yang menang tiebreak acak toh
-  // hasilnya sama saja (dua kohort tetap yang gantian, itu KONSEKUENSI
-  // MATEMATIS dari "zero rest 2x berturut-turut" di occupancy 50%, bukan
-  // pilihan implementasi -- lihat catatan sama di buildTeamAmericanoRound).
-  //
-  // Tapi begitu occupancy BUKAN 50% pas (jumlah pemain ganjil, atau court
-  // gak pas separuh), tier "rested last round" LEBIH KECIL dari
-  // activeCount -- ada bubble kandidat GP-sama yang rebutan sisa slot,
-  // dan versi lama cuma nyoba SATU kali pilihan acak dari situ lalu
-  // nyerah walau kombinasi yang lebih baik ada. Sekarang dicoba beberapa
-  // kali (pool DAN pairing sama-sama punya elemen acak) dan diambil yang
-  // total opponent-repeat-nya paling rendah -- prinsip yang sama yang
-  // sudah dipakai buildTeamAmericanoRound buat bubble-nya.
-  const POOL_ATTEMPTS = 15;
-  let best = null, bestCost = Infinity, bestResting = [];
+  const available = [], unavailable = [];
+  for (let i = 0; i < total; i++) (isAvailable(i) ? available : unavailable).push(i);
+
+  // v0.70.85: pool bukan lagi hasil satu keputusan kaku (GP -> rested-last
+  // -> random) tapi eksplorasi: tier GP tetap kaku (jaga spread <= 1),
+  // bubble-nya disampel dengan dua strategi (pro-rest vs pro-variasi) dan
+  // diadu lewat skor matchup + penalti double-rest. Lihat catatan panjang
+  // di atas gpTiers() soal kenapa ini perlu di occupancy 50%.
+  const { forced, bubble, above, slots } = gpTiers(available, activePlayers, hist.games);
+  const POOL_ATTEMPTS = 24;
+  let best = null, bestScore = Infinity, bestResting = null;
   for (let a = 0; a < POOL_ATTEMPTS; a++) {
-    const pool = selectPlayingPool(total, activePlayers, hist.games, lastResting);
-    const poolPlaying = (pool && pool.playing) ? pool.playing : [];
-    const assignments = assignPlayersToCourts(poolPlaying, state.courts, hist);
-    const cost = assignmentCost(assignments, hist);
-    if (cost < bestCost) {
-      bestCost = cost;
+    const { pick, sit } = sampleBubble(bubble, slots, r1, rested2, a % 2 === 0 ? 'rest' : 'free');
+    const playing = [...forced, ...pick];
+    if (playing.length < 4) continue;
+    const assignments = assignPlayersToCourts(playing, state.courts, hist);
+    const score = assignmentCost(assignments, hist) + DOUBLE_REST_PENALTY * doubleRestCount(sit, r1);
+    if (score < bestScore) {
+      bestScore = score;
       best = assignments;
-      bestResting = (pool && pool.resting) ? pool.resting : [];
-      if (bestCost === 0) break;
+      bestResting = [...sit, ...above, ...unavailable];
+      if (bestScore === 0) break;
     }
   }
-  return { assignments: best || [], resting: bestResting };
+  if (!best) return { assignments: [], resting: [...available, ...unavailable] };
+  return { assignments: best, resting: bestResting };
 }
 
 // ===== MIXICANO ROUND GENERATION =====
@@ -6448,38 +6531,37 @@ function buildMixAmericanoRound(roundIdx) {
   for (let i = 0; i < total; i++) if (!isAvailable(i)) unavailable.push(i);
 
   const needPerGender = state.courts * 2;
-  const lrSet = restedLastRoundSet(roundIdx); // v0.70.63
-  const fairnessSort = (pool) => [...pool].sort((a, b) =>
-    hist.games[a] - hist.games[b] ||
-    ((lrSet.has(a) ? 0 : 1) - (lrSet.has(b) ? 0 : 1)) ||
-    Math.random() - 0.5);
+  const r1 = restedLastRoundSet(roundIdx); // v0.70.63
+  const rested2 = restedTwoBackSet(roundIdx);
 
-  // v0.70.83: sama prinsipnya dengan buildIndividualAmericanoRound -- kalau
-  // occupancy per gender BUKAN pas separuh, ada bubble siapa yang duduk
-  // yang belum dieksplorasi. Dicoba beberapa kali (sit-out DAN matching
-  // dua-duanya punya elemen acak), diambil total opponent-repeat paling
-  // rendah. Di occupancy pas 50% per gender, semua attempt bakal
-  // konvergen ke kohort yang sama (dipaksa zero-2x-rest), jadi loop ini
-  // gak nyakitin, cuma gak nemu perbaikan tambahan di kasus itu.
-  const POOL_ATTEMPTS = 15;
+  // v0.70.85: sit-out per gender bukan lagi sort kaku (GP -> rested-last
+  // -> random) tapi tier GP kaku + bubble sampling soft-rest, sama seperti
+  // individual americano (lihat catatan gpTiers). Tiap attempt sampel
+  // bubble M dan F masing-masing, dinilai bareng matching-nya.
+  const tiersM = gpTiers(males, needPerGender, hist.games);
+  const tiersF = gpTiers(females, needPerGender, hist.games);
+
+  const POOL_ATTEMPTS = 24;
   let best = null, bestCost = Infinity, bestResting = [];
 
   for (let attempt = 0; attempt < POOL_ATTEMPTS; attempt++) {
-    let activeMales = males.length <= needPerGender ? males : fairnessSort(males).slice(0, needPerGender);
-    let activeFemales = females.length <= needPerGender ? females : fairnessSort(females).slice(0, needPerGender);
-    const sittingMales = males.filter(m => !activeMales.includes(m));
-    const sittingFemales = females.filter(f => !activeFemales.includes(f));
-    const resting = [...sittingMales, ...sittingFemales, ...unavailable];
+    const strategy = attempt % 2 === 0 ? 'rest' : 'free';
+    const sM = sampleBubble(tiersM.bubble, tiersM.slots, r1, rested2, strategy);
+    const sF = sampleBubble(tiersF.bubble, tiersF.slots, r1, rested2, strategy);
+    let activeMales = [...tiersM.forced, ...sM.pick];
+    let activeFemales = [...tiersF.forced, ...sF.pick];
+    const resting = [...sM.sit, ...tiersM.above, ...sF.sit, ...tiersF.above, ...unavailable];
 
     // Court butuh 1M+1F per tim, jumlah M & F aktif harus sama persis.
     if (activeMales.length !== activeFemales.length) {
       const n = Math.min(activeMales.length, activeFemales.length);
-      if (activeMales.length > n) {
-        const extra = fairnessSort(activeMales); resting.push(...extra.slice(n)); activeMales = extra.slice(0, n);
-      }
-      if (activeFemales.length > n) {
-        const extra = fairnessSort(activeFemales); resting.push(...extra.slice(n)); activeFemales = extra.slice(0, n);
-      }
+      const trim = (arr) => {
+        const sorted = [...arr].sort((a, b) => hist.games[b] - hist.games[a]); // GP tertinggi duduk duluan
+        resting.push(...sorted.slice(0, arr.length - n));
+        return sorted.slice(arr.length - n);
+      };
+      if (activeMales.length > n) activeMales = trim(activeMales);
+      if (activeFemales.length > n) activeFemales = trim(activeFemales);
     }
     if (activeMales.length < 2) continue;
 
@@ -6505,7 +6587,8 @@ function buildMixAmericanoRound(roundIdx) {
     const finalResting = [...resting];
     for (const id of combined) if (!usedPlayers.has(id)) finalResting.push(id);
 
-    const totalCost = partnerMatch.cost * 3 + teamMatch.cost;
+    const totalCost = partnerMatch.cost * 3 + teamMatch.cost
+      + DOUBLE_REST_PENALTY * doubleRestCount(finalResting, r1); // v0.70.85
     if (totalCost < bestCost) {
       bestCost = totalCost;
       best = courts;
@@ -6547,19 +6630,47 @@ function buildMixicanoRound(roundIdx) {
   }
 
   const lrSet = restedLastRoundSet(roundIdx); // v0.70.63
-  const sortFair = (pool) => [...pool].sort((a, b) => {
-    const gDiff = hist.games[a] - hist.games[b];
-    if (gDiff !== 0) return gDiff; // fewer games → must play
-    const rDiff = (lrSet.has(a) ? 0 : 1) - (lrSet.has(b) ? 0 : 1); // v0.70.63 anti double-rest
-    if (rDiff !== 0) return rDiff;
-    if (scoredRounds > 0) return (rankOf[a] ?? 999) - (rankOf[b] ?? 999); // tie → better rank plays
-    return Math.random() - 0.5; // no rank yet → arbitrary
-  }).slice(0, needPerGender);
+  // v0.70.85: sit-out per gender ikut soft-rest sampling (lihat gpTiers).
+  // Pairing tetap rank-based cross-gender; yang dieksplorasi cuma SIAPA
+  // yang main. Skor kandidat = repeat lawan hasil pairing + penalti
+  // double-rest.
+  const rested2x = restedTwoBackSet(roundIdx);
+  const tiersM = gpTiers(males, needPerGender, hist.games);
+  const tiersF = gpTiers(females, needPerGender, hist.games);
+  const pickGender = (tiers, strategy) => {
+    const s = sampleBubble(tiers.bubble, tiers.slots, lrSet, rested2x, strategy);
+    return { active: [...tiers.forced, ...s.pick], sit: [...s.sit, ...tiers.above] };
+  };
 
-  const activeMales = males.length <= needPerGender ? males : sortFair(males);
-  const activeFemales = females.length <= needPerGender ? females : sortFair(females);
-  const sittingMales = males.filter(m => !activeMales.includes(m));
-  const sittingFemales = females.filter(f => !activeFemales.includes(f));
+  const POOL_ATTEMPTS = 16;
+  let bestPick = null, bestScore = Infinity;
+  for (let a = 0; a < POOL_ATTEMPTS; a++) {
+    const strategy = a % 2 === 0 ? 'rest' : 'free';
+    const pM = pickGender(tiersM, strategy);
+    const pF = pickGender(tiersF, strategy);
+    // skor: bangun pairing rank-based dari kandidat ini, hitung repeatnya
+    const rk = (id) => rankOf[id] ?? 999;
+    const sm = [...pM.active].sort((x, y) => rk(x) - rk(y));
+    const sf = [...pF.active].sort((x, y) => rk(x) - rk(y));
+    let score = DOUBLE_REST_PENALTY * doubleRestCount([...pM.sit, ...pF.sit], lrSet);
+    for (let c = 0; c < state.courts; c++) {
+      const mG = sm.slice(c * 2, c * 2 + 2), fG = sf.slice(c * 2, c * 2 + 2);
+      if (mG.length < 2 || fG.length < 2) break;
+      const tA = [mG[0], fG[1]], tB = [mG[1], fG[0]];
+      tA.forEach(x => tB.forEach(y => { score += hist.opponent[x][y]; }));
+      score += hist.partner[tA[0]][tA[1]] + hist.partner[tB[0]][tB[1]];
+    }
+    if (score < bestScore) {
+      bestScore = score;
+      bestPick = { pM, pF };
+      if (bestScore === 0) break;
+    }
+  }
+
+  const activeMales = bestPick ? bestPick.pM.active : males.slice(0, needPerGender);
+  const activeFemales = bestPick ? bestPick.pF.active : females.slice(0, needPerGender);
+  const sittingMales = bestPick ? bestPick.pM.sit : males.filter(m => !activeMales.includes(m));
+  const sittingFemales = bestPick ? bestPick.pF.sit : females.filter(f => !activeFemales.includes(f));
   const resting = [...sittingMales, ...sittingFemales, ...unavailable];
 
   // Rank order within the active pool (arbitrary/entry order if no scores yet)
