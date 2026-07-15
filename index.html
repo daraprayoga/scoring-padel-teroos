@@ -3700,22 +3700,14 @@ try {
             <div class="control-hint">Range 1-8</div>
           </div>
           <div class="control">
-            <label>Players per Court</label>
-            <div class="stepper" id="pplCourtStepper">
-              <button data-step="-1">−</button>
-              <div class="value" id="pplCourtVal">8</div>
-              <button data-step="1">+</button>
-            </div>
-            <div class="control-hint">Range 4-8</div>
-          </div>
-          <div class="control">
             <label>Total Players</label>
             <div class="stepper" id="playersStepper">
               <button data-step="-1">−</button>
-              <div class="value" id="playersVal">32</div>
+              <input type="text" inputmode="numeric" pattern="[0-9]*" class="value stepper-input" id="playersInput" value="32" aria-label="Total pemain">
               <button data-step="1">+</button>
             </div>
             <div class="control-hint" id="playersHint">Auto-calculated</div>
+            <div id="playersRotationInfo" class="control-hint" style="margin-top:2px;"></div>
             <div id="playersOddWarn" style="display:none;color:#b45309;font-size:11px;font-weight:700;margin-top:4px;">⚠️ Jumlah ganjil — pembagian game play bisa tidak rata (ada yang main 1 game lebih sedikit). Tetap bisa dipakai.</div>
           </div>
         </div>
@@ -3850,7 +3842,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.85 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.86 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -4200,7 +4192,9 @@ function genderBadge(id) {
 
 // ========== SETUP SYNC ==========
 function syncPlayerCount() {
-  if (!state.manualPlayerCount) state.players = state.courts * state.playersPerCourt;
+  // v0.70.86: default = courts * 8 (dulu courts * playersPerCourt; field
+  // playersPerCourt dihapus karena bikin bingung dan cuma feeder default).
+  if (!state.manualPlayerCount) state.players = state.courts * 8;
   else if (state.players < state.courts * 4) state.players = state.courts * 4;
   syncPlayerNames();
 }
@@ -4695,10 +4689,32 @@ function tourneyGroupAllDone() {
 
 function updateStepperVals() {
   document.getElementById('courtsVal').textContent = state.courts;
-  document.getElementById('pplCourtVal').textContent = state.playersPerCourt;
-  document.getElementById('playersVal').textContent = state.players;
-  const auto = state.courts * state.playersPerCourt;
-  document.getElementById('playersHint').textContent = state.manualPlayerCount ? `Manual · auto = ${auto}` : `Auto: ${state.courts} × ${state.playersPerCourt} = ${auto}`;
+  // v0.70.86: field "Players per Court" dihapus. Total Players jadi input
+  // ketik (numeric). Default = courts * 8 (sweet-spot mabar), disimpan di
+  // syncPlayerCount. Elemen pplCourtVal sudah tidak ada.
+  const playersInput = document.getElementById('playersInput');
+  if (playersInput && document.activeElement !== playersInput) playersInput.value = state.players;
+  const auto = state.courts * 8;
+  document.getElementById('playersHint').textContent = state.manualPlayerCount ? `Manual · auto = ${auto}` : `Auto: ${state.courts} lapangan × 8 = ${auto}`;
+
+  // Baris info rotasi dalam bahasa manusia: jawab kecemasan "muat gak?"
+  // tanpa maksa user ngerti angka teknis. Yang main per ronde = courts*4.
+  const rotInfo = document.getElementById('playersRotationInfo');
+  if (rotInfo) {
+    const playPerRound = state.courts * 4;
+    if (state.players >= playPerRound) {
+      const resting = state.players - playPerRound;
+      const lap = state.courts === 1 ? '1 lapangan' : `${state.courts} lapangan`;
+      rotInfo.textContent = resting === 0
+        ? `${state.players} pemain, ${lap}: semua main tiap ronde`
+        : `${state.players} pemain, ${lap}: ${playPerRound} main tiap ronde, ${resting} istirahat gantian`;
+      rotInfo.style.color = '';
+    } else {
+      rotInfo.textContent = `Minimal ${playPerRound} pemain buat ${state.courts === 1 ? '1 lapangan' : state.courts + ' lapangan'}`;
+      rotInfo.style.color = '#b45309';
+    }
+  }
+
   // Odd player count is allowed (all individual modes) — warn that game play may be uneven.
   const oddWarn = document.getElementById('playersOddWarn');
   if (oddWarn) oddWarn.style.display = (!isTeam() && state.players % 2 === 1) ? '' : 'none';
@@ -4856,8 +4872,7 @@ document.getElementById('courtsStepper').addEventListener('click', e => {
   const newVal = state.courts + step;
   if (newVal >= 1 && newVal <= 8) {
     state.courts = newVal;
-    state.playersPerCourt = 8; // reset to default 8 per court
-    state.manualPlayerCount = false;
+    state.manualPlayerCount = false; // v0.70.86: balik ke auto courts*8
     state.manualPairCount = false;
     syncPlayerCount();
     syncPairCount();
@@ -4884,23 +4899,6 @@ document.getElementById('courtsStepperTeam').addEventListener('click', e => {
   }
 });
 
-document.getElementById('pplCourtStepper').addEventListener('click', e => {
-  if (e.target.tagName !== 'BUTTON') return;
-  const step = parseInt(e.target.dataset.step);
-  const allowed = [4, 5, 6, 7, 8];
-  const curIdx = allowed.indexOf(state.playersPerCourt);
-  // Sesi lama bisa punya playersPerCourt 10/12 (allowed list lama). Kalau
-  // ketemu nilai di luar range baru, snap ke index 0 alih-alih diam.
-  const newIdx = curIdx === -1 ? 0 : curIdx + (step > 0 ? 1 : -1);
-  if (newIdx >= 0 && newIdx < allowed.length) {
-    state.playersPerCourt = allowed[newIdx];
-    state.manualPlayerCount = false;
-    syncPlayerCount();
-    renderPlayersList();
-    updateStepperVals();
-  }
-});
-
 document.getElementById('playersStepper').addEventListener('click', e => {
   if (e.target.tagName !== 'BUTTON') return;
   const step = parseInt(e.target.dataset.step);
@@ -4915,6 +4913,35 @@ document.getElementById('playersStepper').addEventListener('click', e => {
     updateStepperVals();
   }
 });
+
+// v0.70.86: Total Players bisa diketik langsung (keyboard numeric di HP).
+// Filter non-digit saat mengetik; clamp + commit saat blur/Enter supaya
+// user gak "kejebak" di angka di bawah minimum pas lagi ngetik.
+(function () {
+  const inp = document.getElementById('playersInput');
+  if (!inp) return;
+  inp.addEventListener('input', () => {
+    const digits = inp.value.replace(/[^0-9]/g, '');
+    if (digits !== inp.value) inp.value = digits;
+  });
+  const commit = () => {
+    const min = state.courts * 4;
+    const max = 100;
+    let v = parseInt(inp.value, 10);
+    if (isNaN(v)) v = state.players;       // input kosong -> balik ke nilai lama
+    v = Math.max(min, Math.min(max, v));   // clamp ke [courts*4, 100]
+    state.players = v;
+    state.manualPlayerCount = true;
+    inp.value = v;
+    syncPlayerNames();
+    renderPlayersList();
+    updateStepperVals();
+  };
+  inp.addEventListener('blur', commit);
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+  });
+})();
 
 document.getElementById('pairsStepper').addEventListener('click', e => {
   if (e.target.tagName !== 'BUTTON') return;
@@ -13179,6 +13206,38 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
 .podium-standings-table tr.rank-gold td   { background: rgba(201, 169, 97, 0.10); }
 .podium-standings-table tr.rank-silver td { background: rgba(130, 130, 130, 0.08); }
 .podium-standings-table tr.rank-bronze td { background: rgba(160, 96, 48, 0.08); }
+</style>
+<style id="codex-revision-v07086-css">
+/* v0.70.86: Total Players jadi <input> yang bisa diketik (keyboard numeric
+   di HP). Disamakan PERSIS dengan tampilan .stepper .value (dulu <div>)
+   supaya secara visual gak berubah -- cuma jadi bisa di-tap-ketik. */
+.stepper .stepper-input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  text-align: center;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 19px;
+  font-weight: 800;
+  color: #2d6b4e !important;
+  background: transparent;
+  border: 0;
+  padding: 10px 0;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  -moz-appearance: textfield;
+}
+.stepper .stepper-input:focus {
+  outline: none;
+  background: rgba(45, 107, 78, 0.06);
+}
+/* Fokus di input gak boleh munculin caret spinner bawaan */
+.stepper .stepper-input::-webkit-outer-spin-button,
+.stepper .stepper-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 </style>
 <script id="codex-revision-v07075-js">
 /* v0.70.75: wiring tombol asterisk podium -> modal "Alasan Peringkat".
