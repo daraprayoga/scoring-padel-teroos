@@ -118,11 +118,11 @@
   .tournament-name { font-weight: 700; font-size: 12px; color: var(--gold); padding: 3px 10px; background: rgba(201,169,97,0.08); border: 1px solid rgba(201,169,97,0.3); border-radius: 20px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; }
   .format-badge { padding: 3px 10px; border-radius: 20px; background: var(--green); color: var(--cream); border: 1px solid var(--green-light); font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; min-width: 0; }
   .nav { display: flex; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 3px; gap: 2px; flex-shrink: 0; }
-  .nav-btn { padding: 8px 18px; background: transparent; color: var(--cream-dim); border: none; border-radius: 7px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; }
+  .nav-btn { padding: 8px 18px; background: transparent; color: var(--cream-dim); border: none; border-radius: 7px; font-size: 13px; font-weight: 700; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease, transform 0.15s ease, filter 0.15s ease; }
   .nav-btn.active { background: var(--green-light); color: var(--cream); }
   .nav-btn:not(.active):hover { background: rgba(45, 107, 78, 0.15); color: var(--cream); }
   .header-actions { display: flex; gap: 6px; align-items: center; }
-  .icon-btn { width: 36px; height: 36px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); color: var(--cream); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.15s; }
+  .icon-btn { width: 36px; height: 36px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); color: var(--cream); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, color 0.15s, transform 0.15s, filter 0.15s; }
   .icon-btn:hover { background: var(--green); border-color: var(--green-light); }
   .icon-btn.danger:hover { background: var(--red); border-color: var(--red); }
 
@@ -237,13 +237,13 @@
   .ko-stage-sub { font-size: 11px; color: var(--cream-dim); font-weight: 600; }
   .ko-stage-target { display: flex; align-items: center; gap: 6px; }
   .ko-stage-target select { padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(45,107,78,0.3); background: rgba(245,240,230,0.9); font-size: 13px; font-weight: 700; color: #2d6b4e; cursor: pointer; }
-  .format-card { padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.6); border: 2px solid rgba(45,107,78,0.15); cursor: pointer; transition: all 0.2s; }
+  .format-card { padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.6); border: 2px solid rgba(45,107,78,0.15); cursor: pointer; transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s, transform 0.2s, filter 0.2s; }
   .format-card.selected { border-color: var(--green-bright); background: var(--green); }
   .format-card h3 { font-size: 13px; margin-bottom: 4px; }
   .format-card p { font-size: 13px; color: var(--cream-dim); line-height: 1.35; }
 
   .mode-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-  .mode-card { padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.6); border: 2px solid rgba(45,107,78,0.15); cursor: pointer; transition: all 0.15s; text-align: center; }
+  .mode-card { padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.6); border: 2px solid rgba(45,107,78,0.15); cursor: pointer; transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, color 0.15s, transform 0.15s, filter 0.15s; text-align: center; }
   .mode-card.selected { border-color: var(--green-bright); background: var(--green); }
   .mode-card .mode-label { font-size: 13px; font-weight: 700; color: var(--cream); }
   .mode-card .mode-desc { font-size: 12px; color: var(--cream-dim); margin-top: 3px; letter-spacing: 0.3px; }
@@ -276,7 +276,7 @@
     cursor: pointer;
     padding: 0;
     line-height: 1;
-    transition: all 0.15s;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, color 0.15s, transform 0.15s, filter 0.15s;
   }
   .gender-btn:hover { border-color: var(--green-bright); color: var(--cream); }
   .gender-btn.active-m { background: #1a4a80; border-color: #4a90d9; color: #fff; }
@@ -314,7 +314,7 @@
   .pair-inputs input::placeholder { color: var(--cream-dim); opacity: 0.5; }
   .pair-inputs .amp { font-size: 13px; color: var(--cream-dim); font-weight: 700; flex-shrink: 0; }
 
-  .primary-btn { padding: 12px 22px; background: var(--green-bright); color: var(--cream); border: none; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: 0.3px; transition: all 0.15s; }
+  .primary-btn { padding: 12px 22px; background: var(--green-bright); color: var(--cream); border: none; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: 0.3px; transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, color 0.15s, transform 0.15s, filter 0.15s; }
   .primary-btn:hover { background: var(--accent-bright); }
   .primary-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .ghost-btn { padding: 10px 18px; background: transparent; color: var(--cream); border: 1px solid var(--green-light); border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; }
@@ -375,8 +375,8 @@
   .overview-header h2 { font-size: 14px; font-weight: 800; letter-spacing: 0.5px; }
 
   .blur-toggle { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--cream-dim); font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; cursor: pointer; }
-  .switch { position: relative; width: 36px; height: 20px; background: rgba(45,107,78,0.15); border: 1px solid rgba(45,107,78,0.3); border-radius: 12px; transition: all 0.2s; }
-  .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #f5f0e6; transition: all 0.2s; }
+  .switch { position: relative; width: 36px; height: 20px; background: rgba(45,107,78,0.15); border: 1px solid rgba(45,107,78,0.3); border-radius: 12px; transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s, transform 0.2s, filter 0.2s; }
+  .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #f5f0e6; transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s, transform 0.2s, filter 0.2s; }
   .switch.on { background: var(--green-bright); border-color: var(--green-bright); }
   .switch.on::after { left: 18px; background: #f5f0e6; }
 
@@ -628,7 +628,7 @@
     border-radius: 10px;
     padding: 10px 12px;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, color 0.15s, transform 0.15s, filter 0.15s;
     user-select: none;
   }
   .status-player-card:hover { background: #111111; }
@@ -668,7 +668,7 @@
     font-weight: 800;
     cursor: pointer;
     letter-spacing: 0.3px;
-    transition: all 0.15s;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, color 0.15s, transform 0.15s, filter 0.15s;
     white-space: nowrap;
   }
   .end-game-btn:hover {
@@ -873,7 +873,7 @@
   .ss-placeholder div { font-size: 36px; font-weight: 700; letter-spacing: 1px; }
   .ss-overlay { position: absolute; inset: 0; pointer-events: none; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif; }
   .studio-dots { display: flex; gap: 8px; justify-content: center; padding: 12px 0 6px; flex-shrink: 0; }
-  .studio-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(45,107,78,0.25); transition: all 0.2s; cursor: pointer; }
+  .studio-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(45,107,78,0.25); transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s, transform 0.2s, filter 0.2s; cursor: pointer; }
   .studio-dot.active { background: #2d6b4e; width: 28px; border-radius: 6px; }
   .studio-zoom { display: flex; align-items: center; gap: 14px; padding: 4px 28px; flex-shrink: 0; height: 36px; }
   .studio-zoom.hidden { visibility: hidden; }
@@ -2036,7 +2036,7 @@ header {
 .nav-btn {
   border-radius: 10px !important;
   border: 1px solid transparent !important;
-  transition: all 0.2s var(--transition-smooth) !important;
+  transition: background 0.2s var(--transition-smooth), border-color 0.2s var(--transition-smooth), box-shadow 0.2s var(--transition-smooth), color 0.2s var(--transition-smooth), transform 0.2s var(--transition-smooth), filter 0.2s var(--transition-smooth) !important;
   color: var(--rc-cream-dim) !important;
 }
 .nav-btn:hover {
@@ -2058,7 +2058,7 @@ header {
   border: 1px solid var(--rc-border) !important;
   border-radius: 10px !important;
   color: var(--rc-cream) !important;
-  transition: all 0.2s var(--transition-smooth) !important;
+  transition: background 0.2s var(--transition-smooth), border-color 0.2s var(--transition-smooth), box-shadow 0.2s var(--transition-smooth), color 0.2s var(--transition-smooth), transform 0.2s var(--transition-smooth), filter 0.2s var(--transition-smooth) !important;
   box-shadow: var(--rc-inset);
 }
 .icon-btn:hover {
@@ -2097,7 +2097,7 @@ main { background: var(--rc-forest) !important; }
   background: rgba(255,255,255,0.55) !important;
   border: 1px solid var(--rc-border) !important;
   border-radius: 14px !important;
-  transition: all 0.2s var(--transition-smooth) !important;
+  transition: background 0.2s var(--transition-smooth), border-color 0.2s var(--transition-smooth), box-shadow 0.2s var(--transition-smooth), color 0.2s var(--transition-smooth), transform 0.2s var(--transition-smooth), filter 0.2s var(--transition-smooth) !important;
   cursor: pointer;
   position: relative;
   overflow: hidden;
@@ -2129,7 +2129,7 @@ main { background: var(--rc-forest) !important; }
   background: rgba(255,255,255,0.55) !important;
   border: 1px solid var(--rc-border) !important;
   border-radius: 12px !important;
-  transition: all 0.2s var(--transition-smooth) !important;
+  transition: background 0.2s var(--transition-smooth), border-color 0.2s var(--transition-smooth), box-shadow 0.2s var(--transition-smooth), color 0.2s var(--transition-smooth), transform 0.2s var(--transition-smooth), filter 0.2s var(--transition-smooth) !important;
 }
 .mode-card:hover { border-color: var(--rc-border-lit) !important; transform: translateY(-1px); }
 .mode-card:active { transform: scale(0.96); }
@@ -2148,7 +2148,7 @@ main { background: var(--rc-forest) !important; }
   border: 1px solid var(--rc-border) !important;
   color: var(--rc-cream) !important;
   border-radius: 8px !important;
-  transition: all 0.15s var(--transition-spring) !important;
+  transition: background 0.15s var(--transition-spring), border-color 0.15s var(--transition-spring), box-shadow 0.15s var(--transition-spring), color 0.15s var(--transition-spring), transform 0.15s var(--transition-spring), filter 0.15s var(--transition-spring) !important;
 }
 .stepper-btn:hover { border-color: var(--rc-border-lit) !important; background: rgba(240,235,224,0.06) !important; }
 .stepper-btn:active { transform: scale(0.85) !important; }
@@ -2179,7 +2179,7 @@ main { background: var(--rc-forest) !important; }
   border: 1px solid var(--rc-border) !important;
   color: var(--rc-cream-dim) !important;
   border-radius: 10px !important;
-  transition: all 0.2s var(--transition-smooth) !important;
+  transition: background 0.2s var(--transition-smooth), border-color 0.2s var(--transition-smooth), box-shadow 0.2s var(--transition-smooth), color 0.2s var(--transition-smooth), transform 0.2s var(--transition-smooth), filter 0.2s var(--transition-smooth) !important;
   position: relative;
   overflow: hidden;
 }
@@ -2200,7 +2200,7 @@ main { background: var(--rc-forest) !important; }
   border: 1px solid #2d6b4e !important;
   color: #f5f0e6 !important;
   border-radius: 10px !important;
-  transition: all 0.2s !important;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s, transform 0.2s, filter 0.2s !important;
   position: relative;
   overflow: hidden;
 }
@@ -2245,7 +2245,7 @@ main { background: var(--rc-forest) !important; }
   border: 1px solid #2d6b4e !important;
   color: #f5f0e6 !important;
   border-radius: 10px !important;
-  transition: all 0.2s !important;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s, transform 0.2s, filter 0.2s !important;
 }
 .end-game-btn.podium-btn {
   background: #2d6b4e !important;
@@ -2262,7 +2262,7 @@ main { background: var(--rc-forest) !important; }
   border-radius: 8px !important;
   color: var(--rc-cream) !important;
   font-weight: 700 !important;
-  transition: all 0.2s var(--transition-smooth) !important;
+  transition: background 0.2s var(--transition-smooth), border-color 0.2s var(--transition-smooth), box-shadow 0.2s var(--transition-smooth), color 0.2s var(--transition-smooth), transform 0.2s var(--transition-smooth), filter 0.2s var(--transition-smooth) !important;
   box-shadow: var(--rc-inset);
 }
 .score-box:focus, .match-score-input:focus {
@@ -2277,7 +2277,7 @@ main { background: var(--rc-forest) !important; }
   background: rgba(255,255,255,0.55) !important;
   border: 1px solid var(--rc-border) !important;
   border-radius: 12px !important;
-  transition: all 0.2s !important;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s, transform 0.2s, filter 0.2s !important;
   margin-bottom: 4px;
 }
 .match-row:hover { background: rgba(255,255,255,0.55) !important; border-color: var(--rc-border-lit) !important; }
@@ -2413,7 +2413,7 @@ main { background: var(--rc-forest) !important; }
   border: 1px solid rgba(180,60,60,0.4) !important;
   border-radius: 10px !important;
   color: #f0a0a0 !important;
-  transition: all 0.2s !important;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s, transform 0.2s, filter 0.2s !important;
 }
 .danger-btn:hover { box-shadow: 0 0 18px rgba(180,60,60,0.3) !important; transform: translateY(-1px); }
 .danger-btn:active, .end-confirm-btn:active { transform: scale(0.95) !important; }
@@ -2423,7 +2423,7 @@ main { background: var(--rc-forest) !important; }
   color: #f5f0e6 !important;
   border-radius: 10px !important;
   font-weight: 800 !important;
-  transition: all 0.2s !important;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s, transform 0.2s, filter 0.2s !important;
 }
 .end-confirm-btn:hover { background: #1a4a35 !important; }
 
@@ -2432,7 +2432,7 @@ main { background: var(--rc-forest) !important; }
   background: rgba(255,255,255,0.55) !important;
   border: 1px solid var(--rc-border) !important;
   border-radius: 14px !important;
-  transition: all 0.2s;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s, transform 0.2s, filter 0.2s;
 }
 .schedule-round:hover { border-color: var(--rc-border-lit) !important; }
 .schedule-round.current { border-color: rgba(201,169,97,0.35) !important; background: rgba(201,169,97,0.04) !important; }
@@ -2453,9 +2453,9 @@ main { background: var(--rc-forest) !important; }
   background: rgba(255,255,255,0.55) !important;
   border: 1px solid var(--rc-border) !important;
   border-radius: 12px !important;
-  transition: all 0.2s var(--transition-spring) !important;
+  transition: background 0.2s var(--transition-spring), border-color 0.2s var(--transition-spring), box-shadow 0.2s var(--transition-spring), color 0.2s var(--transition-spring), transform 0.2s var(--transition-spring), filter 0.2s var(--transition-spring) !important;
 }
-.status-player-card:active { transform: scale(0.94) !important; }
+.status-player-card:active { transform: none !important; filter: brightness(0.95) !important; }
 .status-player-card.is-late { border-color: rgba(201,169,97,0.4) !important; background: rgba(201,169,97,0.06) !important; }
 .status-player-card.is-left { border-color: rgba(180,60,60,0.3) !important; background: rgba(180,60,60,0.05) !important; }
 .status-player-name { color: var(--rc-cream) !important; }
@@ -2548,7 +2548,7 @@ main { background: var(--rc-forest) !important; }
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s, transform 0.2s, filter 0.2s;
   white-space: nowrap;
 }
 .sb-tab.active {
@@ -2570,7 +2570,7 @@ main { background: var(--rc-forest) !important; }
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.18s;
+  transition: background 0.18s, border-color 0.18s, box-shadow 0.18s, color 0.18s, transform 0.18s, filter 0.18s;
 }
 .sb-nav-btn:hover { background: rgba(240,235,224,0.10); border-color: rgba(240,235,224,0.2); transform: translateY(-1px); }
 .sb-nav-btn:active { transform: scale(0.94); }
@@ -3376,7 +3376,7 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   cursor: pointer;
   padding: 6px 16px;
   border-radius: 12px;
-  transition: all 0.2s;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s, transform 0.2s, filter 0.2s;
   flex-shrink: 0;
 }
 .bottom-tab-icon { font-size: 20px; line-height: 1; }
@@ -3842,7 +3842,7 @@ try {
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.86 · liquid glass · beta</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.70.88 · liquid glass · beta</div>
     </div>
   </div>
 
@@ -4055,7 +4055,6 @@ const state = {
   mode: 'total_of_4',
   courts: 2,
   // Individual
-  playersPerCourt: 8,
   players: 32,
   manualPlayerCount: false,
   playerNames: [],
@@ -4811,7 +4810,6 @@ function selectFormatCard(card) {
     renderPairsList();
   } else {
     state.manualPlayerCount = false;
-    state.playersPerCourt = 8;
     syncPlayerCount();
     renderPlayersList();
   }
@@ -4888,7 +4886,6 @@ document.getElementById('courtsStepperTeam').addEventListener('click', e => {
   const newVal = state.courts + step;
   if (newVal >= 1 && newVal <= 8) {
     state.courts = newVal;
-    state.playersPerCourt = 8; // reset to default 8 per court
     state.manualPlayerCount = false;
     state.manualPairCount = false;
     syncPlayerCount();
@@ -7491,7 +7488,7 @@ function showSwapModal(currentId, triggerEl) {
       background: rgba(255,255,255,0.65); border: 1px solid rgba(45,107,78,0.2);
       border-radius: 12px; padding: 12px 16px; text-align:left; cursor:pointer;
       color: #14301f; font-size:14px; font-weight:700; text-transform:uppercase;
-      letter-spacing:0.3px; transition: all 0.15s; width:100%;
+      letter-spacing:0.3px; transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, color 0.15s, transform 0.15s, filter 0.15s; width:100%;
     `;
     btn.textContent = opt.name;
     btn.addEventListener('pointerenter', () => {
@@ -8373,15 +8370,17 @@ function showPodium() {
             ${notesHtml}
           </div>
           <div class="podium-stats">
-            <div class="podium-stat-block">
+            <!-- v0.70.88: swap warna tile -- WIN hero solid green (.pts),
+                 PTS light green (.dark), +/- & WR plain putih (default) -->
+            <div class="podium-stat-block pts">
               <div class="podium-stat-val">${s.wins}</div>
               <div class="podium-stat-key">WIN</div>
             </div>
-            <div class="podium-stat-block pts">
+            <div class="podium-stat-block dark">
               <div class="podium-stat-val">${s.points}</div>
               <div class="podium-stat-key">PTS</div>
             </div>
-            <div class="podium-stat-block dark">
+            <div class="podium-stat-block">
               <div class="podium-stat-val">${s.diff > 0 ? '+' : ''}${s.diff}</div>
               <div class="podium-stat-key">+/−</div>
             </div>
@@ -10903,7 +10902,7 @@ header, .bottom-nav { transition: background 0.3s ease, box-shadow 0.3s ease; }
   align-items: center;
   justify-content: center;
   gap: 1px;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease, transform 0.15s ease, filter 0.15s ease;
   position: relative;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -12384,7 +12383,8 @@ body.viewer-mode .sb-score-box.winner:disabled {
   display: none;
 }
 .podium-share-btn:active {
-  transform: scale(0.92) !important;
+  transform: none !important;
+  filter: brightness(0.91) !important;
 }
 </style>
 <style id="codex-revision-v07057-css">
@@ -12625,7 +12625,7 @@ body.viewer-mode .podium-results-footer {
 }
 #startBtn:hover { background: #2b725f !important; }
 #startBtn:active,
-#startBtn.lg-pressed { background: #1f5647 !important; transform: scale(0.97) !important; }
+#startBtn.lg-pressed { background: #1f5647 !important; }
 #startBtn::before,
 #startBtn::after { content: none !important; display: none !important; }
 #startBtn { will-change: auto !important; }
@@ -13237,6 +13237,43 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
 .stepper .stepper-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+</style>
+<style id="codex-revision-v07087-css">
+/* v0.70.87: motion audit fixes.
+   [1] Hover-lift (translateY/scale) di 8 tombol/card cuma boleh jalan di
+   device yang beneran punya hover (mouse). Tanpa gate ini, tap di iOS
+   bisa nyangkut di state "hover" abis lepas jari -- ketuker sama
+   :active/.lg-pressed. Warna/shadow hover tetap boleh, cuma transform-nya
+   yang dimatiin di touch. */
+@media (hover: none), (pointer: coarse) {
+  .format-card:hover,
+  .mode-card:hover,
+  .ghost-btn:hover,
+  .primary-btn:hover,
+  .end-game-btn:hover,
+  .danger-btn:hover,
+  .sb-nav-btn:hover,
+  .sb-nav-next:hover {
+    transform: none !important;
+  }
+}
+
+/* [2] 6 animasi infinite (glow/pulse/bounce) belum ada di blok manapun
+   yang nge-respect prefers-reduced-motion -- jalan terus tanpa peduli
+   setting OS. [data-action="podium"] di-set inline via JS
+   (btn.style.animation = 'podiumPulse ...'); !important di sini menang
+   atas inline style non-important. */
+@media (prefers-reduced-motion: reduce) {
+  .podium-scroll-hint,
+  .podium-scroll-hint svg,
+  .sb-nav-next,
+  .sb-nav-next:hover,
+  .sb-nav-next:active,
+  .sb-nav-next.lg-pressed,
+  [data-action="podium"] {
+    animation: none !important;
+  }
 }
 </style>
 <script id="codex-revision-v07075-js">
