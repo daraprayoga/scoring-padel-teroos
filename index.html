@@ -3849,7 +3849,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.1</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.2</div>
     </div>
   </div>
 
@@ -14210,6 +14210,62 @@ html.dark .format-card.selected {
   z-index: 100010 !important;
 }
 </style>
+<style id="codex-revision-v0712-css">
+/* v0.71.2: 2 fixes lanjutan modal Schedule.
+
+   [1] Dark mode: isi modal Schedule masih terang.
+   Akar: keluarga schedule/status di blok ~2432 hardcode
+   rgba(255,255,255,0.55)+important (kartu ronde, select, kartu status)
+   -- putih 55% di atas panel gelap = kartu light. Dark lab gak pernah
+   nyentuh selector ini. Fix (0,2,0)+important+posisi akhir, bahasa
+   glass gelap yang sama dengan card dark lain. Status modal ikut
+   dibenerin (sumber masalah identik). */
+html.dark .schedule-round {
+  background: rgba(255,255,255,0.05) !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+}
+html.dark .schedule-round:hover { border-color: rgba(255,255,255,0.18) !important; }
+html.dark .schedule-round.current {
+  border-color: rgba(212,178,106,0.45) !important;
+  background: rgba(212,178,106,0.08) !important;
+}
+html.dark .schedule-match { background: rgba(255,255,255,0.04); }
+html.dark .schedule-controls select {
+  background: rgba(255,255,255,0.07) !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  color: #ece7da !important;
+}
+html.dark .status-player-card {
+  background: rgba(255,255,255,0.05) !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+}
+html.dark .status-player-card.is-late {
+  border-color: rgba(212,178,106,0.45) !important;
+  background: rgba(212,178,106,0.10) !important;
+}
+html.dark .status-player-card.is-left {
+  border-color: rgba(207,106,106,0.45) !important;
+  background: rgba(207,106,106,0.10) !important;
+}
+/* Native control (dropdown list select, scrollbar) ikut gelap di dark;
+   nutup kasus popup option putih menyilaukan di iOS/desktop. */
+html.dark { color-scheme: dark; }
+
+/* [2] Ujung atas modal ketutup Dynamic Island iPhone.
+   Akar: backdrop flex-center padding 20px polos (~467) + panel
+   .modal-large 90vh (~1948) -> sisa atas cuma ~5vh (±42px), lebih
+   pendek dari safe-area-inset-top iPhone berpulau (±59px). Sejak
+   v0.71.1 modal di atas header, jadi makin kelihatan nyundul island.
+   Fix: padding backdrop hormati safe-area, tinggi panel dihitung dari
+   dvh minus safe-area (deklarasi vh duluan sebagai fallback). */
+.modal-backdrop {
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px calc(env(safe-area-inset-bottom, 0px) + 14px) !important;
+}
+.modal-large {
+  max-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 28px) !important;
+  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 28px) !important;
+}
+</style>
 <script id="darklab-v1-js">
 /* DARK LAB v1: toggle dark mode. Class di <html> (bukan body -- body
    di-rewrite class-nya di beberapa alur), persist localStorage. Icon swap
@@ -14242,5 +14298,4 @@ html.dark .format-card.selected {
 })();
 </script>
 </body>
-</html>
 </html>
