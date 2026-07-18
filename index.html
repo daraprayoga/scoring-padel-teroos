@@ -3849,7 +3849,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.2</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.4</div>
     </div>
   </div>
 
@@ -14266,6 +14266,76 @@ html.dark { color-scheme: dark; }
   max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 28px) !important;
 }
 </style>
+<style id="codex-revision-v0713-css">
+/* v0.71.3: Schedule (+ Status, sumber bug sama) dark: teks masih ink
+   gelap di atas kartu gelap.
+   Akar: blok LAMA codex-revision-v07039 (~11480, era light-only,
+   SEBELUM dark lab ada) hardcode warna LITERAL (bukan var()) buat teks
+   di dalam .schedule-round / .status-player-card:
+     - #14301f (ink nyaris hitam) -> .schedule-round-num,
+       .schedule-match-team, .status-player-name
+     - #256653 (forest medium) -> .schedule-match-court,
+       .schedule-round-jump, status "available"
+   Keduanya !important. Rule var() yang lebih tua (~2439-2463, resolve
+   otomatis ke cream di dark) kalah lewat source order karena v07039
+   lebih akhir -- sesama !important, spesificity sama-sama (0,1,0),
+   yang menang yang terakhir. v0.71.1/.2 (dark lab, ~13684) cuma nutup
+   .modal p/.modal-sub/label, gak pernah nyentuh 2 grup literal ini,
+   jadi ink gelap tetap kepake persis di atas kartu gelap -- ink vs ink,
+   kontras ~1:1. Fix: var(--cream)/(--accent-bright) yang di html.dark
+   udah remap ke cream/mint terang, prefix html.dark buat menang
+   specificity (0,1,1) vs (0,1,0) tanpa gantung ke source order lagi.
+   .status-legend ikut dibenerin, gap yang sama persis di modal Status. */
+html.dark .schedule-round-num,
+html.dark .schedule-match-team,
+html.dark .status-player-name {
+  color: var(--cream) !important;
+}
+html.dark .schedule-match-court,
+html.dark .schedule-round-jump,
+html.dark .status-player-card.is-available .status-player-state,
+html.dark .status-chip.status-available {
+  color: var(--accent-bright) !important;
+}
+html.dark .status-legend {
+  color: var(--cream-dim) !important;
+}
+</style>
+<style id="codex-revision-v0714-css">
+/* v0.71.4: dari review screenshot terbaru.
+
+   Kartu .schedule-round abu-abu + teks emas gak kebaca = ciri persis
+   v07039 (bg rgba(255,255,255,0.74), pra-dark-lab) yang BELUM ketiban
+   fix v0.71.2/.3 (~14223, ~14289 -- udah ada di file ini, menang
+   specificity 0,2,1 vs 0,1,0). Bukan diulang di sini; kemungkinan
+   build yang dites belum sinkron sama file 2 revisi terakhir.
+
+   [1] Bug asli ketemu pas review: select "Show ahead" dark (v0.71.2,
+   ~14233) pakai shorthand `background: rgba(...) !important` --
+   shorthand me-reset background-image/repeat/position ke initial,
+   NELEN chevron SVG yang di-set base rule (~509). Efeknya select
+   keliatan bulat polos, gak ada panah dropdown, di dark mode.
+   Fix: background-color (bukan shorthand) + chevron ulang warna
+   cream-dim biar keliatan di gelap. */
+html.dark .schedule-controls select {
+  background-color: rgba(255,255,255,0.07) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%2393b3a2' d='M1 1l4 4 4-4'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 8px center !important;
+}
+
+/* [2] Kontras tombol Close/Regenerate (dan ghost-btn modal lain).
+   Base .ghost-btn (~2177) bg cuma rgba(240,235,224,0.04) -- nyaris
+   transparan, nempel ke backdrop-filter blur modal, di dark berasa
+   gak solid/gak keliatan bisa dipencet. html.dark .ghost-btn lama
+   (~13663) cuma nyentuh warna teks, gak pernah kasih background.
+   Scope ke SEMUA tombol modal (bukan cuma Schedule) biar satu bahasa
+   konsisten di tiap modal. */
+html.dark .modal-backdrop .ghost-btn {
+  background: rgba(255,255,255,0.09) !important;
+  border-color: rgba(255,255,255,0.22) !important;
+}
+</style>
 <script id="darklab-v1-js">
 /* DARK LAB v1: toggle dark mode. Class di <html> (bukan body -- body
    di-rewrite class-nya di beberapa alur), persist localStorage. Icon swap
@@ -14298,4 +14368,5 @@ html.dark { color-scheme: dark; }
 })();
 </script>
 </body>
+</html>
 </html>
