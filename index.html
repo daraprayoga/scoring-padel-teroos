@@ -3849,7 +3849,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.4</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.5</div>
     </div>
   </div>
 
@@ -9513,6 +9513,16 @@ saveState = window.saveState;
         // tombolnya (dia <button>) dan bikin opacity 0.3 -- tombol mati + pudar.
         if (el.classList && el.classList.contains('podium-tie-btn')) return;
         if (el.closest && el.closest('#podiumTieModal')) return; // tombol Tutup di modal
+        // v0.71.5: [data-close] universal -- akar bug sama kayak podium-tie-btn
+        // di atas (allowlist per-elemen, kelupaan tiap fitur baru), tapi kali
+        // ini di-generalisasi di level ATRIBUT bukan per-modal. Tombol Close
+        // Schedule & Status modal (shared [data-close] handler, ~7751) gak
+        // pernah masuk allowlist -> viewer buka modal itu lalu STUCK, gak ada
+        // jalur lain nutup (gak ada backdrop-tap-to-close). Close murni dismiss,
+        // zero mutasi state -- aman selalu hidup di modal APAPUN, termasuk yang
+        // belum ada/ditambah nanti (nutup kelas bug ini permanen, bukan tambal
+        // per-modal). Regenerate (mutasi state.rounds) SENGAJA tetap terkunci.
+        if (el.hasAttribute && el.hasAttribute('data-close')) return;
         el.style.pointerEvents = 'none';
         el.style.opacity = '0.3';
         el.style.cursor = 'not-allowed';
