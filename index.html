@@ -3849,7 +3849,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.5</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.6</div>
     </div>
   </div>
 
@@ -6820,7 +6820,10 @@ function generateRound(idx) {
 
   if (state.rounds[idx]) state.rounds[idx] = { matches, resting };
   else state.rounds.push({ matches, resting });
-  state.currentRoundIdx = idx;
+  // v0.71.6: currentRoundIdx = idx DICABUT dari sini -- lihat root-cause note
+  // di handleRoundAction('next'), akar bug "current" nyasar ke round paling
+  // akhir tiap kali schedule preview / Add Round / Regenerate manggil
+  // generateRound() di dalam loop.
 }
 
 // ========== STANDINGS ==========
@@ -6958,7 +6961,13 @@ function handleRoundAction(action) {
           return;
         }
       }
-      generateRound(state.rounds.length);
+      // v0.71.6: SATU-SATUNYA tempat yang genuine mau advance-and-generate --
+      // idx ditangkep SEBELUM generateRound (yang dulu diam-diam nge-set
+      // currentRoundIdx sendiri, sekarang gak lagi). Ini caller yang eksplisit
+      // niat maju, jadi eksplisit yang set posisinya.
+      const newIdx = state.rounds.length;
+      generateRound(newIdx);
+      state.currentRoundIdx = newIdx;
     } else {
       state.currentRoundIdx += 1;
     }
