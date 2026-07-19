@@ -3849,7 +3849,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.7</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.8</div>
     </div>
   </div>
 
@@ -3939,7 +3939,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
               </select>
             </div>
             <div class="blur-toggle" id="blurToggle">
-              <span>Redact</span>
+              <span>Censor</span>
               <div class="switch on" id="blurSwitch"></div>
             </div>
           </div>
@@ -9619,6 +9619,10 @@ saveState = window.saveState;
         const podiumBtn = actionsEl.querySelector('[data-action="podium"]');
         if (podiumBtn) {
           podiumBtn.style.display = '';
+          // v0.71.8: class hook buat CSS sheen light-mode (state.ended gak
+          // bisa dibaca selector). Sheen cuma boleh hidup pas tombol beneran
+          // aktif -- jangan muter di tombol disabled saturate(0).
+          podiumBtn.classList.toggle('pdm-live', !!state.ended);
           if (state.ended) {
             podiumBtn.style.opacity = '1';
             podiumBtn.style.pointerEvents = 'auto';
@@ -14367,6 +14371,76 @@ html.dark .schedule-controls select {
 html.dark .modal-backdrop .ghost-btn {
   background: rgba(255,255,255,0.09) !important;
   border-color: rgba(255,255,255,0.22) !important;
+}
+</style>
+<style id="codex-revision-v0718-css">
+/* v0.71.8: tombol Podium mode nonton -- light mode.
+
+   Akar: highlight viewer di-set inline oleh applyViewerUI: glow
+   podiumPulse = gold rgba(201,169,97,*). Di dark itu nyala (gold di
+   atas hitam), di light dia gold di atas backdrop cream yang
+   sekeluarga warna -> kontras nyaris nol, glow gak kebaca.
+
+   Fix: di light, glow diganti SHEEN CONIC yang muter di outline
+   (liquid metal). Ini specular movement -- masih bahasa Liquid Glass
+   (press = specular shift), BUKAN scale/bounce yang dilarang.
+   Teknik border-beam: tombol overflow:hidden (pill jadi clip mask),
+   ::before = square besar conic-gradient yang di-rotate (compositor-
+   only, murah), ::after = fill cover inset 2px -> yang keliatan cuma
+   ring 2px yang "dialiri" refleksi logam. Siluet stabil karena clip
+   dari tombol, bukan dari pseudo yang muter.
+
+   Scope 3 lapis: html:not(.dark) (dark udah bagus, jangan disentuh) +
+   body.viewer-mode (admin gak berubah) + .pdm-live (class dari JS,
+   cuma pas state.ended -- sheen gak boleh muter di tombol disabled
+   saturate(0)). !important perlu: background/border/boxShadow tombol
+   ini di-set inline oleh applyViewerUI, dan animasi podiumPulse
+   (box-shadow gold) harus kalah -- author !important menang atas
+   inline non-important DAN atas keyframe animation. */
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live {
+  position: relative !important;
+  overflow: hidden !important;
+  isolation: isolate;
+  background: transparent !important;
+  border: 1px solid rgba(120,86,10,0.45) !important;
+  box-shadow: 0 4px 14px rgba(122,89,14,0.35), 0 1px 3px rgba(80,58,8,0.25) !important;
+  color: #241a05 !important;
+  animation: none !important;
+}
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live::before {
+  content: '';
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 220px; height: 220px;
+  margin: -110px 0 0 -110px;
+  z-index: -2;
+  background: conic-gradient(from 0deg,
+      #8a651a 0deg,
+      #f7e7b4 50deg,
+      #8a651a 105deg,
+      #a87f24 180deg,
+      #fffdf2 212deg,
+      #8a651a 255deg,
+      #8a651a 360deg);
+  animation: pdmSheenSpin 3.2s linear infinite;
+}
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 999px;
+  z-index: -1;
+  background:
+    linear-gradient(150deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 45%),
+    linear-gradient(135deg, #e0be74 0%, #b18a28 100%);
+}
+@keyframes pdmSheenSpin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live::before {
+    animation: none !important;
+  }
 }
 </style>
 <script id="darklab-v1-js">
