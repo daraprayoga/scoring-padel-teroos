@@ -3849,7 +3849,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.6</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.7</div>
     </div>
   </div>
 
@@ -7130,13 +7130,20 @@ function renderAll() {
   });
 
   // Schedule button: only for Americano/Mixicano formats
-  const showSchedule = state.started && (state.format === 'ind_americano' || state.format === 'team_americano' || state.format === 'mix_americano');
+  // v0.71.7: + !IS_VIEWER. AKAR BUG "viewer masih bisa buka Schedule":
+  // applyViewerUI() (~9598) SEBENERNYA udah nge-hide semua tombol sbActions
+  // kecuali podium -- tapi renderAll() ini jalan lagi tiap sync Firebase /
+  // tiap state berubah, dan dua baris di bawah nge-SET ULANG display jadi ''
+  // tanpa peduli viewer atau bukan. Jadi hasil applyViewerUI ke-undo terus.
+  // Gate di SINI (sumber visibility, idempotent) bukan nambal urutan
+  // pemanggilan applyViewerUI -- urutan call gak bisa dijamin.
+  const showSchedule = !IS_VIEWER && state.started && (state.format === 'ind_americano' || state.format === 'team_americano' || state.format === 'mix_americano');
   const scheduleBtn = document.getElementById('openScheduleBtn');
   if (scheduleBtn) scheduleBtn.style.display = showSchedule ? '' : 'none';
 
   // Status button
   const statusBtn = document.getElementById('openStatusBtn');
-  if (statusBtn) statusBtn.style.display = state.started ? '' : 'none';
+  if (statusBtn) statusBtn.style.display = (!IS_VIEWER && state.started) ? '' : 'none';
 
   // Score inputs always editable (even after end — user may need to correct scores)
   document.querySelectorAll('.sb-score-input, .score-box, .match-score-input, input[data-source][data-match][data-team]').forEach(inp => {
@@ -8603,6 +8610,12 @@ function renderSchedule() {
 }
 
 document.getElementById('openScheduleBtn').addEventListener('click', () => {
+  // v0.71.7: guard lapis-2. Tombolnya udah di-hide di renderAll buat viewer,
+  // tapi handler ini tetep kepasang di elemen -- kalau ada jalur lain yang
+  // bikin dia ke-klik (inline style ke-reset, dispatchEvent, dsb) viewer
+  // masih bisa nembus. Schedule juga MUTASI state (generateRound loop di
+  // bawah), jadi ini bukan cuma soal tampilan.
+  if (IS_VIEWER) return;
   // Make sure we have enough rounds pre-generated
   if (state.format === 'ind_americano' || state.format === 'team_americano') {
     const needed = state.currentRoundIdx + state.scheduleAhead;
@@ -8665,6 +8678,7 @@ function renderPlayerStatus() {
 }
 
 document.getElementById('openStatusBtn').addEventListener('click', () => {
+  if (IS_VIEWER) return; // v0.71.7: guard lapis-2, lihat catatan di openScheduleBtn
   renderPlayerStatus();
   document.getElementById('statusModal').classList.add('show');
 });
