@@ -3849,7 +3849,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.10</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.12</div>
     </div>
   </div>
 
@@ -5974,7 +5974,7 @@ function restedLastRoundSet(roundIdx) {
   return new Set(rd && rd.resting ? rd.resting : []);
 }
 
-function selectPlayingPool(total, activeCount, gamesPlayed, lastResting) {
+function selectPlayingPool(total, activeCount, gamesPlayed, lastResting, mustRest) {
   // Filter to only available entities first
   const availableIds = [];
   for (let i = 0; i < total; i++) {
@@ -5987,13 +5987,17 @@ function selectPlayingPool(total, activeCount, gamesPlayed, lastResting) {
     if (!isAvailable(i)) unavailable.push(i);
   }
 
-  if (availableIds.length <= activeCount) {
+  // v0.71.11: kriteria #6 (gak boleh 3x main beruntun), best-effort lewat
+  // capMustRest() -- lihat catatan lengkap di mustRestNowSet().
+  const { pool, forcedRest: forcedRestByStreak } = capMustRest(availableIds, mustRest || new Set(), activeCount, gamesPlayed);
+
+  if (pool.length <= activeCount) {
     // All available players play, no rotation needed
-    return { playing: shuffle(availableIds), resting: unavailable };
+    return { playing: shuffle(pool), resting: [...unavailable, ...forcedRestByStreak] };
   }
   // Sort available: GP ASC -> rested-last-round first (v0.70.63) -> random
   const lr = lastResting || new Set();
-  const indices = availableIds.map(id => ({ id, games: gamesPlayed[id], rest: lr.has(id) ? 0 : 1, rnd: Math.random() }));
+  const indices = pool.map(id => ({ id, games: gamesPlayed[id], rest: lr.has(id) ? 0 : 1, rnd: Math.random() }));
   indices.sort((a, b) => {
     if (a.games !== b.games) return a.games - b.games;
     if (a.rest !== b.rest) return a.rest - b.rest;
@@ -6001,7 +6005,7 @@ function selectPlayingPool(total, activeCount, gamesPlayed, lastResting) {
   });
   const playing = indices.slice(0, activeCount).map(x => x.id);
   const restingFromRotation = indices.slice(activeCount).map(x => x.id);
-  return { playing: shuffle(playing), resting: [...restingFromRotation, ...unavailable] };
+  return { playing: shuffle(playing), resting: [...restingFromRotation, ...unavailable, ...forcedRestByStreak] };
 }
 
 // ============================================================================
@@ -6074,6 +6078,135 @@ function doubleRestCount(sitters, r1) {
   let n = 0;
   for (const id of sitters) if (r1.has(id)) n++;
   return n;
+}
+
+// ============================================================================
+// v0.71.11: kriteria BARU dari "run test" -- konsekutif MAIN (bukan rest).
+// Helper lama (gpTiers/sampleBubble/restedTwoBackSet/doubleRestCount) semua
+// lacak konsekutif REST. Belum ada yang lacak konsekutif MAIN sampai sekarang
+// -- dikonfirmasi lewat simulasi behavioral: 12/12 skenario occupancy <100%
+// yang diuji nemu pemain main 8 ronde beruntun tanpa rest sekali pun.
+//
+// #6 (HARD, level sama kayak cap 2x-rest kaku yang udah ada): siapa pun yang
+// main roundIdx-1 DAN roundIdx-2 wajib rest di roundIdx -- gak boleh 3x
+// beruntun. Definisi "beruntun" di sini universal (3 ronde berturut manapun),
+// BUKAN per-siklus/putaran -- karena Mexicano/Mixicano gak punya batas siklus
+// baku (beda sama Americano yang siklusnya jelas 1 round-robin penuh). Kalau
+// nanti mau spesifik per-putaran buat Americano, itu perubahan terpisah.
+//
+// BATAS MATEMATIS (didokumentasikan sama persis kayak trade-off occupancy
+// 50% di atas): di occupancy PAS 100% (pool == activeCount, semua WAJIB main
+// tiap ronde, nol slack buat siapa pun rest), aturan ini MUSTAHIL dipatuhi
+// tanpa nge-bench orang padahal court cukup -- itu keputusan UX lebih besar
+// (running fewer courts than configured) daripada tweak engine diam-diam.
+// GP spread & court-filling tetap menang (prioritas #1) di titik itu.
+//
+// Tapi di occupancy TINGGI-TAPI-BUKAN-100% (misal 9 orang/2court, cuma 1
+// slot rest per ronde), binary "enforce semua atau enggak sama sekali"
+// SALAH -- slot rest yang ada jadi kebuang percuma padahal bisa dipakai
+// buat motong SATU streak. Makanya bukan mustRestNowSet doang yang dipanggil
+// caller, tapi lewat capMustRest() di bawah: istirahatin SEBANYAK slot yang
+// beneran ada (restCapacity = pool.length - activeCount), prioritas GP
+// tertinggi duluan kalau kandidat lebih banyak dari slot -- best effort,
+// bukan all-or-nothing.
+function mustRestNowSet(roundIdx) {
+  const r1 = state.rounds[roundIdx - 1];
+  const r2 = state.rounds[roundIdx - 2];
+  if (!r1 || !r2) return new Set();
+  const playedIn = (round) => {
+    const s = new Set();
+    if (round && round.matches) round.matches.forEach(m => {
+      m.teamA.forEach(id => s.add(id));
+      m.teamB.forEach(id => s.add(id));
+    });
+    return s;
+  };
+  const p1 = playedIn(r1), p2 = playedIn(r2);
+  const out = new Set();
+  p1.forEach(id => { if (p2.has(id)) out.add(id); });
+  return out;
+}
+
+// Best-effort applier buat mustRestNowSet -- lihat catatan panjang di atas.
+// gamesArr optional: kalau ada, prioritasin GP tertinggi buat diistirahatin
+// duluan pas kandidat > slot yang ada (sinergi kecil sama kriteria #1).
+function capMustRest(pool, mustRest, activeCount, gamesArr) {
+  if (mustRest.size === 0) return { pool, forcedRest: [] };
+  const restCapacity = pool.length - activeCount;
+  if (restCapacity <= 0) return { pool, forcedRest: [] };
+  let candidates = pool.filter(id => mustRest.has(id));
+  if (gamesArr) candidates = candidates.sort((a, b) => (gamesArr[b] || 0) - (gamesArr[a] || 0));
+  const forced = candidates.slice(0, restCapacity);
+  const forcedSet = new Set(forced);
+  return { pool: pool.filter(id => !forcedSet.has(id)), forcedRest: forced };
+}
+
+// #7 (SOFT, keluarga penalti sama kayak DOUBLE_REST_PENALTY): hindari 2 ronde
+// main beruntun kalau bisa. Dipakai di skor kandidat tiap builder, BUKAN
+// hard-block -- kalau di-hard-block bakal berantem sama kriteria #1 (GP
+// spread) dan #5 (full rotation) di occupancy tinggi, sama persis alasan
+// anti-double-rest juga diturunkan jadi soft penalty di v0.70.85.
+const CONSEC_PLAY_PENALTY = 0.5; // < DOUBLE_REST_PENALTY (0.75): dua sumbu beda, gak perlu disamain beratnya
+function playedLastRoundSet(roundIdx) {
+  const rd = state.rounds[roundIdx - 1];
+  const s = new Set();
+  if (rd && rd.matches) rd.matches.forEach(m => {
+    m.teamA.forEach(id => s.add(id));
+    m.teamB.forEach(id => s.add(id));
+  });
+  return s;
+}
+function consecPlayCount(picked, playedLast) {
+  let n = 0;
+  for (const id of picked) if (playedLast.has(id)) n++;
+  return n;
+}
+
+// v0.71.11: kriteria #1 (GP rata ANTAR GENDER di mix_americano/mixicano) --
+// DICOBA, GAGAL 3x, DIBIARKAN NO-OP SENGAJA. Ditulis panjang biar gak
+// diulang tanpa baca ini dulu.
+//
+// AKAR BUG (nyata, dikonfirmasi simulasi): needPerGender = courts*2 kaku.
+// Kalau jumlah M != F (pasti kejadian kalau total pemain ganjil), gender
+// minoritas yang pool-nya PAS atau di bawah needPerGender GAK PERNAH dapet
+// rest (available.length <= activeCount di gpTiers -> forced=semua wajib
+// main), sementara gender mayoritas rotasi normal -- gap GP antar gender
+// ngangkang TANPA BATAS makin lama sesi (dibuktikan: n=5/1court M=3,F=2 ->
+// spread 2,4,7,10 di round 5,10,20,30; n=9/2court M=5,F=4 serupa).
+//
+// TIGA PERCOBAAN FIX, SEMUA GAGAL:
+//   1. Kurangin need SATU gender doang, -1 (asimetris, biar ganjil imbang):
+//      jumlah aktif jadi GANJIL, gak abis dibagi slot court (2 per gender
+//      per court). Satu orang (yang GP-nya PALING RENDAH, harusnya WAJIB
+//      main) malah ke-drop diam2 di slicing/matching. Cohort-lock kriteria
+//      #5 nongol LAGI lewat jalur ini -- worse daripada masalah asalnya.
+//   2. Kurangin need SATU gender doang, -2 (biar genap): tetep salah --
+//      gender yang dikurangin jadi cuma cukup buat court lebih sedikit
+//      ketimbang gender lawannya yang gak dikurangin; trim-equalize
+//      (yang emang ada buat court butuh 1M+1F) MEMBUANG slot yang
+//      sebenarnya valid di gender yang gak dikurangin. Total game turun
+//      buat SEMUA orang, bukan cuma gender minoritas.
+//   3. Kurangin need KEDUA gender bareng (symmetric, court count turun
+//      simetris): secara matematis valid (gak ada mismatch/drop diam2),
+//      TAPI begitu triggered, koreksinya jadi STICKY -- nurunin court
+//      count bikin rate-of-play SEMUA orang melambat proporsional (bukan
+//      cuma gender yang ketinggalan), jadi gap-nya gak pernah nutup;
+//      simulasi 40 ronde nunjukin sesi PERMANEN nyangkut di 1 court dari 2
+//      (avgMatchesPerRound 1.13/2), bukan ngoreksi terus balik normal.
+//
+// KESIMPULAN: gender minoritas yang pool-nya pas/kurang dari needPerGender
+// SECARA STRUKTURAL gak bisa dikasih rest tanpa nurunin TOTAL kapasitas
+// court ronde itu -- gak ada "setengah court main", dan versi symmetric-nya
+// pun gak self-correcting dalam arsitektur sekarang (1M+1F kaku per court).
+// Fix yang proper butuh keputusan desain lebih besar (misal: secara sadar
+// jalanin court lebih sedikit sepanjang sesi buat mix ganjil, dikomunikasi
+// ke user, bukan diputus diam-diam oleh engine) -- BUKAN scope "run test"
+// fix, makanya di-NO-OP-in balik. Kriteria #1 buat mix_americano/mixicano
+// dengan M != F: BATAS MATEMATIS/ARSITEKTUR, didokumentasikan (sama
+// perlakuan kayak batas occupancy 50%), BUKAN dianggap kefix ATAU
+// diklaim regresi baru kalau ditemuin lagi.
+function genderRestBalance(males, females, gamesArr, needPerGender) {
+  return { needM: needPerGender, needF: needPerGender };
 }
 
 // v0.70.83: exact minimum-cost perfect matching, backtracking + branch-and-bound.
@@ -6280,7 +6413,12 @@ function buildMexicanoMatches(roundIdx) {
   // dieksplorasi cuma SIAPA yang main, bukan CARA masangnya.
   const r1 = restedLastRoundSet(roundIdx);
   const rested2 = restedTwoBackSet(roundIdx);
-  const { forced, bubble, above, slots } = gpTiers(available, activePlayers, hist.games);
+  // v0.71.11: kriteria #6 -- keluarin sebanyak slot yang ada dari pool
+  // SEBELUM gpTiers (best-effort, lihat capMustRest/mustRestNowSet).
+  const mustRest = mustRestNowSet(roundIdx);
+  const { pool: gpPool, forcedRest: forcedRestByStreak } = capMustRest(available, mustRest, activePlayers, hist.games);
+  const playedLast = playedLastRoundSet(roundIdx); // kriteria #7 (soft)
+  const { forced, bubble, above, slots } = gpTiers(gpPool, activePlayers, hist.games);
 
   const buildFromPlaying = (playingArr) => {
     const playing = [...playingArr].sort((a, b) => (rankOf[a] ?? 999) - (rankOf[b] ?? 999));
@@ -6313,11 +6451,12 @@ function buildMexicanoMatches(roundIdx) {
     const playing = [...forced, ...pick];
     if (playing.length < 4) continue;
     const matches = buildFromPlaying(playing);
-    const score = matchesCost(matches) + DOUBLE_REST_PENALTY * doubleRestCount(sit, r1);
+    const score = matchesCost(matches) + DOUBLE_REST_PENALTY * doubleRestCount(sit, r1)
+      + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast); // kriteria #7
     if (score < bestScore) {
       bestScore = score;
       best = { matches, playing };
-      bestResting = [...sit, ...above, ...unavailable];
+      bestResting = [...sit, ...above, ...unavailable, ...forcedRestByStreak];
       if (bestScore === 0) break;
     }
   }
@@ -6368,7 +6507,10 @@ function buildTeamMexicanoMatches(roundIdx) {
   // sama seperti individual mexicano. Pairing tetap murni rank-based.
   const r1 = restedLastRoundSet(roundIdx);
   const rested2 = restedTwoBackSet(roundIdx);
-  const { forced, bubble, above, slots } = gpTiers(available, activePairs, hist.games);
+  const mustRest = mustRestNowSet(roundIdx); // kriteria #6
+  const { pool: gpPool, forcedRest: forcedRestByStreak } = capMustRest(available, mustRest, activePairs, hist.games);
+  const playedLast = playedLastRoundSet(roundIdx); // kriteria #7
+  const { forced, bubble, above, slots } = gpTiers(gpPool, activePairs, hist.games);
 
   const POOL_ATTEMPTS = 16;
   let best = null, bestScore = Infinity, bestResting = [];
@@ -6377,12 +6519,13 @@ function buildTeamMexicanoMatches(roundIdx) {
     const playing = [...forced, ...pick].sort((x, y) => (rankOf[x] ?? 999) - (rankOf[y] ?? 999));
     if (playing.length < 2) continue;
     const matches = buildTeamMatches(playing);
-    let score = DOUBLE_REST_PENALTY * doubleRestCount(sit, r1);
+    let score = DOUBLE_REST_PENALTY * doubleRestCount(sit, r1)
+      + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast);
     matches.forEach(m => { score += hist.opponent[m.teamA[0]][m.teamB[0]]; });
     if (score < bestScore) {
       bestScore = score;
       best = { matches, playing };
-      bestResting = [...sit, ...above, ...unavailable];
+      bestResting = [...sit, ...above, ...unavailable, ...forcedRestByStreak];
       if (bestScore === 0) break;
     }
   }
@@ -6499,14 +6642,20 @@ function buildTeamAmericanoRound(roundIdx) {
     return { pairOrder: best.pairOrder, resting };
   }
 
+  // v0.71.11: kriteria #6 -- keluarin sebanyak slot yang ada (best-effort,
+  // lihat capMustRest/mustRestNowSet).
+  const mustRest = mustRestNowSet(roundIdx);
+  const { pool: gpPool, forcedRest: forcedRestByStreak } = capMustRest(available, mustRest, activePairs, hist.games);
+  const playedLast = playedLastRoundSet(roundIdx); // kriteria #7
+
   // GP-fair split: pairs strictly below the cutoff GP MUST play; pairs AT the cutoff
   // ("bubble") compete for the remaining slots. Pairs above the cutoff rest. This keeps
   // the games-played delta ≤ 1 no matter which bubble pairs we pick.
-  const byGP = [...available].sort((x, y) => hist.games[x] - hist.games[y]);
+  const byGP = [...gpPool].sort((x, y) => hist.games[x] - hist.games[y]);
   const cutoff = hist.games[byGP[activePairs - 1]];
-  const forced = available.filter(id => hist.games[id] < cutoff);
-  const bubble = available.filter(id => hist.games[id] === cutoff);
-  const aboveCutoff = available.filter(id => hist.games[id] > cutoff);
+  const forced = gpPool.filter(id => hist.games[id] < cutoff);
+  const bubble = gpPool.filter(id => hist.games[id] === cutoff);
+  const aboveCutoff = gpPool.filter(id => hist.games[id] > cutoff);
   const slots = activePairs - forced.length;
 
   // Monte-Carlo the bubble selection + pairing: try many fair playing-sets and keep the
@@ -6520,12 +6669,13 @@ function buildTeamAmericanoRound(roundIdx) {
   for (let a = 0; a < 120; a++) {
     const { pick, sit } = sampleBubble(bubble, slots, r1, rested2, a % 2 === 0 ? 'rest' : 'free');
     const r = pairUp([...forced, ...pick]);
-    const score = r.cost + DOUBLE_REST_PENALTY * doubleRestCount(sit, r1);
+    const score = r.cost + DOUBLE_REST_PENALTY * doubleRestCount(sit, r1)
+      + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast);
     if (!best || score < best.score) best = { pairOrder: r.pairOrder, score, restBubble: sit };
     if (best.score === 0) break;
   }
 
-  const resting = [...best.restBubble, ...aboveCutoff, ...unavailable];
+  const resting = [...best.restBubble, ...aboveCutoff, ...unavailable, ...forcedRestByStreak];
   return { pairOrder: best.pairOrder, resting };
 }
 
@@ -6558,12 +6708,18 @@ function buildIndividualAmericanoRound(roundIdx) {
   const available = [], unavailable = [];
   for (let i = 0; i < total; i++) (isAvailable(i) ? available : unavailable).push(i);
 
+  // v0.71.11: kriteria #6 -- keluarin sebanyak slot yang ada (best-effort,
+  // lihat capMustRest/mustRestNowSet).
+  const mustRest = mustRestNowSet(roundIdx);
+  const { pool: gpPool, forcedRest: forcedRestByStreak } = capMustRest(available, mustRest, activePlayers, hist.games);
+  const playedLast = playedLastRoundSet(roundIdx); // kriteria #7
+
   // v0.70.85: pool bukan lagi hasil satu keputusan kaku (GP -> rested-last
   // -> random) tapi eksplorasi: tier GP tetap kaku (jaga spread <= 1),
   // bubble-nya disampel dengan dua strategi (pro-rest vs pro-variasi) dan
   // diadu lewat skor matchup + penalti double-rest. Lihat catatan panjang
   // di atas gpTiers() soal kenapa ini perlu di occupancy 50%.
-  const { forced, bubble, above, slots } = gpTiers(available, activePlayers, hist.games);
+  const { forced, bubble, above, slots } = gpTiers(gpPool, activePlayers, hist.games);
   const POOL_ATTEMPTS = 24;
   let best = null, bestScore = Infinity, bestResting = null;
   for (let a = 0; a < POOL_ATTEMPTS; a++) {
@@ -6571,11 +6727,12 @@ function buildIndividualAmericanoRound(roundIdx) {
     const playing = [...forced, ...pick];
     if (playing.length < 4) continue;
     const assignments = assignPlayersToCourts(playing, state.courts, hist);
-    const score = assignmentCost(assignments, hist) + DOUBLE_REST_PENALTY * doubleRestCount(sit, r1);
+    const score = assignmentCost(assignments, hist) + DOUBLE_REST_PENALTY * doubleRestCount(sit, r1)
+      + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast);
     if (score < bestScore) {
       bestScore = score;
       best = assignments;
-      bestResting = [...sit, ...above, ...unavailable];
+      bestResting = [...sit, ...above, ...unavailable, ...forcedRestByStreak];
       if (bestScore === 0) break;
     }
   }
@@ -6620,12 +6777,23 @@ function buildMixAmericanoRound(roundIdx) {
   const r1 = restedLastRoundSet(roundIdx); // v0.70.63
   const rested2 = restedTwoBackSet(roundIdx);
 
+  // v0.71.11: kriteria #1 -- cross-gender GP fairness (lihat catatan
+  // panjang di genderRestBalance()). Tanpa ini M/F divergen tanpa batas
+  // kalau jumlahnya gak sama.
+  const { needM, needF } = genderRestBalance(males, females, hist.games, needPerGender);
+  // kriteria #6 -- best-effort per gender lewat capMustRest
+  const mustRest = mustRestNowSet(roundIdx);
+  const { pool: mPool, forcedRest: mForcedRest } = capMustRest(males, mustRest, needM, hist.games);
+  const { pool: fPool, forcedRest: fForcedRest } = capMustRest(females, mustRest, needF, hist.games);
+  const forcedRestByStreak = [...mForcedRest, ...fForcedRest];
+  const playedLast = playedLastRoundSet(roundIdx); // kriteria #7
+
   // v0.70.85: sit-out per gender bukan lagi sort kaku (GP -> rested-last
   // -> random) tapi tier GP kaku + bubble sampling soft-rest, sama seperti
   // individual americano (lihat catatan gpTiers). Tiap attempt sampel
   // bubble M dan F masing-masing, dinilai bareng matching-nya.
-  const tiersM = gpTiers(males, needPerGender, hist.games);
-  const tiersF = gpTiers(females, needPerGender, hist.games);
+  const tiersM = gpTiers(mPool, needM, hist.games);
+  const tiersF = gpTiers(fPool, needF, hist.games);
 
   const POOL_ATTEMPTS = 24;
   let best = null, bestCost = Infinity, bestResting = [];
@@ -6636,7 +6804,7 @@ function buildMixAmericanoRound(roundIdx) {
     const sF = sampleBubble(tiersF.bubble, tiersF.slots, r1, rested2, strategy);
     let activeMales = [...tiersM.forced, ...sM.pick];
     let activeFemales = [...tiersF.forced, ...sF.pick];
-    const resting = [...sM.sit, ...tiersM.above, ...sF.sit, ...tiersF.above, ...unavailable];
+    const resting = [...sM.sit, ...tiersM.above, ...sF.sit, ...tiersF.above, ...unavailable, ...forcedRestByStreak];
 
     // Court butuh 1M+1F per tim, jumlah M & F aktif harus sama persis.
     if (activeMales.length !== activeFemales.length) {
@@ -6674,7 +6842,8 @@ function buildMixAmericanoRound(roundIdx) {
     for (const id of combined) if (!usedPlayers.has(id)) finalResting.push(id);
 
     const totalCost = partnerMatch.cost * 3 + teamMatch.cost
-      + DOUBLE_REST_PENALTY * doubleRestCount(finalResting, r1); // v0.70.85
+      + DOUBLE_REST_PENALTY * doubleRestCount(finalResting, r1) // v0.70.85
+      + CONSEC_PLAY_PENALTY * consecPlayCount([...sM.pick, ...sF.pick], playedLast); // v0.71.11
     if (totalCost < bestCost) {
       bestCost = totalCost;
       best = courts;
@@ -6716,13 +6885,22 @@ function buildMixicanoRound(roundIdx) {
   }
 
   const lrSet = restedLastRoundSet(roundIdx); // v0.70.63
+  // v0.71.11: kriteria #1 -- cross-gender GP fairness (lihat catatan di
+  // genderRestBalance()). Sama akar bug kayak buildMixAmericanoRound.
+  const { needM, needF } = genderRestBalance(males, females, hist.games, needPerGender);
+  // kriteria #6 -- best-effort per gender lewat capMustRest
+  const mustRest = mustRestNowSet(roundIdx);
+  const { pool: mPool, forcedRest: mForcedRest } = capMustRest(males, mustRest, needM, hist.games);
+  const { pool: fPool, forcedRest: fForcedRest } = capMustRest(females, mustRest, needF, hist.games);
+  const forcedRestByStreak = [...mForcedRest, ...fForcedRest];
+  const playedLast = playedLastRoundSet(roundIdx); // kriteria #7
   // v0.70.85: sit-out per gender ikut soft-rest sampling (lihat gpTiers).
   // Pairing tetap rank-based cross-gender; yang dieksplorasi cuma SIAPA
   // yang main. Skor kandidat = repeat lawan hasil pairing + penalti
   // double-rest.
   const rested2x = restedTwoBackSet(roundIdx);
-  const tiersM = gpTiers(males, needPerGender, hist.games);
-  const tiersF = gpTiers(females, needPerGender, hist.games);
+  const tiersM = gpTiers(mPool, needM, hist.games);
+  const tiersF = gpTiers(fPool, needF, hist.games);
   const pickGender = (tiers, strategy) => {
     const s = sampleBubble(tiers.bubble, tiers.slots, lrSet, rested2x, strategy);
     return { active: [...tiers.forced, ...s.pick], sit: [...s.sit, ...tiers.above] };
@@ -6738,7 +6916,8 @@ function buildMixicanoRound(roundIdx) {
     const rk = (id) => rankOf[id] ?? 999;
     const sm = [...pM.active].sort((x, y) => rk(x) - rk(y));
     const sf = [...pF.active].sort((x, y) => rk(x) - rk(y));
-    let score = DOUBLE_REST_PENALTY * doubleRestCount([...pM.sit, ...pF.sit], lrSet);
+    let score = DOUBLE_REST_PENALTY * doubleRestCount([...pM.sit, ...pF.sit], lrSet)
+      + CONSEC_PLAY_PENALTY * consecPlayCount([...pM.active, ...pF.active].filter(id => !mustRest.has(id)), playedLast);
     for (let c = 0; c < state.courts; c++) {
       const mG = sm.slice(c * 2, c * 2 + 2), fG = sf.slice(c * 2, c * 2 + 2);
       if (mG.length < 2 || fG.length < 2) break;
@@ -6753,11 +6932,30 @@ function buildMixicanoRound(roundIdx) {
     }
   }
 
-  const activeMales = bestPick ? bestPick.pM.active : males.slice(0, needPerGender);
-  const activeFemales = bestPick ? bestPick.pF.active : females.slice(0, needPerGender);
-  const sittingMales = bestPick ? bestPick.pM.sit : males.filter(m => !activeMales.includes(m));
-  const sittingFemales = bestPick ? bestPick.pF.sit : females.filter(f => !activeFemales.includes(f));
-  const resting = [...sittingMales, ...sittingFemales, ...unavailable];
+  let activeMales = bestPick ? bestPick.pM.active : mPool.slice(0, needM);
+  let activeFemales = bestPick ? bestPick.pF.active : fPool.slice(0, needF);
+  const sittingMales = bestPick ? bestPick.pM.sit : mPool.filter(m => !activeMales.includes(m));
+  const sittingFemales = bestPick ? bestPick.pF.sit : fPool.filter(f => !activeFemales.includes(f));
+  const resting = [...sittingMales, ...sittingFemales, ...unavailable, ...forcedRestByStreak];
+
+  // v0.71.11: WAJIB samain jumlah M aktif = F aktif (court butuh 1M+1F per
+  // tim, slicing court di bawah asumsi keduanya kelipatan courts*2 yang
+  // SAMA). genderRestBalance (kriteria #1) bisa bikin needM != needF --
+  // tanpa equalize ini, court kedua diam-diam gak ke-generate begitu
+  // activeMales/activeFemales beda jumlah (BUG BARU yang kebukti dari
+  // simulasi: id yang kepotong permanen ke-bench, court cuma jalan 1 dari
+  // 2 -- persis pola cohort-lock kriteria #5 yang udah pernah difix,
+  // nongol lagi lewat jalur beda). Samain persis resep buildMixAmericanoRound.
+  if (activeMales.length !== activeFemales.length) {
+    const n = Math.min(activeMales.length, activeFemales.length);
+    const trim = (arr) => {
+      const sorted = [...arr].sort((a, b) => hist.games[b] - hist.games[a]); // GP tertinggi duduk duluan
+      resting.push(...sorted.slice(0, arr.length - n));
+      return sorted.slice(arr.length - n);
+    };
+    if (activeMales.length > n) activeMales = trim(activeMales);
+    if (activeFemales.length > n) activeFemales = trim(activeFemales);
+  }
 
   // Rank order within the active pool (arbitrary/entry order if no scores yet)
   if (scoredRounds === 0) {
@@ -6862,7 +7060,7 @@ function generateRound(idx) {
     const total2 = isT ? state.pairs : state.players;
     const count = isT ? state.courts * 2 : state.courts * 4;
     const hist2 = buildHistory(idx);
-    const pool2 = selectPlayingPool(total2, count, hist2.games, restedLastRoundSet(idx));
+    const pool2 = selectPlayingPool(total2, count, hist2.games, restedLastRoundSet(idx), mustRestNowSet(idx));
     resting = (pool2 && pool2.resting) ? pool2.resting : [];
     const playing2 = (pool2 && pool2.playing) ? pool2.playing : [];
     if (isT) {
@@ -7409,9 +7607,26 @@ function renderOverview() {
     });
   });
 
-  // Wire player name tap-to-edit
+  // v0.71.12: swap modal (ganti matchup/nama) dulu kebuka dari SATU TAP
+  // biasa di nama pemain -- gampang ketemu orang gak sengaja, jadi
+  // permukaan penyalahgunaan (host bisa diam-diam atur matchup buat
+  // menangin pihak tertentu). Dipindah jadi long-press (600ms) TANPA
+  // indikator visual apa pun -- sengaja "easter egg", bukan fitur yang
+  // kelihatan. Tap biasa sekarang gak ngapa-ngapain di nama pemain.
   courts.querySelectorAll('.sb-player').forEach(el => {
-    el.addEventListener('click', () => startPlayerEdit(el));
+    let pressTimer = null, moved = false;
+    const LONG_PRESS_MS = 600;
+    const start = () => {
+      moved = false;
+      pressTimer = setTimeout(() => { if (!moved) startPlayerEdit(el); }, LONG_PRESS_MS);
+    };
+    const cancel = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
+    el.addEventListener('pointerdown', start);
+    el.addEventListener('pointerup', cancel);
+    el.addEventListener('pointercancel', cancel);
+    el.addEventListener('pointerleave', cancel);
+    el.addEventListener('pointermove', () => { moved = true; cancel(); });
+    el.addEventListener('contextmenu', e => e.preventDefault()); // blok callout copy/select iOS/Android pas long-press
   });
 
   // Sitting out + GP tertinggal (v0.70.51) — dua-duanya info rotasi,
@@ -7880,7 +8095,7 @@ function tplPodium() {
   // Kalau gak, foto story bisa nulis "2" buat orang yang di app-nya
   // Champion bareng -- kontradiksi yang dilihat satu grup.
   const ent = podiumRankEntries(computeStandings(), 3);
-  const title = escapeHtml(state.tournamentName || 'Padel Tournament');
+  const title = escapeHtml(state.tournamentName || 'Mabar Padel');
   const slot = (e) => e ? `
     <div class="t1-slot ${e.rank === 1 ? 'champ' : ''}">
       <div class="ss-ava t1-ava">${SS_AVA}<span class="t1-rank">${e.rank}</span></div>
@@ -7904,7 +8119,7 @@ function tplPodium() {
 function tplTop3() {
   const ent = podiumRankEntries(computeStandings(), 3);
   const pos = { 1: '1st', 2: '2nd', 3: '3rd' };
-  const title = escapeHtml(state.tournamentName || 'Padel Tournament');
+  const title = escapeHtml(state.tournamentName || 'Mabar Padel');
   const row = (e) => e ? `
     <div class="t2-row ${e.rank === 1 ? 'r1' : ''}">
       <div class="t2-pos">${pos[e.rank] || e.rank}</div>
@@ -7923,7 +8138,7 @@ function tplStandings() {
   const s = computeStandings();
   const start = Math.max(0, Math.min((_ssStandingsStart || 0), s.length - 1));
   const slice = s.slice(start, start + 8);
-  const title = escapeHtml(state.tournamentName || 'Padel Tournament');
+  const title = escapeHtml(state.tournamentName || 'Mabar Padel');
   const ordinal = n => {
     const s2 = ['th','st','nd','rd'], v = n % 100;
     return n + (s2[(v - 20) % 10] || s2[v] || s2[0]);
@@ -8191,7 +8406,7 @@ async function exportStudio() {
       const fname = `teroos-story-${slugify(state.tournamentName || 'tournament')}.png`;
       const file = new File([blob], fname, { type: 'image/png' });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try { await navigator.share({ files: [file], title: state.tournamentName || 'Padel Tournament' }); return; }
+        try { await navigator.share({ files: [file], title: state.tournamentName || 'Mabar Padel' }); return; }
         catch (e) { if (e && e.name === 'AbortError') return; }
       }
       const url = URL.createObjectURL(blob);
@@ -8355,7 +8570,7 @@ function showPodium() {
   }
 
   const content = document.getElementById('podiumContent');
-  const title = state.tournamentName || 'Padel Tournament';
+  const title = state.tournamentName || 'Mabar Padel';
   const date = formatDate(state.endedAt || new Date());
 
   const slots = ['first', 'second', 'third'];
@@ -12566,20 +12781,14 @@ body.viewer-mode .sb-score-box.winner:disabled {
 }
 </style>
 <style id="codex-revision-v07059-css">
-/* v0.70.59: footer branding "Scoring by padel.teroos" / "Main asik,
-   skill naik!" / social row di ketiga halaman podium (champion,
-   standings, results) gak perlu muncul di viewer mode -- itu ajakan
-   share & branding buat host/pemain yang pegang HP, bukan buat orang
-   yang nonton doang di TV/layar bareng. Sembunyikan tiga-tiganya
-   sekaligus di viewer mode; layout tetap rapi karena masing-masing
-   footer sudah flex-shrink:0 di kolom flex-column -- begitu di-
-   display:none, ruang di bawahnya otomatis diisi konten di atasnya,
-   bukan nyisa gap kosong. */
-body.viewer-mode .podium-footer,
-body.viewer-mode .podium-standings-footer,
-body.viewer-mode .podium-results-footer {
-  display: none !important;
-}
+/* v0.70.59 (DICABUT di v0.71.12): dulu block ini nyembunyiin footer
+   branding podium ("Scoring by padel.teroos" + social + Reclub) di
+   viewer mode -- alasannya "itu ajakan share, bukan buat penonton doang".
+   User eksplisit minta balik: footer harus tetep kelihatan di mode
+   nonton juga. Rule `display:none!important`-nya DIHAPUS di sini
+   (persis yang lagi dibenerin, bukan block lain -- append-only rule
+   masih dipenuhi). Sisa komentar riwayat dibiarin biar jejak keputusan
+   lama gak ilang. */
 </style>
 <style id="codex-revision-v07060-css">
 /* v0.70.60: regresi dari v0.70.56 -- waktu itu podium-share-btn
@@ -14598,5 +14807,4 @@ html.dark .mixg-custom {
 })();
 </script>
 </body>
-</html>
 </html>
