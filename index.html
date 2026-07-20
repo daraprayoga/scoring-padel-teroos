@@ -3657,11 +3657,11 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
           </div>
           <div class="format-card" data-format="mixicano">
             <h3>Mix-Mexicano</h3>
-            <p>Mixed gender, Mexicano-style. Partner rotate by standings. 1M+1F per team. Individual points.</p>
+            <p>Mixed pairs, Mexicano-style. Partner rotate by standings. 1 per kubu per team (gender / posisi / custom). Individual points.</p>
           </div>
           <div class="format-card" data-format="mix_americano">
             <h3>Mix-Americano</h3>
-            <p>Mixed gender, Americano-style. Partner rotate round-robin. 1M+1F per team. Individual points. Fair sit-out.</p>
+            <p>Mixed pairs, Americano-style. Partner rotate round-robin. 1 per kubu per team (gender / posisi / custom). Individual points. Fair sit-out.</p>
           </div>
           <div class="format-card" data-format="team_mexicano">
             <h3>Team Mexicano</h3>
@@ -3849,7 +3849,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.9</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.10</div>
     </div>
   </div>
 
@@ -4077,7 +4077,13 @@ const state = {
   redactMode: true,
   sortBy: 'wins', // 'wins' | 'diff' | 'winrate'
   playerStatus: [], // per-player status: 'available' | 'late' | 'left'
-  playerGenders: [], // per-player gender: 'M' | 'F' (used in Mixicano)
+  playerGenders: [], // per-player group: 'M' | 'F' (internal keys — NEVER rename;
+                     // dipakai builder mix, Firebase sync, localStorage. Sejak
+                     // v0.71.10 maknanya "kubu A"/"kubu B", labelnya ikut
+                     // mixGrouping di bawah)
+  mixGrouping: 'gender', // 'gender' | 'position' | 'custom' — label preset kubu mix
+  mixLabelA: '', // custom label kubu A (dipakai kalau mixGrouping === 'custom')
+  mixLabelB: '', // custom label kubu B
   courtNames: [],  // custom court names e.g. ['Court Biru', 'Court Merah']
   scheduleAhead: 5,  // how many rounds ahead to pre-generate
   roomId: null,  // UUID per session — generated at startTournament, persistent
@@ -4189,11 +4195,28 @@ function entityName(id) {
 // Gender badge HTML for a player id (index into state.playerGenders).
 // Returns '' unless the current format is Mix (Mixicano / Mix Americano) and
 // the gender is set. Used across score cards, standings, podium, and results.
+// v0.71.10: label preset kubu mix. Internal tetap 'M'/'F' (engine, sync,
+// storage) — cuma TAMPILAN yang ikut preset. Badge max 2 karakter.
+function mixGroupLabels() {
+  const g = state.mixGrouping || 'gender';
+  if (g === 'position') return { A: 'KA', B: 'KI', aFull: 'Kanan', bFull: 'Kiri', name: 'posisi' };
+  if (g === 'custom') {
+    const ab = (s, fb) => (s || '').trim() ? (s.trim().slice(0, 2).toUpperCase()) : fb;
+    return {
+      A: ab(state.mixLabelA, 'A'), B: ab(state.mixLabelB, 'B'),
+      aFull: (state.mixLabelA || '').trim() || 'Grup A',
+      bFull: (state.mixLabelB || '').trim() || 'Grup B',
+      name: 'grup'
+    };
+  }
+  return { A: 'M', B: 'F', aFull: 'Male', bFull: 'Female', name: 'gender' };
+}
 function genderBadge(id) {
   if (!isMixedGender()) return '';
   const g = state.playerGenders[id];
   if (g !== 'M' && g !== 'F') return '';
-  return `<span class="gender-badge ${g === 'M' ? 'm' : 'f'}">${g}</span>`;
+  const L = mixGroupLabels();
+  return `<span class="gender-badge ${g === 'M' ? 'm' : 'f'}">${g === 'M' ? L.A : L.B}</span>`;
 }
 
 // ========== SETUP SYNC ==========
@@ -4233,14 +4256,45 @@ function syncPairNames() {
 function renderPlayersList() {
   const list = document.getElementById('playersList');
   list.innerHTML = '';
+  // v0.71.10: picker preset kubu mix — dirender DI SINI (bukan markup statis)
+  // supaya hidup-matinya otomatis ngikut isMixedGender() dan re-render bareng
+  // list (satu sumber, gak bisa desync).
+  if (isMixedGender()) {
+    const L = mixGroupLabels();
+    const mg = state.mixGrouping || 'gender';
+    const picker = document.createElement('div');
+    picker.className = 'mixg-row';
+    picker.innerHTML = `
+      <span class="mixg-label">Kubu:</span>
+      <button class="mixg-chip ${mg === 'gender' ? 'active' : ''}" data-mixg="gender">Gender</button>
+      <button class="mixg-chip ${mg === 'position' ? 'active' : ''}" data-mixg="position">Posisi</button>
+      <button class="mixg-chip ${mg === 'custom' ? 'active' : ''}" data-mixg="custom">Custom</button>
+      ${mg === 'custom' ? `
+        <input type="text" class="mixg-custom" id="mixLabelAInput" maxlength="12" placeholder="Kubu A" value="${escapeHtml(state.mixLabelA || '')}">
+        <input type="text" class="mixg-custom" id="mixLabelBInput" maxlength="12" placeholder="Kubu B" value="${escapeHtml(state.mixLabelB || '')}">` : ''}`;
+    list.appendChild(picker);
+    picker.querySelectorAll('.mixg-chip').forEach(ch => {
+      ch.addEventListener('click', e => {
+        state.mixGrouping = e.target.dataset.mixg;
+        renderPlayersList();
+      });
+    });
+    const la = picker.querySelector('#mixLabelAInput');
+    const lb = picker.querySelector('#mixLabelBInput');
+    // Re-render on change (bukan input) biar badge label keupdate tanpa
+    // ngerebut fokus tiap ketikan.
+    if (la) la.addEventListener('change', e => { state.mixLabelA = e.target.value; renderPlayersList(); });
+    if (lb) lb.addEventListener('change', e => { state.mixLabelB = e.target.value; renderPlayersList(); });
+  }
+  const LBL = isMixedGender() ? mixGroupLabels() : null;
   for (let i = 0; i < state.players; i++) {
     const gender = state.playerGenders[i] || '';
     const div = document.createElement('div');
     div.className = 'player-input' + (isMixedGender() ? ' player-input-mix' : '');
     const genderHtml = isMixedGender() ? `
       <div class="gender-toggle" data-idx="${i}">
-        <button class="gender-btn ${gender === 'M' ? 'active-m' : ''}" data-gender="M" data-idx="${i}">M</button>
-        <button class="gender-btn ${gender === 'F' ? 'active-f' : ''}" data-gender="F" data-idx="${i}">F</button>
+        <button class="gender-btn ${gender === 'M' ? 'active-m' : ''}" data-gender="M" data-idx="${i}">${LBL.A}</button>
+        <button class="gender-btn ${gender === 'F' ? 'active-f' : ''}" data-gender="F" data-idx="${i}">${LBL.B}</button>
       </div>` : '';
     div.innerHTML = `<span class="player-num">${i+1}</span><input type="text" value="${state.playerNames[i] || ''}" placeholder="${defaultName(i)}" data-idx="${i}">${genderHtml}`;
     list.appendChild(div);
@@ -5091,20 +5145,21 @@ function startTournament() {
   // Initialize court names
   state.courtNames = Array.from({length: state.courts}, (_, i) => `Court ${i + 1}`);
 
-  // Validate mixed-gender formats (Mixicano + Mix Americano): all players need gender set
+  // Validate mixed formats (Mixicano + Mix Americano): all players need a group set
   if (isMixedGender()) {
+    const L = mixGroupLabels(); // v0.71.10: pesan ikut preset kubu
     const unset = [];
     for (let i = 0; i < state.players; i++) {
       if (!state.playerGenders[i]) unset.push(defaultName(i));
     }
     if (unset.length > 0) {
-      alert(`Set gender (M/F) for all players before starting ${formatLabel(state.format)}.\nMissing: ${unset.slice(0,5).join(', ')}${unset.length > 5 ? '...' : ''}`);
+      alert(`Set ${L.name} (${L.A}/${L.B}) semua pemain dulu sebelum mulai ${formatLabel(state.format)}.\nBelum diisi: ${unset.slice(0,5).join(', ')}${unset.length > 5 ? '...' : ''}`);
       return;
     }
     const males = state.playerGenders.filter(g => g === 'M').length;
     const females = state.playerGenders.filter(g => g === 'F').length;
     if (Math.abs(males - females) > state.courts * 2) {
-      alert(`Gender imbalance too large (${males}M vs ${females}F). For ${state.courts} courts, difference should be ≤ ${state.courts * 2}.`);
+      alert(`Selisih kubu kegedean (${L.aFull}: ${males} vs ${L.bFull}: ${females}). Untuk ${state.courts} court, selisih maksimal ${state.courts * 2}.`);
       return;
     }
   }
@@ -14441,6 +14496,74 @@ html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live::after {
   html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live::before {
     animation: none !important;
   }
+}
+</style>
+<style id="codex-revision-v07110-css">
+/* v0.71.10: picker preset kubu mix (Gender / Posisi / Custom) di atas
+   players list, format Mixicano & Mix Americano. Bahasa chip existing:
+   hairline + forest solid pas active. Gold gak dipakai (bukan rank
+   honorific). Badge kubu tetap 2 warna existing (.m biru / .f pink)
+   di semua preset — internal 'M'/'F' gak di-rename (engine, Firebase,
+   localStorage bergantung ke key itu). */
+.mixg-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 8px 0 10px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(201,169,97,0.18);
+}
+.mixg-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--cream-dim);
+  margin-right: 2px;
+}
+.mixg-chip {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(45,107,78,0.30);
+  background: rgba(255,255,255,0.35);
+  color: var(--accent);
+  cursor: pointer;
+}
+.mixg-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #f5f0e6;
+}
+.mixg-custom {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  width: 86px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(45,107,78,0.30);
+  background: rgba(255,255,255,0.55);
+  color: inherit;
+}
+html.dark .mixg-row { border-bottom-color: rgba(255,255,255,0.10); }
+html.dark .mixg-chip {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.16);
+  color: var(--cream);
+}
+html.dark .mixg-chip.active {
+  background: var(--accent);
+  border-color: var(--accent-bright);
+  color: #f5f0e6;
+}
+html.dark .mixg-custom {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.16);
+  color: var(--cream);
 }
 </style>
 <script id="darklab-v1-js">
