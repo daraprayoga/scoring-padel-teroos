@@ -3849,7 +3849,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.22</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.23</div>
     </div>
   </div>
 
@@ -7200,6 +7200,21 @@ function applyScoreInput(mIdx, team, rawValue) {
 
 // ========== ROUND ACTIONS ==========
 function handleRoundAction(action) {
+  // v0.71.23 lapis-2: kalau keyboard masih kebuka dan kursor masih di kotak
+  // skor, di sebagian WebKit tap pertama ke tombol cuma nutup keyboard --
+  // 'blur' (yang commit skor) bisa belum jalan pas gate dievaluasi. Blur
+  // paksa dulu supaya gate SELALU baca state terbaru, bukan state basi.
+  // Idempotent: kalau blur udah jalan duluan, ini no-op.
+  try {
+    var _ae = document.activeElement;
+    if (_ae && _ae.tagName === 'INPUT' &&
+        (_ae.classList.contains('sb-score-input') ||
+         _ae.classList.contains('score-box') ||
+         _ae.classList.contains('match-score-input') ||
+         _ae.hasAttribute('data-team'))) {
+      _ae.blur();
+    }
+  } catch (e) {}
   if (action === 'next') {
     if (state.currentRoundIdx === state.rounds.length - 1) {
       if (state.ended) {
@@ -7557,6 +7572,23 @@ function renderOverview() {
       if (info.type === 'fixed') {
         const num = parseInt(val);
         if (!isNaN(num) && num > info.target) e.target.value = String(info.target);
+        // v0.71.23 AKAR BUG "Mexicano gak bisa Next Round padahal udah input
+        // skor": cabang ini dulu CUMA nge-clamp tampilan, gak pernah manggil
+        // applyScoreInput -- jadi state.rounds[i].matches[].scoreA/B tetap 0
+        // selama ngetik. Cabang 'race' di bawah selalu commit, makanya cuma
+        // mode fixed (points_N & total_of_N, lihat modeInfo -- ini mode
+        // DEFAULT) yang kena. Gate Mexicano (~7211) baca state, bukan DOM,
+        // jadi dia liat 0-0 dan nolak. Pas user tekan Back, renderAll()
+        // nge-render ulang dari state yang masih 0-0 -> angka yang tadi
+        // diketik ilang, makanya kerasa "harus back dulu baru bisa input".
+        // Commit dilewat kalau field lagi kosong (user hapus buat ngetik
+        // ulang) supaya komplemen fixed (B = target - A) gak lompat ke
+        // target pas field sesaat kosong. Blur tetap nutup kasus kosong.
+        if (val !== '') {
+          applyScoreInput(mIdx, inp.dataset.team, e.target.value);
+          refreshCourtCard(mIdx);
+          updateStandingTable();
+        }
       } else {
         applyScoreInput(mIdx, inp.dataset.team, val);
         refreshCourtCard(mIdx);
