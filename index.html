@@ -3849,7 +3849,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.22</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.24</div>
     </div>
   </div>
 
@@ -15287,6 +15287,115 @@ html.dark .mixg-custom {
 }
 .onboarding-logo {
   filter: none;
+}
+</style>
+<style id="codex-revision-v07123-css">
+/* v0.71.23: tombol "Let's Play" -- lebih liquid glass (ref: tombol Mulai
+   Sekarang/Masuk) + frosted lebih blurry (ref: kartu Oura). Dua referensi
+   itu saling nutup: fill diturunin biar ilustrasi nembus (liquid), blur
+   dinaikin biar ilustrasi rame di belakang jadi wash lembut -> teks tetap
+   kebaca. Blok append-only paling akhir -> menang atas base v07114 +
+   override v07115 lewat urutan sumber (specificity #id sama semua).
+   CATATAN device: overlay #onboardingScreen itu position:fixed. Aturan
+   rumah: fixed + backdrop-filter = risiko flicker iOS Safari, apalagi
+   blur >20px. Dipakai SADAR di sini karena overlay statis sekali-pakai
+   (nol scroll di belakang pas muncul) -- WAJIB verifikasi iPhone; kalau
+   flicker/berat, turunin blur ke ~24px. Fallback @supports udah ada. */
+#onboardingPlay {
+  /* fill tipis -> translusen, ilustrasi nembus (ref gbr 1) */
+  background: linear-gradient(112deg,
+      rgba(255,255,255,0.44) 0%,
+      rgba(246,241,231,0.30) 52%,
+      rgba(255,255,255,0.40) 100%) !important;
+  /* blur berat + saturate resep rumah (ref gbr 2) */
+  -webkit-backdrop-filter: blur(36px) saturate(150%) !important;
+  backdrop-filter: blur(36px) saturate(150%) !important;
+  border: 1px solid rgba(255,255,255,0.6) !important;
+  /* lensa: specular atas terang + rim bawah tipis (cahaya nyangkut 2 sisi)
+     + drop shadow lembut biar ngambang */
+  box-shadow:
+    inset 0 1.5px 1px rgba(255,255,255,0.9),
+    inset 0 -1px 1px rgba(255,255,255,0.32),
+    0 14px 36px rgba(20,46,32,0.20) !important;
+}
+#onboardingPlay:active {
+  background: linear-gradient(112deg,
+      rgba(255,255,255,0.52) 0%,
+      rgba(240,234,220,0.40) 100%) !important;
+  /* press = depth-sink (inner shadow), ZERO scale -- aturan interaksi */
+  box-shadow:
+    inset 0 2px 6px rgba(20,46,32,0.16),
+    inset 0 1px 2px rgba(20,46,32,0.10) !important;
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  /* tanpa backdrop-filter: fill dinaikin biar tetap kebaca (gak ada blur
+     yang nyaring bg) */
+  #onboardingPlay {
+    background: rgba(252,250,244,0.92) !important;
+  }
+}
+</style>
+<style id="codex-revision-v07124-css">
+/* v0.71.24: "liquid glass" pass ke SEMUA tombol app (LIGHT mode) -- lanjutan
+   dari tombol onboarding (v0.71.23) tapi TANPA backdrop-filter baru. Cara
+   aman (opsi A yang dipilih user): naikin translusensi fill + rim lensa DUA
+   SISI (specular atas terang + rim bawah tipis). Tombol jadi "minjem" blur/
+   isi card di belakangnya -> berasa frosted GRATIS, nol risiko bug lama
+   (Chrome-Android smear di rounded-clip + iOS fixed-flicker) yang justru
+   alasan tombol app SENGAJA `backdrop-filter: none` sejak awal.
+   SCOPE LIGHT ONLY (`html:not(.dark)`): dark mode sengaja DIBIARIN matte --
+   user eksplisit minta matte-in dark (v sebelumnya), jangan diundo di sini.
+   Blok append-only paling akhir -> menang atas resep glass lama lewat urutan
+   sumber (semua `!important`, specificity setara). */
+
+/* Chip capsule (ghost / icon / sb-nav): fill lebih tipis + rim dua sisi */
+html:not(.dark) .ghost-btn,
+html:not(.dark) .icon-btn,
+html:not(.dark) .sb-nav-btn {
+  background: linear-gradient(135deg,
+      rgba(255,255,255,0.34) 0%,
+      rgba(255,255,255,0.14) 55%,
+      rgba(255,255,255,0.26) 100%) !important;
+  border: 1px solid rgba(255,255,255,0.72) !important;
+  box-shadow:
+    inset 0 1.5px 1px rgba(255,255,255,0.92),
+    inset 0 -1px 1px rgba(255,255,255,0.32),
+    0 4px 12px rgba(20,46,32,0.08) !important;
+}
+
+/* Cards pilihan (format / mode): lebih translusen + rim dua sisi.
+   ::after gold-sheen selected tetap punya v07062, gak disentuh. */
+html:not(.dark) .format-card,
+html:not(.dark) .mode-card {
+  background: rgba(255,255,255,0.40) !important;
+  box-shadow:
+    inset 0 1.5px 1px rgba(255,255,255,0.9),
+    inset 0 -1px 1px rgba(255,255,255,0.28),
+    0 4px 14px rgba(20,46,32,0.06) !important;
+}
+
+/* CTA aksen (primary / danger / end-game): fill warna TETAP solid (butuh
+   kontras), cuma rim lensa dua sisi biar tepi nangkep cahaya = liquid edge */
+html:not(.dark) .primary-btn,
+html:not(.dark) .danger-btn,
+html:not(.dark) .end-game-btn {
+  box-shadow:
+    inset 0 1.5px 1px rgba(255,255,255,0.42),
+    inset 0 -1px 1px rgba(255,255,255,0.16),
+    0 6px 18px rgba(20,46,32,0.22) !important;
+}
+
+/* Press semua: depth-sink (inner shadow), ZERO scale -- aturan interaksi.
+   lg-press-effect udah handle .lg-pressed; sini cuma pastiin rim gak nahan
+   depth pas ditekan (override rim jadi inner-dark). */
+html:not(.dark) .ghost-btn.lg-pressed,
+html:not(.dark) .icon-btn.lg-pressed,
+html:not(.dark) .sb-nav-btn.lg-pressed,
+html:not(.dark) .format-card.lg-pressed,
+html:not(.dark) .mode-card.lg-pressed {
+  box-shadow:
+    inset 0 2px 6px rgba(20,46,32,0.14),
+    inset 0 1px 2px rgba(20,46,32,0.08) !important;
 }
 </style>
 </body>
