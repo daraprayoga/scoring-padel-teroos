@@ -3849,7 +3849,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.24</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.25</div>
     </div>
   </div>
 
@@ -7206,6 +7206,32 @@ function applyScoreInput(mIdx, team, rawValue) {
   saveState();
 }
 
+// v0.71.25: daftar court yang skornya BELUM diisi di sebuah ronde.
+// Gate Mexicano/Mixicano dulu pakai .some() -- lolos begitu SATU court diisi,
+// padahal ronde berikutnya disusun dari computeStandings(). Kalau court lain
+// masih 0-0, klasemen yang jadi dasar pairing itu setengah jadi, dan hasil
+// pairing-nya salah tanpa ketahuan. Sekarang wajib SEMUA court terisi.
+// Predikat per-match sengaja "ada angka bukan nol", bukan isMatchComplete():
+// di mode race_to_N, isMatchComplete nuntut ada yang nyentuh target, jadi
+// pertandingan yang diputus karena batas waktu (mis. 15-12) bakal keblokir
+// selamanya. Skor 0-0 gak mungkin jadi hasil sah di padel, jadi aman.
+// Sengaja TIDAK menyentuh 8 pemakaian .some() lain di file: yang itu artinya
+// "ronde ini pernah dimainkan" (label Played, pill, swapEntity), beda urusan.
+function unscoredCourts(round) {
+  if (!round || !round.matches) return [];
+  const out = [];
+  round.matches.forEach((m, i) => {
+    if (!(m.scoreA > 0 || m.scoreB > 0)) {
+      out.push((state.courtNames && state.courtNames[i]) || ('Court ' + (i + 1)));
+    }
+  });
+  return out;
+}
+function roundFullyScored(round) {
+  return !!(round && round.matches && round.matches.length > 0 &&
+            unscoredCourts(round).length === 0);
+}
+
 // ========== ROUND ACTIONS ==========
 function handleRoundAction(action) {
   // v0.71.23 lapis-2: kalau keyboard masih kebuka dan kursor masih di kotak
@@ -7232,9 +7258,12 @@ function handleRoundAction(action) {
       // (v0.71.24: mixicano ikut -- pairing-nya rank-based dari computeStandings)
       if (isStandingsDriven()) {
         const round = state.rounds[state.currentRoundIdx];
-        const hasScore = round && round.matches && round.matches.some(m => m.scoreA > 0 || m.scoreB > 0);
-        if (!hasScore) {
-          showToast('Input skor dulu sebelum lanjut ke round berikutnya');
+        // v0.71.25: WAJIB semua court, bukan cuma salah satu.
+        if (!roundFullyScored(round)) {
+          const missing = unscoredCourts(round);
+          showToast(missing.length
+            ? 'Skor belum lengkap: ' + missing.join(', ')
+            : 'Input skor dulu sebelum lanjut ke round berikutnya');
           return;
         }
       }
@@ -7266,9 +7295,12 @@ function handleRoundAction(action) {
     // klasemen yang gak berarti (semua 0W/0PTS), bukan hasil sungguhan.
     if (isStandingsDriven()) {
       const round = state.rounds[state.currentRoundIdx];
-      const hasScore = round && round.matches && round.matches.some(m => m.scoreA > 0 || m.scoreB > 0);
-      if (!hasScore) {
-        showToast('Input skor dulu sebelum menambah round baru');
+      // v0.71.25: WAJIB semua court, bukan cuma salah satu.
+      if (!roundFullyScored(round)) {
+        const missing = unscoredCourts(round);
+        showToast(missing.length
+          ? 'Skor belum lengkap: ' + missing.join(', ')
+          : 'Input skor dulu sebelum menambah round baru');
         return;
       }
     }
@@ -7378,7 +7410,7 @@ function renderAll() {
   // Next button: dim if mexicano and current round unscored
   const mexicanoUnscored = isStandingsDriven() && !state.ended && (() => {
     const round = state.rounds[state.currentRoundIdx];
-    return !(round && round.matches && round.matches.some(m => m.scoreA > 0 || m.scoreB > 0));
+    return !roundFullyScored(round); // v0.71.25: redup selama masih ada court kosong
   })() && state.currentRoundIdx === state.rounds.length - 1;
 
   document.querySelectorAll('[data-action="next"]').forEach(b => {
@@ -15331,4 +15363,5 @@ html.dark .mixg-custom {
 }
 </style>
 </body>
+</html>
 </html>
