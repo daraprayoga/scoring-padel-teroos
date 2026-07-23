@@ -3849,7 +3849,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.23</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.24</div>
     </div>
   </div>
 
@@ -4115,6 +4115,14 @@ const isMixicano = () => state.format === 'mixicano';       // true Mexicano-sty
 const isMixAmericano = () => state.format === 'mix_americano'; // Americano-style: round-robin fairness
 const isMixedGender = () => isMixicano() || isMixAmericano();  // either mixed-gender format — gender UI/validation applies to both
 const isMexicano = () => state.format.endsWith('_mexicano');
+// v0.71.24: satu sumber kebenaran untuk "format yang ronde berikutnya disusun
+// dari klasemen LIVE". Sebelum ini 4 tempat manggil isMexicano() sendiri-sendiri
+// dan mixicano LUPUT dari keempatnya -- padahal buildMixicanoRound() manggil
+// computeStandings() buat rank-based pairing (sama kayak Mexicano). Akibatnya
+// ronde Mixicano berikutnya bisa disusun dari klasemen yang semuanya masih 0,
+// persis yang kriteria #4 mau cegah. Dibikin satu predikat, bukan 4 kondisi
+// paralel, supaya penambahan format rank-based berikutnya gak kelewat lagi.
+const isStandingsDriven = () => isMexicano() || isMixicano();
 const isAmericano = () => state.format.endsWith('_americano');
 const isTourney = () => state.format === 'tourney';
 
@@ -7220,8 +7228,9 @@ function handleRoundAction(action) {
       if (state.ended) {
         return;
       }
-      // Mexicano: block next if current round has no scores
-      if (isMexicano()) {
+      // Mexicano + Mixicano: block next if current round has no scores
+      // (v0.71.24: mixicano ikut -- pairing-nya rank-based dari computeStandings)
+      if (isStandingsDriven()) {
         const round = state.rounds[state.currentRoundIdx];
         const hasScore = round && round.matches && round.matches.some(m => m.scoreA > 0 || m.scoreB > 0);
         if (!hasScore) {
@@ -7255,7 +7264,7 @@ function handleRoundAction(action) {
     // generateRound() langsung tanpa guard -- kalau round berjalan
     // belum discore, round Mexicano baru bakal ke-generate dari
     // klasemen yang gak berarti (semua 0W/0PTS), bukan hasil sungguhan.
-    if (isMexicano()) {
+    if (isStandingsDriven()) {
       const round = state.rounds[state.currentRoundIdx];
       const hasScore = round && round.matches && round.matches.some(m => m.scoreA > 0 || m.scoreB > 0);
       if (!hasScore) {
@@ -7367,7 +7376,7 @@ function renderAll() {
     b.style.cursor = canPrev ? 'pointer' : 'not-allowed';
   });
   // Next button: dim if mexicano and current round unscored
-  const mexicanoUnscored = isMexicano() && !state.ended && (() => {
+  const mexicanoUnscored = isStandingsDriven() && !state.ended && (() => {
     const round = state.rounds[state.currentRoundIdx];
     return !(round && round.matches && round.matches.some(m => m.scoreA > 0 || m.scoreB > 0));
   })() && state.currentRoundIdx === state.rounds.length - 1;
@@ -9590,7 +9599,7 @@ function updateLandscapePanel() {
   const nextList = document.getElementById('rpNextList');
   const nextRound = state.rounds[state.currentRoundIdx + 1];
   if (nextEl && nextList) {
-    const showNext = !isMexicano() && nextRound && nextRound.matches && nextRound.matches.length > 0;
+    const showNext = !isStandingsDriven() && nextRound && nextRound.matches && nextRound.matches.length > 0;
     if (showNext) {
       nextEl.style.display = '';
       nextList.innerHTML = nextRound.matches.map((m, i) => {
