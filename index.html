@@ -3849,7 +3849,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.25</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.26</div>
     </div>
   </div>
 
@@ -7231,6 +7231,30 @@ function roundFullyScored(round) {
   return !!(round && round.matches && round.matches.length > 0 &&
             unscoredCourts(round).length === 0);
 }
+// v0.71.26: sinkronisasi tampilan tombol Next (redup vs terang).
+// Dulu logika ini nempel di dalam renderAll(), padahal ngetik skor cuma
+// manggil applyScoreInput + refreshCourtCard + updateStandingTable -- renderAll
+// TIDAK ikut kepanggil. Akibatnya opacity ketinggalan di nilai render terakhir:
+// tombol tetap redup walau semua court sudah diisi dan gate sebenarnya sudah
+// lolos. Dipisah jadi fungsi murni-DOM yang murah supaya bisa dipanggil tiap
+// keystroke tanpa render ulang penuh (render penuh bakal ngerebut fokus input).
+function syncNextBtnState() {
+  const round = state.rounds[state.currentRoundIdx];
+  const blocked = isStandingsDriven() && !state.ended &&
+    !roundFullyScored(round) &&
+    state.currentRoundIdx === state.rounds.length - 1;
+  document.querySelectorAll('[data-action="next"]').forEach(b => {
+    b.disabled = false;
+    b.style.opacity = blocked ? '0.4' : '1';
+    b.style.pointerEvents = 'auto';
+    b.style.cursor = 'pointer';
+    // Warna/background tetap punya CSS — jangan override inline.
+    b.style.color = '';
+    b.style.background = '';
+    b.style.border = '';
+  });
+  return blocked;
+}
 
 // ========== ROUND ACTIONS ==========
 function handleRoundAction(action) {
@@ -7407,22 +7431,10 @@ function renderAll() {
     b.style.pointerEvents = canPrev ? 'auto' : 'none';
     b.style.cursor = canPrev ? 'pointer' : 'not-allowed';
   });
-  // Next button: dim if mexicano and current round unscored
-  const mexicanoUnscored = isStandingsDriven() && !state.ended && (() => {
-    const round = state.rounds[state.currentRoundIdx];
-    return !roundFullyScored(round); // v0.71.25: redup selama masih ada court kosong
-  })() && state.currentRoundIdx === state.rounds.length - 1;
-
-  document.querySelectorAll('[data-action="next"]').forEach(b => {
-    b.disabled = false;
-    b.style.opacity = mexicanoUnscored ? '0.4' : '1';
-    b.style.pointerEvents = 'auto';
-    b.style.cursor = 'pointer';
-    // Let CSS handle color/background — no inline override
-    b.style.color = '';
-    b.style.background = '';
-    b.style.border = '';
-  });
+  // Next button: dim if standings-driven format and current round not fully scored
+  // v0.71.26: logikanya pindah ke syncNextBtnState() supaya bisa dipanggil juga
+  // dari handler input skor, bukan cuma pas render penuh.
+  syncNextBtnState();
   document.querySelectorAll('[data-action="add"]').forEach(b => {
     b.disabled = false;
     b.style.opacity = '1';
@@ -7629,11 +7641,13 @@ function renderOverview() {
           applyScoreInput(mIdx, inp.dataset.team, e.target.value);
           refreshCourtCard(mIdx);
           updateStandingTable();
+          syncNextBtnState(); // v0.71.26: tombol Next ikut terang begitu lengkap
         }
       } else {
         applyScoreInput(mIdx, inp.dataset.team, val);
         refreshCourtCard(mIdx);
         updateStandingTable();
+        syncNextBtnState(); // v0.71.26
         if (!isNaN(parseInt(val)) && parseInt(val) >= info.target) inp.blur();
       }
     });
@@ -7644,6 +7658,7 @@ function renderOverview() {
       applyScoreInput(mIdx, inp.dataset.team, val);
       refreshCourtCard(mIdx);
       updateStandingTable();
+      syncNextBtnState(); // v0.71.26
     });
     inp.addEventListener('keydown', e => {
       if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
@@ -7937,6 +7952,7 @@ function wireScoreInputs(container) {
       const team = inp.dataset.team;
       applyScoreInput(mIdx, team, val);
       updateLiveDisplays(mIdx);
+      syncNextBtnState(); // v0.71.26
     });
     inp.addEventListener('blur', e => {
       if (e.target.value === '' || isNaN(parseInt(e.target.value))) {
@@ -7946,6 +7962,7 @@ function wireScoreInputs(container) {
         updateLiveDisplays(mIdx);
       }
       updateStandingTable();
+      syncNextBtnState(); // v0.71.26
     });
   });
 }
