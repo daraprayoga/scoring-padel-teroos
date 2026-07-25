@@ -3849,7 +3849,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.26</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.27</div>
     </div>
   </div>
 
@@ -11193,6 +11193,80 @@ header, .bottom-nav { transition: background 0.3s ease, box-shadow 0.3s ease; }
 .pp-result-badge.win { background: rgba(45,107,78,0.12); color: #2d6b4e; }
 .pp-result-badge.loss { background: rgba(160,56,56,0.1); color: #a03838; }
 .pp-result-badge.tie { background: rgba(201,169,97,0.12); color: #8b6010; }
+</style>
+<style id="codex-revision-v07127-css">
+/* v0.71.27: dark mode buat #playerProfileModal (card stats pas klik nama
+   pemain, dari standings maupun podium).
+
+   AKAR: bukan cascade fight -- card ini ZERO rule dark, dari sebelum dark
+   lab ada sampai sekarang. Semua warna hardcode literal (#1a3d2a, #0f2318
+   dkk, ink gelap buat teks) di blok player-profile-css (~10978). Di dark
+   mode ink itu nyaris invisible di atas panel gelap. Kontras dihitung
+   dulu (bukan ditebak) buat tiap pasangan teks/bg sebelum nilai di bawah
+   ditulis; satu kandidat (result-badge loss) awalnya 4.31:1 (gagal AA),
+   diganti merah lebih terang -> 5.14:1. */
+
+/* Scrim & panel: bahasa modal dark yang sudah established (~html.dark .modal) */
+html.dark #playerProfileModal {
+  background: rgba(0,0,0,0.62) !important;
+}
+html.dark .pp-panel {
+  background: linear-gradient(160deg, rgba(32,46,38,0.92) 0%, rgba(23,35,29,0.88) 100%) !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  box-shadow: inset 0 1.5px 1px rgba(255,255,255,0.08), 0 -8px 40px rgba(0,0,0,0.45) !important;
+}
+html.dark .pp-handle { background: rgba(255,255,255,0.22) !important; }
+html.dark .pp-header { border-bottom-color: rgba(255,255,255,0.10) !important; }
+html.dark .pp-rank-badge,
+html.dark .pp-stat-key,
+html.dark .pp-history-label,
+html.dark .pp-court-tag { color: var(--cream-dim) !important; }
+html.dark .pp-name { color: var(--cream) !important; }
+html.dark .pp-close {
+  background: rgba(255,255,255,0.09) !important;
+  border-color: rgba(255,255,255,0.20) !important;
+  color: var(--cream) !important;
+}
+
+/* Stat chip (WIN/PTS/DIFF/dst) */
+html.dark .pp-stat {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(255,255,255,0.12) !important;
+}
+html.dark .pp-stat-val { color: var(--cream) !important; }
+html.dark .pp-stat-val.gold { color: var(--gold-bright) !important; }
+
+/* Riwayat pertandingan */
+html.dark .pp-match-row {
+  background: rgba(255,255,255,0.05) !important;
+  border-color: rgba(255,255,255,0.10) !important;
+}
+html.dark .pp-match-row.win {
+  border-color: rgba(79,168,124,0.35) !important;
+  background: rgba(79,168,124,0.08) !important;
+}
+html.dark .pp-match-row.loss {
+  border-color: rgba(207,106,106,0.28) !important;
+  background: rgba(207,106,106,0.07) !important;
+}
+html.dark .pp-round-num { color: var(--gold) !important; }
+html.dark .pp-partner-line,
+html.dark .pp-opp-line,
+html.dark .pp-score { color: var(--cream) !important; }
+html.dark .pp-partner-line span,
+html.dark .pp-opp-line span { color: var(--cream-dim) !important; }
+html.dark .pp-result-badge.win {
+  background: rgba(79,168,124,0.16) !important;
+  color: var(--accent-bright) !important;
+}
+html.dark .pp-result-badge.loss {
+  background: rgba(207,106,106,0.14) !important;
+  color: #d97b7b !important; /* var(--red) 4.31:1 gagal AA di tint ini -- lihat catatan atas */
+}
+html.dark .pp-result-badge.tie {
+  background: rgba(212,178,106,0.16) !important;
+  color: var(--gold-bright) !important;
+}
 </style>
 <style id="lg-press-effect">
 /* ===== LIQUID GLASS PRESS — iOS-style depth sink ===== */
