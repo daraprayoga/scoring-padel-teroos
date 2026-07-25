@@ -3849,7 +3849,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.29</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.30</div>
     </div>
   </div>
 
@@ -14389,6 +14389,36 @@ html.dark .podium-standings-table .pts-cell { color: #ece7da !important; }
 /* Medali row: warna sudah terang (#d9b971/#8a8a8a/#cd9d6e), naikin silver dikit */
 html.dark .podium-standings-table tr.rank-silver .rank-cell,
 html.dark .podium-standings-table tr.rank-silver .name-cell { color: #c4c4c4 !important; }
+/* v0.71.30: rank-cell kolom # -- 3 celah yang ketinggalan pas silver
+   dipatch di atas.
+
+   AKAR: baris NON-medali (rank 4+) gak pernah dapet dark override sama
+   sekali. Mereka warisin `.podium-standings-table td { color:#1d3b2a
+   !important }` (blok light-legacy, ~13281) -- ink hampir hitam di atas
+   wrap gelap. Dihitung: 1.29:1, jauh di bawah AA (butuh 4.5). Ini yang
+   bikin rank 4-10 nyaris invisible di screenshot -- mayoritas baris.
+
+   Gold & bronze (rank 1 & 3) PUNYA rule sendiri (v0.70.82, ~13663) tapi
+   warnanya (#8b5e1a, #8b5010) dituning buat kartu CREAM di layar yang
+   sama -- gelap banget, gak pernah dinaikin buat dark mode kayak
+   silver. Dihitung: gold 2.80:1, bronze 2.45:1 -- dua-duanya gagal AA.
+   Cuma silver yang kebetulan udah dibenerin sebelumnya.
+
+   Fix: 3 rule baru, spesifisitas match yang silver (html.dark + tr.rank-X
+   + rank-cell) biar menang di rank-gold/bronze; default rank-cell pakai
+   selector polos `.rank-cell` (tanpa tr.rank-X) yang otomatis cuma kena
+   baris tanpa medali. Token dark yang udah ada (--cream-dim, --gold-
+   bright), bronze dapet copper baru senada gold-bright tapi beda hue
+   biar tetep kebedain. Semua diukur >=6.6:1. */
+html.dark .podium-standings-table .rank-cell {
+  color: var(--cream-dim) !important;
+}
+html.dark .podium-standings-table tr.rank-gold .rank-cell {
+  color: var(--gold-bright) !important;
+}
+html.dark .podium-standings-table tr.rank-bronze .rank-cell {
+  color: #e0a878 !important;
+}
 /* Match recap (halaman 3) */
 html.dark .podium-results-header h2 { color: #ece7da !important; }
 html.dark .result-row {
