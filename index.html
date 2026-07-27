@@ -3848,7 +3848,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.32</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.33</div>
     </div>
   </div>
 
@@ -12630,9 +12630,12 @@ body.viewer-mode .sb-court-name { color: rgba(16,42,28,0.72) !important; }
   border: 1px solid rgba(29,59,42,0.18) !important;
 }
 
-/* Nama pemain: bobot Reserve Cup, ink pekat */
-.sb-player { color: #163726; font-weight: 800; }
-.sb-player:hover { color: #0f2318; }
+/* Nama pemain: v0.71.33 -- #163726 kebaca item, bukan hijau brand.
+   Ganti ke #256653 (warna Next Round, kontras 6.77:1) biar satu bahasa
+   sama tombol aksi. Hover naik ke --green-light (#1a4a35), bukan balik
+   ke ink gelap kayak sebelumnya. */
+.sb-player { color: #256653; font-weight: 800; }
+.sb-player:hover { color: #1a4a35; }
 
 /* ---------- [4] podium ---------- */
 /* Nama podium: abu -> ink forest (payoff-nya nama juara, bukan gray) */
