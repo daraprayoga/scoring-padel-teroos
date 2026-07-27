@@ -3848,7 +3848,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.31</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.32</div>
     </div>
   </div>
 
@@ -7138,7 +7138,11 @@ function computeStandings() {
     if (s.games === 0) return;
     const missed = maxGames - s.games;
     if (missed <= 0) return;
-    s.bonusPoints = Math.round(flatAvg * missed);
+    // v0.71.32: floor, bukan round -- di mode fixed-total ganjil (total_of_5
+    // dkk), flatAvg selalu persis N/2 (mis. 2.5), dan Math.round(2.5) di JS
+    // ngebulet ke ATAS jadi 3. Kompensasi 1 game absen di total_of_5 harusnya
+    // +2, bukan +3 -- floor jaga konsisten ke bawah buat semua target ganjil.
+    s.bonusPoints = Math.floor(flatAvg * missed);
     s.points += s.bonusPoints;
     s.bonus = true;
     s.missedGames = missed;
