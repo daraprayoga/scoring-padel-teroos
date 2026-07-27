@@ -17,7 +17,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800;9..40,900&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Cinzel:wght@700;900&display=swap');
   :root {
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
@@ -289,7 +288,7 @@
     display: inline-flex; align-items: center; justify-content: center;
     min-width: 16px; height: 15px; padding: 0 4px; margin-left: 5px;
     border-radius: 4px;
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: inherit; font-variant-numeric: tabular-nums;
     font-size: 9px; font-weight: 800; line-height: 1; letter-spacing: 0.5px;
     vertical-align: middle; transform: translateY(-1px);
     -webkit-user-select: none; user-select: none; flex-shrink: 0;
@@ -784,7 +783,7 @@
       padding: 10px 16px !important;
     }
     .podium-rank-num {
-    font-family: 'Cinzel', 'Cormorant Garamond', Georgia, serif;
+    font-family: 'Cormorant Garamond', Georgia, serif;
       font-size: clamp(24px, 4vh, 48px) !important;
     }
     .podium-rank-name {
@@ -907,7 +906,7 @@
   .ss-overlay .t1-slot.champ .t1-rank { background: #c9a961; border-color: #f5f0e6; }
   .ss-overlay .t1-name { font-size: 40px; font-weight: 800; color: #f5f0e6; text-align: center; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ss-overlay .t1-wlt { font-size: 28px; color: rgba(245,240,230,0.78); font-weight: 700; }
-  .ss-overlay .t1-pts { font-family: 'Cinzel', 'Cormorant Garamond', serif; font-size: 52px; font-weight: 900; color: #c9a961; line-height: 1; }
+  .ss-overlay .t1-pts { font-family: 'Cormorant Garamond', serif; font-size: 52px; font-weight: 900; color: #c9a961; line-height: 1; }
 
   /* ---- Template 2: Top-3 rows ---- */
   .ss-overlay .t2-rows { position: absolute; bottom: 160px; left: 50px; right: 50px; display: flex; flex-direction: column; gap: 20px; }
@@ -917,7 +916,7 @@
   .ss-overlay .t2-ava { width: 76px; height: 76px; border: 3px solid #f5f0e6; flex-shrink: 0; }
   .ss-overlay .t2-name { flex: 1; font-size: 40px; font-weight: 800; color: #f5f0e6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ss-overlay .t2-wlt { font-size: 28px; color: rgba(245,240,230,0.78); font-weight: 700; }
-  .ss-overlay .t2-pts { font-family: 'Cinzel', 'Cormorant Garamond', serif; font-size: 44px; font-weight: 900; color: #c9a961; width: 96px; text-align: right; flex-shrink: 0; }
+  .ss-overlay .t2-pts { font-family: 'Cormorant Garamond', serif; font-size: 44px; font-weight: 900; color: #c9a961; width: 96px; text-align: right; flex-shrink: 0; }
   .ss-overlay .t2-title { position: absolute; left: 60px; right: 60px; top: 80px; text-align: center; font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-weight: 700; font-size: 66px; color: #f5f0e6; line-height: 1.05; text-shadow: 0 2px 16px rgba(0,0,0,0.55); }
   .ss-overlay .t2-logo { position: absolute; left: 0; right: 0; bottom: 70px; text-align: center; font-size: 34px; }
 
@@ -1337,7 +1336,7 @@
   }
 
   .podium-name {
-    font-family: 'Cinzel', 'Cormorant Garamond', Georgia, serif;
+    font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 22px;
     font-weight: 900;
     color: #0f2318;
@@ -6434,12 +6433,10 @@ function buildMexicanoMatches(roundIdx) {
     for (let c = 0; c < state.courts; c++) {
       const group = playing.slice(c * 4, c * 4 + 4);
       if (group.length < 4) break;
-      // v0.71.31: 1+4 vs 2+3 (bukan 1+3 vs 2+4) -- rank terbaik
-      // ditutup rank terjelek biar match lebih imbang tiap court.
       matches.push({
         court: c,
-        teamA: [group[0], group[3]],
-        teamB: [group[1], group[2]],
+        teamA: [group[0], group[2]],
+        teamB: [group[1], group[3]],
         scoreA: 0, scoreB: 0
       });
     }
@@ -7998,15 +7995,76 @@ function updateLiveDisplays(mIdx) {
   }
 }
 
+/* v0.71.31: animasi reorder klasemen (teknik FLIP).
+   Kenapa: di Mexicano/Mixicano, urutan klasemen SETELAH skor masuk itu yang
+   nentuin pairing ronde berikutnya. Selama ini tabel cuma redraw diam-diam,
+   jadi logika paling penting di app ini tidak terlihat. Dengan barisnya
+   bergerak ke posisi baru, user melihat sebabnya, dan pertanyaan lapangan
+   "kok gue lawan dia lagi?" kejawab sendiri.
+
+   FLIP = First, Last, Invert, Play. Baris di-render ulang dulu (posisi Last),
+   lalu digeser balik ke posisi lama pakai transform (Invert), baru dilepas
+   supaya transisi CSS menariknya ke tempat baru (Play). Transform gak memicu
+   layout, jadi murah walau dipanggil tiap keystroke.
+
+   Guard yang WAJIB ada:
+   - offsetParent null -> tabel lagi disembunyikan (tab Score aktif). Rect-nya
+     0 semua, delta jadi sampah. Skip.
+   - prefers-reduced-motion -> hormati, langsung diam di posisi akhir.
+   - delta < 1px -> gak ada yang pindah, no-op. Ini yang bikin aman dipanggil
+     tiap ketikan skor. */
+function _captureStandingPos() {
+  const tbody = document.getElementById('standingBody');
+  if (!tbody || tbody.offsetParent === null) return null;
+  const map = new Map();
+  tbody.querySelectorAll('tr[data-eid]').forEach(tr => {
+    map.set(tr.dataset.eid, tr.getBoundingClientRect().top);
+  });
+  return map.size ? map : null;
+}
+function _playStandingFlip(prev) {
+  if (!prev) return;
+  try {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  } catch (e) {}
+  const tbody = document.getElementById('standingBody');
+  if (!tbody || tbody.offsetParent === null) return;
+  const moved = [];
+  tbody.querySelectorAll('tr[data-eid]').forEach(tr => {
+    const old = prev.get(tr.dataset.eid);
+    if (old === undefined) return;
+    const delta = old - tr.getBoundingClientRect().top;
+    if (Math.abs(delta) < 1) return;
+    tr.style.transition = 'none';
+    tr.style.transform = 'translateY(' + delta + 'px)';
+    tr.classList.add('rank-shifting');
+    moved.push(tr);
+  });
+  if (!moved.length) return;
+  void tbody.offsetHeight; // paksa reflow supaya posisi Invert kepakai
+  moved.forEach(tr => {
+    tr.style.transition = 'transform 420ms cubic-bezier(0.22,0.61,0.36,1)';
+    tr.style.transform = '';
+  });
+  setTimeout(() => {
+    moved.forEach(tr => {
+      tr.style.transition = ''; tr.style.transform = '';
+      tr.classList.remove('rank-shifting');
+    });
+  }, 460);
+}
+
 function updateStandingTable() {
   const standings = computeStandings();
   const tbody = document.getElementById('standingBody');
   if (!tbody) return;
+  const _flipPrev = _captureStandingPos();
   tbody.innerHTML = '';
   const sortBy = state.sortBy || 'wins';
   let anyBonus = false;
   standings.forEach((s, i) => {
     const tr = document.createElement('tr');
+    tr.dataset.eid = String(s.id); // v0.71.31: identitas stabil, dipakai FLIP buat cocokin baris lama<->baru
     const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
     if (i < 3) tr.className = `standing-top3 standing-rank-${i+1}`;
     const wrPct = s.games > 0 ? Math.round(s.winRate * 100) : 0;
@@ -8026,6 +8084,7 @@ function updateStandingTable() {
   });
   const legend = document.getElementById('bonusLegend');
   if (legend) legend.style.display = anyBonus ? 'block' : 'none';
+  _playStandingFlip(_flipPrev); // v0.71.31
 }
 
 // ========== NAV ==========
@@ -15003,7 +15062,6 @@ html.dark .mixg-custom {
 })();
 </script>
 <style id="codex-revision-v07113-css">
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600;1,700&display=swap');
 
 /* v0.71.13 — full-screen welcome layer for both admin and viewer starts. */
 #onboardingScreen {
@@ -15068,7 +15126,7 @@ html.dark .mixg-custom {
 }
 .onboarding-welcome,
 .onboarding-app-line {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Cormorant Garamond', Georgia, serif;
   font-weight: 700;
   letter-spacing: -0.055em;
   line-height: 0.95;
@@ -15483,6 +15541,40 @@ html.dark .mixg-custom {
 }
 .onboarding-logo {
   filter: none;
+}
+</style>
+<style id="codex-revision-v07131-css">
+/* v0.71.31: sistem 2 typeface + dukungan animasi reorder klasemen.
+
+   [A] TYPEFACE: 5 -> 2 (DM Sans + Cormorant Garamond).
+   Cinzel, Playfair Display, JetBrains Mono dicabut. Cinzel & Playfair
+   dua-duanya cuma display serif kedua yang perannya tumpang tindih sama
+   Cormorant; JetBrains Mono malah TIDAK PERNAH di-load (gak ada di <link>
+   fonts), jadi selama ini device diam-diam jatuh ke ui-monospace. Dua
+   @import juga hilang: satu bawa Cormorant DUPLIKAT dari <link> baris 18.
+   Hasil: 2 request font lebih sedikit + 1 duplikat mati.
+
+   Faux-bold: Cormorant Garamond mentok di weight 700, tapi 3 elemen bekas
+   Cinzel minta 900. Browser bakal MENSINTESIS tebal (menggemukkan glyph
+   secara buatan) yang hasilnya lembek dan pinggirannya kotor -- persis
+   detail yang misahin "rapi" sama "hampir rapi". Diturunin ke 700 supaya
+   yang kepakai file asli, bukan sintesis. .podium-name butuh !important
+   karena rule di ~3476 punya !important dan posisinya lebih awal. */
+.ss-overlay .t1-pts,
+.ss-overlay .t2-pts { font-weight: 700; }
+.podium-name { font-weight: 700 !important; }
+
+/* [B] Baris klasemen yang lagi bergerak. transform-nya di-set inline oleh
+   _playStandingFlip; di sini cuma hint compositor + angkat z-index supaya
+   baris yang menyalip tidak ketutup tetangganya pas melintas. */
+.standing-table tbody tr.rank-shifting,
+#standingBody tr.rank-shifting {
+  position: relative;
+  z-index: 2;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  #standingBody tr { transition: none !important; }
 }
 </style>
 </body>
