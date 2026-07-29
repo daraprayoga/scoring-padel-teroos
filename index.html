@@ -16010,16 +16010,30 @@ html.dark #startBtn {
 }
 
 /* ------------------------------------------------------------
-   [1b] TOMBOL END: bezel logam yang sama
+   [1b] TOMBOL END + PODIUM (ADMIN): bezel logam yang sama
    ------------------------------------------------------------
-   Kenapa cuma [data-action="end"] yang dapat versi hijau: tombol
-   End dan Podium GAK PERNAH tampil bareng -- renderAll() nyetel
-   End `display:none` pas state.ended, dan Podium `display:none`
-   pas belum ended (lihat ~7458). Jadi End itu selalu state "main
-   masih jalan" (hijau), Podium selalu state "udah kelar" (emas).
-   Makanya masing-masing dapat ramp bezel sendiri, bukan satu rule
-   dipaksa nutup dua state. */
-.sb-actions .end-game-btn[data-action="end"] {
+   Kenapa dua-duanya kena SATU rule set: End dan Podium GAK PERNAH
+   tampil bareng -- renderAll() nyetel End `display:none` pas
+   state.ended, dan Podium `display:none` pas belum ended (lihat
+   ~7458). Jadi cuma satu dari mereka yang kelihatan di satu waktu,
+   aman dipasangin rule yang sama persis tanpa nabrak.
+
+   v0.71.46: sebelumnya cuma [data-action="end"] yang dapat bezel
+   ini -- Podium ADMIN masih ketinggalan flat lama (`.end-game-btn
+   .podium-btn`, background solid #2d6b4e polos, ~2255). User minta
+   disamain sama Next Round, jadi selector-nya diperluas ke keduanya.
+
+   PENTING: ini CUMA nyentuh ADMIN. Podium di VIEWER MODE punya
+   identitas beam emas terpisah (`body.viewer-mode [data-action=
+   "podium"].pdm-live`, ~16110) yang TETAP HIDUP -- specificity-nya
+   (0,3,1) otomatis menang atas rule di sini (0,3,0) karena ancestor
+   `body.viewer-mode` kehitung sebagai type selector, JADI GAK PERLU
+   exclude manual pakai `:not(.viewer-mode)`. Diverifikasi: dua-
+   duanya `!important`, jadi yang nentuin murni specificity, bukan
+   source order -- viewer menang di viewer, rule ini menang di admin,
+   gak peduli mana yang ditulis lebih akhir di file. */
+.sb-actions .end-game-btn[data-action="end"],
+.sb-actions .end-game-btn[data-action="podium"] {
   --cap-core: #1f5a49;
   --cap-mid:  #256653;
   --cap-edge: #2f7a5f;
@@ -16052,7 +16066,8 @@ html.dark #startBtn {
     inset 0 1px 1px rgba(255,255,255,0.18) !important;
   transform: none !important;
 }
-.sb-actions .end-game-btn[data-action="end"]:hover {
+.sb-actions .end-game-btn[data-action="end"]:hover,
+.sb-actions .end-game-btn[data-action="podium"]:hover {
   --cap-core: #24654f;
   --cap-mid:  #2b7159;
   --cap-edge: #368568;
@@ -16060,7 +16075,9 @@ html.dark #startBtn {
   transform: none !important;
 }
 .sb-actions .end-game-btn[data-action="end"]:active,
-.sb-actions .end-game-btn[data-action="end"].lg-pressed {
+.sb-actions .end-game-btn[data-action="end"].lg-pressed,
+.sb-actions .end-game-btn[data-action="podium"]:active,
+.sb-actions .end-game-btn[data-action="podium"].lg-pressed {
   --cap-metal: linear-gradient(180deg,
       #8FC4AE 0%, #4A8A72 30%, #164537 62%, #3E7C64 100%);
   background-color: #1a4d3e !important;
@@ -16072,7 +16089,8 @@ html.dark #startBtn {
     inset 0 1px 2px rgba(0,0,0,0.22) !important;
   transform: none !important;
 }
-html.dark .sb-actions .end-game-btn[data-action="end"] {
+html.dark .sb-actions .end-game-btn[data-action="end"],
+html.dark .sb-actions .end-game-btn[data-action="podium"] {
   --cap-core: #1d5645;
   --cap-mid:  #23624f;
   --cap-edge: #2b7355;
@@ -16087,6 +16105,7 @@ html.dark .sb-actions .end-game-btn[data-action="end"] {
     0 4px 12px rgba(0,0,0,0.45),
     inset 0 1px 1px rgba(255,255,255,0.14) !important;
 }
+
 
 /* ------------------------------------------------------------
    [1c]+[3]+[4] TOMBOL PODIUM: bezel emas + beam muter
@@ -16395,4 +16414,5 @@ html.dark .sb-tabs-motion .sb-tab-pill {
 }
 </style>
 </body>
+</html>
 </html>
