@@ -3854,7 +3854,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.43</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.44</div>
     </div>
   </div>
 
@@ -3874,12 +3874,13 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
           <span class="sb-round-num" id="liveRoundNum">1</span>
           <span class="sb-round-sub" id="liveRoundMeta"></span>
         </div>
-        <div class="sb-tabs">
-          <button class="sb-tab active" id="tabScore">Score</button>
-          <button class="sb-tab" id="tabStandings">Standings</button>
+        <div class="sb-tabs sb-tabs-motion">
+          <button class="sb-tab active" id="tabScore"><svg class="sb-tab-icn" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 10.5h18M12 10.5v9"/></svg><span class="sb-tab-lbl">Score</span></button>
+          <button class="sb-tab" id="tabStandings"><svg class="sb-tab-icn" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20v-7M12 20V4M19 20v-10"/></svg><span class="sb-tab-lbl">Standings</span></button>
+          <span class="sb-tab-pill" aria-hidden="true"></span>
         </div>
         <div class="sb-round-nav">
-          <button class="sb-nav-btn" data-action="prev">←</button>
+          <button class="sb-nav-btn sb-nav-prev" data-action="prev" aria-label="Round sebelumnya"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
           <button class="sb-nav-btn sb-nav-next" data-action="next" id="nextRoundBtn">Next Round <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-left:2px;"><polyline points="9 18 15 12 9 6"/></svg></button>
         </div>
       </div>
@@ -8161,16 +8162,76 @@ function showConfirmStart() {
 
 // ===== STADIUM BOARD TAB SWITCHING =====
 let sbActiveTab = 'score';
+
+// v0.71.45: pill diposisikan lewat PENGUKURAN, bukan calc() CSS yang
+// nebak dua tab bakal selalu sama lebar. "Score" dan "Standings" beda
+// jauh panjangnya -- versi calc() 50/50 sebelumnya bikin "Standings"
+// (teks lebih panjang + ikon) luber keluar dari jatah setengah lebarnya
+// sendiri, kelihatan kayak ikon nongol di luar pill. Sekarang tab
+// dibiarin selebar kontennya (`flex: 0 0 auto`), dan fungsi ini yang
+// nyamain ukuran+posisi pill ke tombol yang lagi aktif, persis kayak
+// segmented control native (iOS ngukur frame tombol, bukan nebak rata).
+function positionSbTabPill() {
+  const wrap = document.querySelector('.sb-tabs-motion');
+  if (!wrap) return;
+  const activeBtn = wrap.querySelector('.sb-tab.active');
+  const pill = wrap.querySelector('.sb-tab-pill');
+  if (!activeBtn || !pill) return;
+  // offsetLeft relatif ke .sb-tabs-motion (containing block-nya, karena
+  // wrap punya position:relative) -- gak perlu getBoundingClientRect +
+  // hitung selisih manual.
+  const x = activeBtn.offsetLeft;
+  const w = activeBtn.offsetWidth;
+  pill.style.transform = `translateX(${x}px)`;
+  pill.style.width = w + 'px';
+}
+// Ukur ulang kalau lebar tombol berubah karena hal DI LUAR klik tab --
+// wrap ganti bahasa (nama format panjang beda), font system telat
+// selesai load, atau orientasi device berubah. ResizeObserver nangkep
+// semua ini tanpa perlu tau PENYEBABnYA satu-satu.
+if (typeof ResizeObserver !== 'undefined') {
+  const _sbTabsRO = new ResizeObserver(() => positionSbTabPill());
+  document.addEventListener('DOMContentLoaded', () => {
+    const wrap = document.querySelector('.sb-tabs-motion');
+    if (wrap) { _sbTabsRO.observe(wrap); positionSbTabPill(); }
+  });
+} else {
+  document.addEventListener('DOMContentLoaded', positionSbTabPill);
+}
+
 function switchSbTab(tab) {
+  const prevTab = sbActiveTab;
   sbActiveTab = tab;
   document.getElementById('tabScore').classList.toggle('active', tab === 'score');
   document.getElementById('tabStandings').classList.toggle('active', tab === 'standings');
-  document.getElementById('sbPageScore').style.display = tab === 'score' ? 'block' : 'none';
-  document.getElementById('sbPageStandings').style.display = tab === 'standings' ? 'block' : 'none';
+  // Class `.active` (yang men-trigger ikon muncul via CSS) WAJIB kepasang
+  // DULU sebelum ngukur -- kalau posisi diukur sebelum ikon nongol, lebar
+  // yang kebaca itu lebar SEBELUM ikon ada (kekecilan), pill jadi ketinggalan
+  // sempit sesaat sebelum nyusul lebar penuh di frame berikutnya (kedip).
+  positionSbTabPill();
+
+  const scoreEl = document.getElementById('sbPageScore');
+  const standEl = document.getElementById('sbPageStandings');
+  scoreEl.style.display = tab === 'score' ? 'block' : 'none';
+  standEl.style.display = tab === 'standings' ? 'block' : 'none';
   if (tab === 'standings') updateStandingTable();
+
+  // Halaman masuk ikut arah geser pill: ke Standings = masuk dari kanan,
+  // balik ke Score = masuk dari kiri. Kalau tab-nya sama (dipanggil ulang
+  // dari render), animasi dilewat biar gak kedip tiap update skor.
+  if (prevTab !== tab) {
+    const shown = tab === 'score' ? scoreEl : standEl;
+    const dir = tab === 'standings' ? 'from-right' : 'from-left';
+    shown.classList.remove('sb-page-in-from-right', 'sb-page-in-from-left');
+    // Reflow dipaksa: tanpa ini, remove+add di frame yang sama gak me-restart
+    // animasi (browser gak lihat perubahan apa-apa).
+    void shown.offsetWidth;
+    shown.classList.add('sb-page-in-' + dir);
+  }
 }
 document.getElementById('tabScore').addEventListener('click', () => switchSbTab('score'));
 document.getElementById('tabStandings').addEventListener('click', () => switchSbTab('standings'));
+
 
 document.getElementById('blurToggle').addEventListener('click', () => {
   state.redactMode = !state.redactMode;
@@ -15915,6 +15976,422 @@ html.dark #startBtn:hover {
 html:not(.dark) #standingBody .rank.rank-1,
 html:not(.dark) #standingBody .rank.rank-2 {
   color: #ffffff !important;
+}
+</style>
+<style id="codex-revision-v07144-css">
+/* ============================================================
+   v0.71.44 - 7 revisi dari user atas v0.71.43
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   [1] CINCIN PUTIH CTA DICABUT
+   ------------------------------------------------------------
+   v0.71.42 naruh `0 0 0 3px rgba(255,255,255,0.92)` di luar bezel.
+   Waktu itu maksudnya misahin tombol dari latar krem, tapi begitu
+   bezel logamnya jadi, dua-duanya ngerjain kerjaan yang sama dan
+   hasilnya tombol keliatan punya DUA tepi konsentris. Bezel yang
+   dipertahankan, cincin yang dibuang -- bezel bawa gradasi
+   (highlight-bayangan-mantul), cincin cuma garis rata.
+
+   Halo bawah (0 6px 18px) TETAP: itu bayangan jatuh, bukan tepi,
+   dan dia yang bikin kapsul kebaca ngambang. Yang dicabut cuma
+   layer pertama. */
+#nextRoundBtn,
+#startBtn {
+  --cap-ring: transparent;
+  box-shadow:
+    0 6px 18px var(--cap-halo),
+    0 0 24px var(--cap-glow),
+    inset 0 1px 1px rgba(255,255,255,0.20) !important;
+}
+html.dark #nextRoundBtn,
+html.dark #startBtn {
+  --cap-ring: transparent;
+}
+
+/* ------------------------------------------------------------
+   [1b] TOMBOL END: bezel logam yang sama
+   ------------------------------------------------------------
+   Kenapa cuma [data-action="end"] yang dapat versi hijau: tombol
+   End dan Podium GAK PERNAH tampil bareng -- renderAll() nyetel
+   End `display:none` pas state.ended, dan Podium `display:none`
+   pas belum ended (lihat ~7458). Jadi End itu selalu state "main
+   masih jalan" (hijau), Podium selalu state "udah kelar" (emas).
+   Makanya masing-masing dapat ramp bezel sendiri, bukan satu rule
+   dipaksa nutup dua state. */
+.sb-actions .end-game-btn[data-action="end"] {
+  --cap-core: #1f5a49;
+  --cap-mid:  #256653;
+  --cap-edge: #2f7a5f;
+  --cap-metal: linear-gradient(180deg,
+      #F2FBF6  0%,
+      #A9DEC4 20%,
+      #4FA87C 46%,
+      #1F5A49 70%,
+      #6FC49C 92%,
+      #C8EBD9 100%);
+  border-radius: 999px !important;
+  /* 1.5px, bukan 2px kayak CTA utama: tombolnya lebih kecil, ramp
+     yang sama tebalnya bakal keliatan berat di kapsul sependek ini. */
+  border: 1.5px solid transparent !important;
+  color: #ffffff !important;
+  background-color: var(--cap-core) !important;
+  background-image:
+    radial-gradient(ellipse 64% 122% at 50% 42%,
+      var(--cap-core) 0%,
+      var(--cap-core) 26%,
+      var(--cap-mid)  62%,
+      var(--cap-edge) 100%),
+    var(--cap-metal) !important;
+  /* Urutan wajib: isi di padding-box DULU, bezel di border-box.
+     Kebalik = bezel ngecat seluruh muka tombol. */
+  background-origin: padding-box, border-box !important;
+  background-clip: padding-box, border-box !important;
+  box-shadow:
+    0 4px 12px rgba(31,90,73,0.30),
+    inset 0 1px 1px rgba(255,255,255,0.18) !important;
+  transform: none !important;
+}
+.sb-actions .end-game-btn[data-action="end"]:hover {
+  --cap-core: #24654f;
+  --cap-mid:  #2b7159;
+  --cap-edge: #368568;
+  background-color: var(--cap-core) !important;
+  transform: none !important;
+}
+.sb-actions .end-game-btn[data-action="end"]:active,
+.sb-actions .end-game-btn[data-action="end"].lg-pressed {
+  --cap-metal: linear-gradient(180deg,
+      #8FC4AE 0%, #4A8A72 30%, #164537 62%, #3E7C64 100%);
+  background-color: #1a4d3e !important;
+  background-image:
+    radial-gradient(ellipse 64% 122% at 50% 42%, #1a4d3e 0%, #1a4d3e 100%),
+    var(--cap-metal) !important;
+  box-shadow:
+    inset 0 3px 8px rgba(0,0,0,0.36),
+    inset 0 1px 2px rgba(0,0,0,0.22) !important;
+  transform: none !important;
+}
+html.dark .sb-actions .end-game-btn[data-action="end"] {
+  --cap-core: #1d5645;
+  --cap-mid:  #23624f;
+  --cap-edge: #2b7355;
+  --cap-metal: linear-gradient(180deg,
+      #BFE6D2  0%,
+      #6FC49C 20%,
+      #2E8F62 48%,
+      #12362A 72%,
+      #4FA87C 92%,
+      #8FD4B4 100%);
+  box-shadow:
+    0 4px 12px rgba(0,0,0,0.45),
+    inset 0 1px 1px rgba(255,255,255,0.14) !important;
+}
+
+/* ------------------------------------------------------------
+   [1c]+[3]+[4] TOMBOL PODIUM: bezel emas + beam muter
+   ------------------------------------------------------------
+   [3] Light viewer: v0.71.8 udah punya beam conic, tapi di ATAS
+       beam masih ada `border: 1px solid rgba(120,86,10,0.45)`
+       semi-transparan. Border itu ngecat di area yang sama dengan
+       beam, jadi rim-nya keliatan tebal dan keruh. Border dibikin
+       transparan -> yang keliatan tinggal beam murni. Referensi
+       (gambar 2) rim-nya tipis dan bersih, bukan tebal.
+   [4] Dark viewer: sebelumnya beam CUMA di html:not(.dark), jadi
+       dark cuma dapat gradient statis dari inline style JS. Di
+       sini scope-nya dibuka ke dark dengan ramp emas yang lebih
+       dalam (dark butuh kontras terang-gelap lebih tajam, kalau
+       ramp light dipakai dia bloom jadi kuning rata).
+
+   !important WAJIB di sini: applyViewerUI + renderAll nge-SET
+   background/border/boxShadow INLINE tiap render (~10033), dan
+   ada `animation: podiumPulse` inline juga. Author !important
+   menang atas inline non-important DAN atas animation. */
+body.viewer-mode [data-action="podium"].pdm-live {
+  position: relative !important;
+  overflow: hidden !important;
+  isolation: isolate;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 999px !important;
+  animation: none !important;
+}
+body.viewer-mode [data-action="podium"].pdm-live::before {
+  content: '';
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 220px; height: 220px;
+  margin: -110px 0 0 -110px;
+  z-index: -2;
+  animation: pdmSheenSpin 3.2s linear infinite;
+}
+body.viewer-mode [data-action="podium"].pdm-live::after {
+  content: '';
+  position: absolute;
+  /* 1.5px = tebal rim. Ini satu-satunya angka yang nentuin setipis
+     apa bezelnya -- naikin = rim makin tipis, turunin = makin tebal. */
+  inset: 1.5px;
+  border-radius: 999px;
+  z-index: -1;
+}
+/* --- light --- */
+/* CATATAN SPECIFICITY: `border` dan `::after { inset }` WAJIB ditulis
+   di rule yang html:not(.dark)-scoped ini, BUKAN di rule generic di
+   atas. Blok v0.71.8 (~14934) pakai selector yang sama persis =
+   (0,4,2), sedangkan rule generic cuma (0,3,1) -- generic KALAH dan
+   border tebal lamanya bakal tetap kepasang. Di sini spec-nya imbang
+   dan posisinya lebih akhir, jadi menang. */
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live {
+  border: 1px solid transparent !important;
+  box-shadow: 0 4px 14px rgba(122,89,14,0.35), 0 1px 3px rgba(80,58,8,0.25) !important;
+  color: #241a05 !important;
+}
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live::before {
+  background: conic-gradient(from 0deg,
+      #8a651a 0deg,
+      #f7e7b4 50deg,
+      #8a651a 105deg,
+      #a87f24 180deg,
+      #fffdf2 212deg,
+      #8a651a 255deg,
+      #8a651a 360deg);
+}
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live::after {
+  inset: 1.5px;
+  background:
+    linear-gradient(150deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 45%),
+    linear-gradient(135deg, #e0be74 0%, #b18a28 100%);
+}
+/* --- dark --- */
+/* Isi dibikin gelap pekat (bukan emas terang kayak light): di layar
+   gelap, kapsul emas penuh itu nyorot dan bikin rim-nya ilang. Isi
+   gelap + rim emas = persis referensi gambar 2 yang badannya hitam. */
+html.dark body.viewer-mode [data-action="podium"].pdm-live {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.55), 0 0 22px rgba(201,169,97,0.22) !important;
+  color: #f4e6c2 !important;
+}
+html.dark body.viewer-mode [data-action="podium"].pdm-live::before {
+  background: conic-gradient(from 0deg,
+      #6b4e12 0deg,
+      #ffeec2 44deg,
+      #8a651a 96deg,
+      #4a350c 168deg,
+      #fff8e0 208deg,
+      #7a5a15 252deg,
+      #6b4e12 360deg);
+}
+html.dark body.viewer-mode [data-action="podium"].pdm-live::after {
+  inset: 1.5px;
+  background:
+    linear-gradient(150deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 42%),
+    linear-gradient(135deg, #2a2419 0%, #1a1710 100%);
+}
+@media (prefers-reduced-motion: reduce) {
+  body.viewer-mode [data-action="podium"].pdm-live::before {
+    animation: none !important;
+  }
+}
+
+/* ------------------------------------------------------------
+   [2] BADGE RANK: angka putih, kontras diamanin
+   ------------------------------------------------------------
+   v0.71.43 udah nyetel angka rank-1/rank-2 jadi putih dan rule-nya
+   MENANG (spec 1,3,1 vs 0,2,0). Masalahnya bukan di situ: gradient
+   badge-nya kelewat terang, jadi putihnya nempel.
+
+   Diukur di ujung TERANG tiap gradient (titik paling rawan):
+     emas   #c9a961 vs putih = 2.25:1   GAGAL
+     perak  #c0c0c0 vs putih = 1.82:1   GAGAL
+   Dua-duanya di bawah 4.5:1 buat teks kecil tebal. Jadi yang
+   diperbaiki gradient-nya, bukan warna angkanya:
+     emas   #8f6d1f -> #5c440f   (ujung terang 4.80:1)
+     perak  #767676 -> #4a4a4a   (ujung terang 4.54:1)
+   Masih kebaca emas dan perak, cuma versi tua/antik. Ini konsekuensi
+   yang gak bisa dihindari: putih di atas emas cerah SECARA MATEMATIS
+   gak akan pernah lolos, salah satunya harus ngalah.
+
+   rank-3 ikut dibenerin walau gak diminta: dia udah pakai putih dari
+   dulu (~2366) di atas #cd7f32 = 2.79:1, gagal juga. Kalau cuma 1-2
+   yang dirapiin, rank-3 jadi satu-satunya yang buram. */
+#standingBody .rank.rank-1 {
+  background: linear-gradient(135deg, #8f6d1f, #5c440f) !important;
+  box-shadow: 0 0 10px rgba(143,109,31,0.42) !important;
+}
+#standingBody .rank.rank-2 {
+  background: linear-gradient(135deg, #767676, #4a4a4a) !important;
+}
+#standingBody .rank.rank-3 {
+  background: linear-gradient(135deg, #9a5c22, #633a12) !important;
+}
+#standingBody .rank.rank-1,
+#standingBody .rank.rank-2,
+#standingBody .rank.rank-3 {
+  color: #ffffff !important;
+  border-color: transparent !important;
+}
+
+/* ------------------------------------------------------------
+   [7] PTS PERINGKAT 1 SEWARNA BARIS LAIN
+   ------------------------------------------------------------
+   Biang keroknya `#standingBody tr.standing-rank-1 .points-cell
+   { color:#2d6b4e !important }` (~3163), spec (1,2,0).
+
+   Di LIGHT dia gak keliatan salah: semua .points-cell lain ambil
+   --rc-cream yang di :root juga #2d6b4e -- kebetulan sama persis.
+   Di DARK baru ketahuan: `html.dark .points-cell` = #ece7da tapi
+   spec-nya cuma (0,2,0), KALAH sama rule rank-1. Jadi satu sel itu
+   ketinggalan hijau gelap sementara sekelilingnya krem terang.
+   Itu yang kebaca "gelap sendiri".
+
+   Diperbaiki dengan nyamain ke sumber yang sama, bukan nambal satu
+   mode: light ikut --rc-cream, dark ikut #ece7da. */
+#standingBody tr.standing-rank-1 .points-cell {
+  color: var(--rc-cream) !important;
+}
+html.dark #standingBody tr.standing-rank-1 .points-cell {
+  color: #ece7da !important;
+}
+
+/* ------------------------------------------------------------
+   [5] TAB SCORE <-> STANDINGS: kapsul geser + ikon
+   ------------------------------------------------------------
+   Kapsul indikator dipisah jadi elemen sendiri (.sb-tab-pill) yang
+   di-transform, BUKAN background yang pindah-pindah antar tab.
+   Alasannya: background gak bisa dianimasi pindah tempat, dan kalau
+   dipaksa pakai transisi warna hasilnya cross-fade, bukan geser.
+
+   Dua tab dipaksa `flex: 1` supaya lebarnya sama persis, jadi jarak
+   gesernya bisa dihitung murni dari CSS (100% + gap) tanpa perlu
+   ngukur DOM. Kalau lebarnya dibiarin ngikut teks, posisi pill harus
+   diukur JS tiap resize/ganti font -- lebih ribet dan gampang meleset
+   satu-dua piksel. */
+/* SCOPE: `.sb-tabs-motion`, BUKAN `.sb-tabs` polos.
+   #tourneyDrawView (~5403) pakai class .sb-tabs + .sb-tab yang sama
+   persis buat tab Score/Standings-nya sendiri, TAPI gak punya elemen
+   .sb-tab-pill. Kalau rule di bawah dipasang ke .sb-tabs global,
+   `.sb-tab.active { background: transparent }` bakal matiin highlight
+   tab aktif di sana dan gak ada pill yang gantiin -- user kehilangan
+   penanda tab aktif di halaman draw turnamen. Makanya container
+   scoreboard dikasih class penanda sendiri di markup. */
+.sb-tabs-motion {
+  position: relative;
+  isolation: isolate;
+}
+/* v0.71.45: BUKAN lagi `flex: 1 1 0`. "Score" (5 huruf) dan "Standings"
+   (9 huruf + ikon) beda jauh lebar alaminya -- dipaksa rata 50/50 bikin
+   konten "Standings" lebih lebar dari jatah kotaknya sendiri dan LUBER
+   keluar pill (itu yang bikin ikon keliatan nongol di luar kapsul abu).
+   Tab sekarang ngikut lebar konten (`flex: 0 0 auto`), pill-nya nyusul
+   diukur & diposisiin PAS oleh JS (`positionSbTabPill()`), bukan ditebak
+   lewat calc(). Ini pola sliding-indicator yang benar buat tab dengan
+   panjang teks beda-beda -- iOS segmented control juga gitu, ngukur
+   frame tombol aktif, bukan asumsi rata. */
+.sb-tabs-motion .sb-tab {
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 7px 14px;
+}
+/* Tab aktif gak lagi bawa permukaan sendiri -- pill yang bawa.
+   Kalau dua-duanya punya, tepinya numpuk pas lagi geser. */
+.sb-tabs-motion .sb-tab.active {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.sb-tabs-motion .sb-tab-pill {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  /* width & transform di-set INLINE oleh JS tiap kali posisi tab aktif
+     berubah -- termasuk lebar. Nilai awal di sini cuma fallback kalau
+     JS belum sempat jalan (first paint). */
+  width: 70px;
+  border-radius: 9px;
+  background: var(--rc-panel2);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.10);
+  z-index: 0;
+  transform: translateX(3px);
+  transition: transform 340ms cubic-bezier(0.32, 0.72, 0.24, 1),
+              width 340ms cubic-bezier(0.32, 0.72, 0.24, 1);
+  pointer-events: none;
+}
+html.dark .sb-tabs-motion .sb-tab-pill {
+  background: rgba(255,255,255,0.10);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+}
+/* Ikon: cuma muncul di tab aktif, lebarnya ikut dianimasi supaya
+   labelnya kegeser halus, bukan lompat. width 0 + overflow hidden
+   dipakai karena `display:none` gak bisa ditransisi.
+
+   PENTING: transisi lebar ikon ini kejadian DI DALAM tab yang sama
+   waktunya sama kejadian pill dipindah -- positionSbTabPill() WAJIB
+   dipanggil SETELAH class `.active` (yang men-trigger ikon muncul)
+   nge-apply, kalau nggak lebar tab yang diukur JS itu lebar SEBELUM
+   ikon nongol (kekecilan), pill ketinggalan sempit sesaat. */
+.sb-tabs-motion .sb-tab-icn {
+  width: 0;
+  opacity: 0;
+  margin-right: 0;
+  flex: none;
+  overflow: hidden;
+  transition:
+    width 300ms cubic-bezier(0.32, 0.72, 0.24, 1),
+    margin-right 300ms cubic-bezier(0.32, 0.72, 0.24, 1),
+    opacity 200ms ease-out;
+}
+.sb-tabs-motion .sb-tab.active .sb-tab-icn {
+  width: 14px;
+  opacity: 1;
+  margin-right: 6px;
+}
+.sb-tabs-motion .sb-tab-lbl { white-space: nowrap; }
+
+/* Halaman masuk: fade + geser searah pill. Jaraknya kecil (10px) --
+   ini penegas arah, bukan slide penuh. */
+@keyframes sbPageInRight {
+  from { opacity: 0; transform: translateX(10px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes sbPageInLeft {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: none; }
+}
+.sb-page-in-from-right { animation: sbPageInRight 280ms cubic-bezier(0.32, 0.72, 0.24, 1) both; }
+.sb-page-in-from-left  { animation: sbPageInLeft  280ms cubic-bezier(0.32, 0.72, 0.24, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .sb-tabs-motion .sb-tab-pill { transition: none !important; }
+  .sb-tabs-motion .sb-tab-icn  { transition: none !important; }
+  .sb-page-in-from-right,
+  .sb-page-in-from-left { animation: none !important; }
+}
+
+/* ------------------------------------------------------------
+   [6] PANAH BACK ROUND RATA TENGAH
+   ------------------------------------------------------------
+   Sebelumnya isinya karakter teks panah kiri. Glyph panah di DM Sans
+   duduknya ngikut baseline huruf, bukan tengah kotak -- makanya
+   keliatan turun dikit dan gak akan pernah pas walau padding
+   diutak-atik, karena yang salah metrik font-nya.
+
+   Diganti SVG chevron (viewBox 24x24, simetris vertikal) dan
+   tombolnya jadi flex center. Sekalian jadi sepasang sama chevron
+   di tombol Next Round -- dua-duanya sekarang bentuk yang sama,
+   cuma kebalik arah. */
+.sb-nav-btn.sb-nav-prev {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  padding: 7px 13px;
+}
+.sb-nav-btn.sb-nav-prev svg {
+  display: block;
+  flex: none;
 }
 </style>
 </body>
