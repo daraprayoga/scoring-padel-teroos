@@ -3854,7 +3854,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.37</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.43</div>
     </div>
   </div>
 
@@ -15590,6 +15590,331 @@ html.dark .mixg-custom {
 }
 @media (prefers-reduced-motion: reduce) {
   #standingBody tr { transition: none !important; }
+}
+</style>
+<style id="codex-revision-v07138-css">
+/* v0.71.38: tombol dinaikin ke bahasa "lensa" Liquid Glass beneran.
+
+   AKAR MASALAH kenapa tombol kerasa plastik frosted, bukan kaca: token
+   --lq-lens (rim refraksi 4 sisi: atas terang, bawah + kiri/kanan samar)
+   sudah ADA sejak blok liquid-glass, tapi cuma dipakai di card, dock, dan
+   score chip -- NOL tombol memakainya. Tombol cuma dapat single rim
+   `inset 0 1px 1px` (baris ~10866), yaitu highlight satu garis di atas.
+   Satu rim = permukaan datar yang kena cahaya. Empat rim = benda tembus
+   pandang yang MEMBIASKAN cahaya di tiap tepi. Itu beda visual antara
+   referensi (menu Ask/Build/Plan) dan tombol kita, bukan soal blur.
+
+   SENGAJA TANPA backdrop-filter. Bukan lupa: chip/tombol duduk di dalam
+   card yang SUDAH di-blur, dan blur bersarang men-trigger bug sampling
+   Chrome Android (pita smear horizontal) -- alasan yang sama yang bikin
+   .sb-score-box dan .modal-backdrop mematikan blur (lihat catatan
+   ~10891). Efek kaca di sini murni dari rim + float + fill translusen
+   yang sudah ada, jadi aman di semua device tanpa nested-blur.
+
+   .sb-nav-next (Next Round) TIDAK dikasih pseudo, blur, will-change,
+   atau fill translusen -- aturan permanen v0.70.45 + v0.70.49, dan
+   translusensi bakal nurunin kontras 6.77:1 yang sengaja dipilih buat
+   outdoor siang. Yang dia dapat CUMA rim gelap-varian + float, jadi
+   satu bahasa sama tombol lain tanpa nyentuh satu pun larangan itu. */
+
+:root {
+  /* Rim lensa versi tombol: sedikit lebih rapat dari --lq-lens (card)
+     karena radius tombol jauh lebih kecil -- rim tebal di kapsul 999px
+     kebaca jadi outline, bukan biasan. */
+  --lq-lens-btn:
+      inset 0 1.5px 1px rgba(255,255,255,0.92),
+      inset 0 -1.5px 1.5px rgba(255,255,255,0.30),
+      inset 1.5px 0 1.5px rgba(255,255,255,0.22),
+      inset -1.5px 0 1.5px rgba(255,255,255,0.22);
+  /* Rim buat tombol ber-fill GELAP (primary/danger/next). Alpha jauh
+     lebih rendah: putih 0.92 di atas forest kebaca garis putih keras,
+     bukan tepi kaca. */
+  --lq-lens-btn-solid:
+      inset 0 1.5px 1px rgba(255,255,255,0.30),
+      inset 0 -1.5px 1.5px rgba(0,0,0,0.22),
+      inset 1.5px 0 1.5px rgba(255,255,255,0.09),
+      inset -1.5px 0 1.5px rgba(255,255,255,0.09);
+  /* Float tombol: lebih pendek dari --lq-float (card). Tombol melayang
+     tipis di atas permukaan, bukan mengambang seperti kartu. */
+  --lq-float-btn: 0 8px 22px rgba(20,46,32,0.13), 0 2px 6px rgba(20,46,32,0.06);
+  --lq-float-btn-solid: 0 10px 24px rgba(20,46,32,0.26), 0 2px 6px rgba(20,46,32,0.12);
+}
+
+/* ---------- [1] chip capsule: ghost / icon / nav (BUKAN next) ---------- */
+/* :not(.sb-nav-next) wajib -- tombol Next Round juga bawa class
+   .sb-nav-btn, jadi tanpa ini dia ikut ketiban fill terang. */
+.ghost-btn,
+.icon-btn,
+.sb-nav-btn:not(.sb-nav-next) {
+  box-shadow: var(--lq-float-btn), var(--lq-lens-btn) !important;
+}
+
+/* ---------- [2] solid action: primary / danger / end-game ---------- */
+.primary-btn,
+.danger-btn,
+.end-game-btn {
+  box-shadow: var(--lq-float-btn-solid), var(--lq-lens-btn-solid) !important;
+}
+
+/* ---------- [3] CTA solid: Next Round + Start ---------- */
+/* Blok ini HANYA nyentuh box-shadow. background/color/border sengaja
+   tidak ditulis supaya codex-revision-v07038 (.sb-nav-next) dan
+   codex-revision-v07062 (#startBtn) tetap yang menang -- dua-duanya
+   solid #256653 by design buat kontras outdoor.
+   #startBtn WAJIB ditulis sebagai selector ID: rule v07062 pakai
+   #startBtn (specificity 1,0,0), jadi `.primary-btn` (0,1,0) di grup [2]
+   KALAH walaupun posisinya lebih bawah -- !important gak nolong karena
+   dua-duanya important. Ini kenapa dia dipisah ke sini, bukan cuma
+   diandelin ikut .primary-btn. */
+.sb-round-nav .sb-nav-next,
+.sb-nav-btn.sb-nav-next,
+body.viewer-mode .sb-nav-next,
+.sb-nav-next,
+#startBtn {
+  box-shadow: var(--lq-float-btn-solid), var(--lq-lens-btn-solid) !important;
+}
+
+/* ---------- [4] state terpilih: rim dipasang di PILL, bukan di TAB ---------- */
+/* v0.71.39 FIX REGRESI (diperkenalkan v0.71.38, ketahuan dari screenshot
+   user: tab SCORE punya dua tepi konsentris).
+   Dock ini pakai kontrak v0.70.49: `.bottom-tab` WAJIB transparan total
+   (background/border/box-shadow none), dan yang jadi material kaca adalah
+   `.dock-pill` -- kapsul absolute yang GESER di belakang tab aktif.
+   v0.71.38 kasih `.bottom-tab.active` rim sendiri; karena posisinya lebih
+   bawah dari rule transparan di ~12569, dia menang dan tab mulai ngecat
+   tepi sendiri DI ATAS tepi pill -> outline dobel.
+   Bug yang PERSIS sama sudah pernah kejadian dan difix khusus dark mode
+   (lihat komentar ~14103 "outline dobel di tab aktif (numpuk sama pill)")
+   -- v0.71.38 ngulang lagi lewat jalur light mode.
+   ATURAN: kalau mau dock lebih berkaca, naikin `.dock-pill`, JANGAN
+   pernah kasih box-shadow/border ke `.bottom-tab` atau `.nav-btn`. */
+.dock-pill {
+  box-shadow:
+    inset 0 1.5px 1px rgba(255,255,255,0.92),
+    inset 0 -1.5px 1.5px rgba(255,255,255,0.30),
+    inset 1.5px 0 1.5px rgba(255,255,255,0.22),
+    inset -1.5px 0 1.5px rgba(255,255,255,0.22),
+    0 3px 12px rgba(20,46,32,0.12) !important;
+}
+html.dark .dock-pill {
+  box-shadow:
+    inset 0 1.5px 1px rgba(255,255,255,0.20),
+    inset 0 -1.5px 1.5px rgba(0,0,0,0.26),
+    inset 1.5px 0 1.5px rgba(255,255,255,0.07),
+    inset -1.5px 0 1.5px rgba(255,255,255,0.07),
+    0 3px 12px rgba(0,0,0,0.34) !important;
+}
+
+/* ---------- [5] press: rim redup + tenggelam, ZERO scale ---------- */
+/* Aturan design system: press = inner shadow depth + specular shift,
+   bukan scale/bounce. lg-press-effect sudah benar untuk tombol lain,
+   tapi codex-revision-v07038 baris ~12021 masih nyisain
+   `transform: scale(0.97)` khusus .sb-nav-next dan posisinya LEBIH
+   BAWAH dari override `transform:none` di lg-press-effect -- jadi satu
+   tombol itu masih memantul sendirian. Dimatikan di sini. */
+/* .bottom-tab.lg-pressed SENGAJA TIDAK di sini -- v0.70.49 kasih dia
+   `box-shadow:none + filter:brightness(0.94)`, press-nya diwakili
+   peredupan, bukan inner shadow (tab-nya transparan, gak ada permukaan
+   buat ditenggelamin). Nambahin inner shadow bikin tepi nongol pas
+   ditekan doang -- kedip, persis penyakit outline dobel di atas. */
+.ghost-btn.lg-pressed,
+.icon-btn.lg-pressed,
+.sb-nav-btn.lg-pressed:not(.sb-nav-next) {
+  box-shadow:
+      inset 0 2px 6px rgba(20,46,32,0.18),
+      inset 0 1px 2px rgba(20,46,32,0.12),
+      inset 0 -1px 1px rgba(255,255,255,0.16) !important;
+}
+.primary-btn.lg-pressed,
+.danger-btn.lg-pressed,
+.end-game-btn.lg-pressed,
+.sb-nav-next.lg-pressed,
+.sb-nav-next:active,
+#startBtn.lg-pressed,
+#startBtn:active {
+  box-shadow:
+      inset 0 3px 8px rgba(0,0,0,0.34),
+      inset 0 1px 2px rgba(0,0,0,0.22) !important;
+  transform: none !important;
+}
+
+/* ---------- [6] dark mode: rim putih diturunin ---------- */
+/* Permukaan dark sudah gelap; rim 0.92 kebaca garis neon. Token
+   di-override, rule di atas ikut menyesuaikan tanpa diulang. */
+html.dark {
+  --lq-lens-btn:
+      inset 0 1.5px 1px rgba(255,255,255,0.22),
+      inset 0 -1.5px 1.5px rgba(0,0,0,0.24),
+      inset 1.5px 0 1.5px rgba(255,255,255,0.07),
+      inset -1.5px 0 1.5px rgba(255,255,255,0.07);
+  --lq-lens-btn-solid:
+      inset 0 1.5px 1px rgba(255,255,255,0.18),
+      inset 0 -1.5px 1.5px rgba(0,0,0,0.30),
+      inset 1.5px 0 1.5px rgba(255,255,255,0.06),
+      inset -1.5px 0 1.5px rgba(255,255,255,0.06);
+  --lq-float-btn: 0 8px 22px rgba(0,0,0,0.34), 0 2px 6px rgba(0,0,0,0.20);
+  --lq-float-btn-solid: 0 10px 24px rgba(0,0,0,0.42), 0 2px 6px rgba(0,0,0,0.24);
+}
+
+/* ---------- [7] fallback: transparansi dimatiin user/OS ---------- */
+/* Rim putih di atas fill nyaris opak masih kebaca sebagai tepi timbul,
+   jadi rim-nya boleh tinggal; float-nya yang dipangkas biar gak ada
+   bayangan menggantung di mode "kurangi transparansi". */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --lq-float-btn: 0 2px 6px rgba(20,46,32,0.10);
+    --lq-float-btn-solid: 0 3px 8px rgba(20,46,32,0.18);
+  }
+}
+</style>
+<style id="codex-revision-v07142-css">
+/* v0.71.42: dua koreksi dari user atas v0.71.41 --
+   (1) outline referensi itu BEZEL LOGAM (gradasi: highlight terang di
+       atas, gelap di tengah, mantul terang lagi di bawah), bukan garis
+       satu warna rata seperti .41;
+   (2) teks balik PUTIH di light DAN dark.
+
+   KENAPA SEKARANG PUTIH BISA, PADAHAL .41 BILANG GAK BISA:
+   di .41 kilau ditaruh di FILL, jadi badan kapsul harus terang, dan
+   putih di atas hijau terang cuma 2.3:1 -- makanya waktu itu teks
+   dipaksa gelap. Di .42 kilaunya DIPINDAH ke outline metalik. Badan
+   kapsul boleh balik gelap (putih 8.03:1 di core, 5.16:1 di tepi
+   terpucat) tanpa kehilangan kesan menyala, karena yang menyala
+   sekarang bezel-nya. Jadi ini bukan "aturan .41 dilanggar", tapi
+   sumber kilaunya pindah layer sehingga trade-off-nya bubar.
+
+   TEKNIK RIM GRADASI TANPA PSEUDO-ELEMENT:
+   border-image GAK BISA dipakai -- dia mengabaikan border-radius, jadi
+   di kapsul 999px bezelnya bakal kotak. ::before ring juga TIDAK dipakai
+   (aturan permanen v0.70.45 soal veil di atas teks). Yang dipakai:
+   dua layer background dengan box berbeda --
+     layer 1 (isi)   -> padding-box  : cuma ngecat bagian dalam border
+     layer 2 (bezel) -> border-box   : kelihatan HANYA di cincin border
+   Border-nya sendiri `transparent`, jadi layer 2 nembus di situ. Murni
+   background, nol pseudo, nol blur, dan border-radius tetap dihormati.
+   Konsekuensi: border-width jadi lebar bezel -- 2px. Kalau diubah,
+   ramp gradasinya ikut berubah tebal.
+
+   Urutan layer: layer PERTAMA tercat PALING ATAS. Jadi isi harus
+   ditulis duluan, bezel kedua -- kebalik dikit aja bezelnya nutupin
+   seluruh muka tombol. */
+
+#nextRoundBtn,
+#startBtn {
+  /* --- badan: core paling pekat (tempat teks) -> tepi sedikit terang --- */
+  --cap-core: #1f5a49;   /* putih 8.03:1 */
+  --cap-mid:  #256653;   /* putih 6.77:1 */
+  --cap-edge: #2f7a5f;   /* putih 5.16:1  <- titik paling tipis, masih AA */
+  /* --- bezel logam: terang(atas) -> gelap(tengah) -> mantul -> pucat --- */
+  --cap-metal: linear-gradient(180deg,
+      #F2FBF6  0%,   /* kilau atas, hampir putih */
+      #A9DEC4 20%,
+      #4FA87C 46%,
+      #1F5A49 70%,   /* bayangan tengah-bawah: ini yang bikin kebaca LOGAM */
+      #6FC49C 92%,   /* cahaya mantul */
+      #C8EBD9 100%);
+  --cap-halo: rgba(31,90,73,0.34);
+  --cap-glow: rgba(79,168,124,0.26);
+  --cap-ring: rgba(255,255,255,0.92);
+
+  border-radius: 999px !important;
+  border: 2px solid transparent !important;   /* wadah bezel */
+  color: #ffffff !important;
+  background-color: var(--cap-core) !important;
+  background-image:
+    radial-gradient(ellipse 64% 122% at 50% 42%,
+      var(--cap-core) 0%,
+      var(--cap-core) 26%,
+      var(--cap-mid)  62%,
+      var(--cap-edge) 100%),
+    var(--cap-metal) !important;
+  background-origin: padding-box, border-box !important;
+  background-clip: padding-box, border-box !important;
+  box-shadow:
+    0 0 0 3px var(--cap-ring),
+    0 6px 18px var(--cap-halo),
+    0 0 24px var(--cap-glow),
+    inset 0 1px 1px rgba(255,255,255,0.20) !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+#nextRoundBtn:hover,
+#startBtn:hover {
+  --cap-core: #24654f;
+  --cap-mid:  #2b7159;
+  --cap-edge: #368568;
+  background-color: var(--cap-core) !important;
+}
+
+/* Press: bezel diredupin (logam kehilangan sorot pas ketekan), halo
+   luar padam, kedalaman dari inner shadow. ZERO scale. */
+#nextRoundBtn:active,
+#nextRoundBtn.lg-pressed,
+#startBtn:active,
+#startBtn.lg-pressed {
+  --cap-metal: linear-gradient(180deg,
+      #8FC4AE 0%, #4A8A72 30%, #164537 62%, #3E7C64 100%);
+  --cap-core: #1a4d3e;
+  background-color: #1a4d3e !important;
+  background-image:
+    radial-gradient(ellipse 64% 122% at 50% 42%, #1a4d3e 0%, #1a4d3e 100%),
+    var(--cap-metal) !important;
+  box-shadow:
+    inset 0 3px 9px rgba(0,0,0,0.38),
+    inset 0 1px 2px rgba(0,0,0,0.24) !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+/* ---------- dark ---------- */
+/* Badan diturunin dikit (biar gak nyorot di halaman gelap) dan cincin
+   putih luar dicabut -- di dark dia kebaca garis neon. Bezel-nya sendiri
+   TIDAK dibikin pucat: justru kontras terang-gelap di dalam bezel yang
+   bikin dia kebaca logam, dan itu tetap perlu di dark. Yang diturunin
+   cuma puncak highlight-nya biar gak bloom. */
+html.dark #nextRoundBtn,
+html.dark #startBtn {
+  --cap-core: #1d5645;   /* putih 8.50:1 */
+  --cap-mid:  #23624f;
+  --cap-edge: #2b7355;   /* putih 5.70:1 */
+  --cap-metal: linear-gradient(180deg,
+      #BFE6D2  0%,
+      #6FC49C 20%,
+      #2E8F62 48%,
+      #12362A 72%,
+      #4FA87C 92%,
+      #8FD4B4 100%);
+  --cap-halo: rgba(0,0,0,0.50);
+  --cap-glow: rgba(63,168,117,0.30);
+  --cap-ring: rgba(255,255,255,0.10);
+}
+html.dark #nextRoundBtn:hover,
+html.dark #startBtn:hover {
+  --cap-core: #226050;
+  --cap-mid:  #286c58;
+  --cap-edge: #317d5e;
+  background-color: var(--cap-core) !important;
+}
+
+/* ---------- fallback: transparansi dikurangin ---------- */
+@media (prefers-reduced-transparency: reduce) {
+  #nextRoundBtn,
+  #startBtn {
+    background-image: none !important;
+    background-color: var(--cap-core) !important;
+    border-color: var(--cap-edge) !important;
+    box-shadow: 0 3px 10px rgba(20,46,32,0.22) !important;
+  }
+}
+</style>
+<style id="codex-revision-v07143-css">
+/* v0.71.43 — Light standings rank badges use white numerals for immediate
+   contrast against the darker gold and silver medal fills. Dark mode remains
+   on its existing palette. */
+html:not(.dark) #standingBody .rank.rank-1,
+html:not(.dark) #standingBody .rank.rank-2 {
+  color: #ffffff !important;
 }
 </style>
 </body>
