@@ -3676,6 +3676,10 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
             <h3>Team Americano</h3>
             <p>Fix pair. Pair rotate round-robin. Pair points.</p>
           </div>
+          <div class="format-card" data-format="club_sparing">
+            <h3>Club Sparing</h3>
+            <p>Fix pair, antar klub. Tiap match dipaksa lintas klub (Klub A vs Klub B). Skor + pemenang kategori dihitung terpisah dari klasemen pair.</p>
+          </div>
           <div class="format-card locked" data-format="tourney" id="tourneyFormatCard">
             <h3><svg class="icn" width="14" height="14" style="vertical-align:-2px;margin-right:4px;"><use href="#i-trophy"/></svg>Tournament <span class="lock-badge" id="tourneyLock"><svg class="icn" width="11" height="11" style="vertical-align:-1px;"><use href="#i-lock"/></svg></span></h3>
             <p>Fix pair. Grup round-robin → knockout bracket. Drawing/kocok grup.</p>
@@ -3726,6 +3730,29 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       </div>
 
       <!-- TEAM CONFIG -->
+      <!-- SPARING CONFIG: nama klub + kategori. v0.71.47: card sendiri,
+           bukan ditumpuk ke configTeam -- kalau ditumpuk, dua field ini bakal
+           ketarik keliatan tiap kali Team Mexicano/Americano dipilih (bukan
+           cuma Club Sparing), padahal gak relevan buat format itu. -->
+      <div class="card" id="configSparing" style="display:none;">
+        <div class="card-title">Configuration — Club Sparing</div>
+        <div class="control-grid">
+          <div class="control">
+            <label>Nama Klub A</label>
+            <input type="text" id="sparingClubAInput" placeholder="Club A" style="width:100%;background:var(--primary-dark);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--cream);font-size:14px;">
+          </div>
+          <div class="control">
+            <label>Nama Klub B</label>
+            <input type="text" id="sparingClubBInput" placeholder="Club B" style="width:100%;background:var(--primary-dark);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--cream);font-size:14px;">
+          </div>
+          <div class="control">
+            <label>Kategori</label>
+            <input type="text" id="sparingCategoryInput" placeholder="mis. Men's Doubles" style="width:100%;background:var(--primary-dark);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--cream);font-size:14px;">
+            <div class="control-hint">Ditampilin di header skor. Sesi baru buat tiap kategori kalau main beberapa sekaligus.</div>
+          </div>
+        </div>
+      </div>
+
       <div class="card" id="configTeam" style="display:none;">
         <div class="card-title">Configuration — Team (Fixed Pairs)</div>
         <div class="control-grid">
@@ -3854,7 +3881,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.71.44</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.1</div>
     </div>
   </div>
 
@@ -3884,6 +3911,10 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
           <button class="sb-nav-btn sb-nav-next" data-action="next" id="nextRoundBtn">Next Round <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-left:2px;"><polyline points="9 18 15 12 9 6"/></svg></button>
         </div>
       </div>
+
+      <!-- SPARING SCORE HEADER: cuma muncul format club_sparing. v0.71.47.
+           Diisi/di-update oleh renderSparingScoreHeader() dari renderAll(). -->
+      <div class="sparing-score-header" id="sparingScoreHeader" style="display:none;"></div>
 
       <!-- ROUND PILL NAVIGATOR -->
       <div id="roundPillNav"></div>
@@ -4093,6 +4124,23 @@ const state = {
   courtNames: [],  // custom court names e.g. ['Court Biru', 'Court Merah']
   scheduleAhead: 5,  // how many rounds ahead to pre-generate
   roomId: null,  // UUID per session — generated at startTournament, persistent
+  // ===== SPARING MODE (v0.71.47) =====
+  // Sparing antar klub. Basisnya team_americano (fix pair, rotate round-robin),
+  // bedanya SATU: tiap match dipaksa lintas klub (pair A lawan pair B).
+  // Constraint itu diterapkan lewat costFn `Infinity` di minCostPerfectMatching
+  // -- konvensi yang sama persis dipakai format mix buat maksa bipartite M/F.
+  // Gak ada mesin matching baru.
+  sparingClubA: '',          // nama klub kubu A (kosong = fallback 'Club A')
+  sparingClubB: '',          // nama klub kubu B
+  pairClubs: [],             // 'A' | 'B' per index pair. Sengaja mirror pola
+                             // playerGenders (string pendek, array sejajar) --
+                             // ikut jalur serialisasi Firebase/localStorage yang
+                             // sudah ada, bukan bikin format baru.
+  sparingCategory: '',       // label kategori sesi ini, mis. "Men's Doubles".
+                             // v1 = SATU kategori per sesi (kasus umum). Multi-
+                             // kategori nanti jadi lapisan di atas ini, bukan
+                             // ngubah bentuk key ini.
+
   // ===== TOURNEY MODE =====
   tourneyPairs: 16,          // total pairs in tournament
   tourneyPairNames: [],      // [[p1, p2], ...]
@@ -4116,7 +4164,12 @@ const state = {
 const RANDOM_POOL = ['Kiki','Marsa','Dwita','Pomen','Renny','Bella','Fina','Tarisa','Dila','Elva','Janes','Anggi','Sheva','Yola','Rina','Gia','Geges','OKI','Dhana','Rere','Adee','Una','Karina','Minda','Erlin','Rizkita','Vera','Chaca','Shintia','Vina','Cita','Diana','Sita','Eno','Bianca','Diths','Janty','Vio'];
 
 // ========== HELPERS ==========
-const isTeam = () => state.format.startsWith('team_');
+const isSparing = () => state.format === 'club_sparing';
+// PENTING: sparing WAJIB kehitung sebagai format team. Seluruh jalur pair
+// (entityName, buildTeamMatches, kolom klasemen, entry nama pair, validasi
+// jumlah) bercabang lewat isTeam(). Kalau sparing gak masuk sini, dia bakal
+// jatuh ke jalur individual dan pecah di banyak tempat sekaligus.
+const isTeam = () => state.format.startsWith('team_') || isSparing();
 const isMixicano = () => state.format === 'mixicano';       // true Mexicano-style: rank-based pairing
 const isMixAmericano = () => state.format === 'mix_americano'; // Americano-style: round-robin fairness
 const isMixedGender = () => isMixicano() || isMixAmericano();  // either mixed-gender format — gender UI/validation applies to both
@@ -4232,6 +4285,15 @@ function genderBadge(id) {
   const L = mixGroupLabels();
   return `<span class="gender-badge ${g === 'M' ? 'm' : 'f'}">${g === 'M' ? L.A : L.B}</span>`;
 }
+// v0.71.47: badge klub di klasemen/podium/score card, pola identik genderBadge
+// (bahkan class CSS-nya di-reuse: 'gender-badge m/f' udah punya styling badge
+// pill kecil yang pas, gak perlu bikin CSS baru). id di sini index PAIR
+// (sparing selalu team-based), bukan player individual.
+function clubBadge(id) {
+  if (!isSparing()) return '';
+  const side = clubOf(id);
+  return `<span class="gender-badge ${side === 'A' ? 'm' : 'f'}">${escapeHtml(clubBadgeLabel(side))}</span>`;
+}
 
 // ========== SETUP SYNC ==========
 function syncPlayerCount() {
@@ -4264,6 +4326,26 @@ function syncPairNames() {
     state.pairNames.push(['', '']);
   }
   state.pairNames = state.pairNames.slice(0, state.pairs);
+  // v0.71.47: pairClubs disinkron di titik yang SAMA dengan pairNames, bukan
+  // fungsi terpisah -- dua array itu sejajar per index (pola yang sama kayak
+  // playerGenders/playerNames), jadi kalau desync salah satu ketinggalan
+  // panjang, toggle klub bisa nunjuk ke pair yang salah setelah nambah/kurang
+  // jumlah pair. Default 'A' aman buat non-sparing (dibaca cuma kalau
+  // isSparing()).
+  while (state.pairClubs.length < state.pairs) {
+    state.pairClubs.push('A');
+  }
+  state.pairClubs = state.pairClubs.slice(0, state.pairs);
+}
+
+// Inisial 2-karakter buat badge toggle klub (mis. "Teroos" -> "TE"). Pola
+// truncation-nya sama persis kayak mixGroupLabels() custom preset -- satu
+// cara baca singkatan di seluruh app, bukan aturan baru.
+function clubBadgeLabel(side) {
+  const full = clubLabel(side);
+  const custom = side === 'B' ? state.sparingClubB : state.sparingClubA;
+  if ((custom || '').trim()) return custom.trim().slice(0, 2).toUpperCase();
+  return side === 'B' ? 'B' : 'A';
 }
 
 // ========== RENDER SETUP UI ==========
@@ -4332,12 +4414,24 @@ function renderPairsList() {
   for (let i = 0; i < state.pairs; i++) {
     const row = document.createElement('div');
     row.className = 'pair-row';
+    // v0.71.47: toggle klub A/B, pola identik gender-toggle di renderPlayersList
+    // -- dua tombol pill, satu aktif nyala. Bedanya cuma sumber datanya
+    // (pairClubs, bukan playerGenders) dan labelnya (inisial nama klub,
+    // bukan M/F). Warna sengaja SAMA (biru/magenta) dengan gender-toggle:
+    // "kubu A vs kubu B" itu satu bahasa visual di app ini, klub cuma jenis
+    // kubu yang lain -- bukan sistem warna baru yang perlu diinget user.
+    const clubHtml = isSparing() ? `
+      <div class="gender-toggle club-toggle" data-idx="${i}">
+        <button class="gender-btn club-btn ${clubOf(i) === 'A' ? 'active-m' : ''}" data-club="A" data-idx="${i}" title="${escapeHtml(clubLabel('A'))}">${escapeHtml(clubBadgeLabel('A'))}</button>
+        <button class="gender-btn club-btn ${clubOf(i) === 'B' ? 'active-f' : ''}" data-club="B" data-idx="${i}" title="${escapeHtml(clubLabel('B'))}">${escapeHtml(clubBadgeLabel('B'))}</button>
+      </div>` : '';
     row.innerHTML = `
       <div class="pair-header">Pair ${i+1}</div>
       <div class="pair-inputs">
         <input type="text" value="${state.pairNames[i][0] || ''}" placeholder="Player ${i*2+1}" data-pair="${i}" data-slot="0">
         <span class="amp">&</span>
         <input type="text" value="${state.pairNames[i][1] || ''}" placeholder="Player ${i*2+2}" data-pair="${i}" data-slot="1">
+        ${clubHtml}
       </div>
     `;
     list.appendChild(row);
@@ -4348,6 +4442,13 @@ function renderPairsList() {
       const pIdx = parseInt(e.target.dataset.pair);
       const sIdx = parseInt(e.target.dataset.slot);
       state.pairNames[pIdx][sIdx] = e.target.value;
+    });
+  });
+  list.querySelectorAll('.club-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const idx = parseInt(e.target.dataset.idx);
+      state.pairClubs[idx] = e.target.dataset.club;
+      renderPairsList();
     });
   });
 }
@@ -4811,6 +4912,11 @@ function updateConfigVisibility() {
   // Tournament mode: hide individual/team configs, show tourney config
   document.getElementById('configIndividual').style.display = (tourney || teamMode) ? 'none' : 'block';
   document.getElementById('configTeam').style.display = (teamMode && !tourney) ? 'block' : 'none';
+  // v0.71.47: card nama klub + kategori. isSparing() sudah kehitung isTeam(),
+  // jadi teamMode di atas otomatis true buat sparing -- card ini cuma nge-refine
+  // kapan MUNCUL card konfigurasi TAMBAHAN di atas configTeam, bukan gantiin.
+  const sparingConfig = document.getElementById('configSparing');
+  if (sparingConfig) sparingConfig.style.display = isSparing() ? 'block' : 'none';
   document.getElementById('individualPlayersCard').style.display = (tourney || teamMode) ? 'none' : 'block';
   document.getElementById('teamPairsCard').style.display = (teamMode && !tourney) ? 'block' : 'none';
   const tourneyConfig = document.getElementById('configTourney');
@@ -4840,6 +4946,15 @@ function syncSetupSelections() {
   document.querySelectorAll('.mode-card').forEach(c => c.classList.toggle('selected', c.dataset.mode === state.mode));
   const tnInput = document.getElementById('tournamentNameInput');
   if (tnInput) tnInput.value = state.tournamentName || '';
+  // v0.71.47: sama alasan tnInput di atas -- sesi yang di-restore (reload,
+  // link ?room=, dst) harus nunjukin nilai state ASLI di field, bukan
+  // placeholder kosong yang bikin user ngira belum ke-set.
+  const clubAInput = document.getElementById('sparingClubAInput');
+  const clubBInput = document.getElementById('sparingClubBInput');
+  const catInput = document.getElementById('sparingCategoryInput');
+  if (clubAInput) clubAInput.value = state.sparingClubA || '';
+  if (clubBInput) clubBInput.value = state.sparingClubB || '';
+  if (catInput) catInput.value = state.sparingCategory || '';
 }
 
 function initSetup() {
@@ -4852,6 +4967,16 @@ function initSetup() {
   syncSetupSelections();
 
   document.getElementById('tournamentNameInput').addEventListener('input', e => { state.tournamentName = e.target.value; });
+
+  // v0.71.47: input klub/kategori. re-render pair list on club name change
+  // supaya title tooltip badge toggle (title="${clubLabel('A')}") ikut update
+  // -- kalau enggak, tooltip nyangkut nama lama sampai user pindah-pindah pair.
+  const clubAInput = document.getElementById('sparingClubAInput');
+  const clubBInput = document.getElementById('sparingClubBInput');
+  const catInput = document.getElementById('sparingCategoryInput');
+  if (clubAInput) clubAInput.addEventListener('input', e => { state.sparingClubA = e.target.value; renderPairsList(); });
+  if (clubBInput) clubBInput.addEventListener('input', e => { state.sparingClubB = e.target.value; renderPairsList(); });
+  if (catInput) catInput.addEventListener('input', e => { state.sparingCategory = e.target.value; });
 }
 
 // ========== FORMAT/MODE SELECTION ==========
@@ -6608,6 +6733,155 @@ function getAllMatchups(ids) {
   return matchups;
 }
 
+// ===== SPARING: helper klub (v0.71.47) =====
+// Klub sebuah pair. Default 'A' supaya data lama / pair yang belum di-assign
+// gak bikin undefined nyasar ke perbandingan.
+function clubOf(pairIdx) {
+  return state.pairClubs[pairIdx] === 'B' ? 'B' : 'A';
+}
+function clubLabel(side) {
+  if (side === 'B') return (state.sparingClubB || '').trim() || 'Club B';
+  return (state.sparingClubA || '').trim() || 'Club A';
+}
+// Cost matchup. Di format NON-sparing ini identik dengan perilaku lama
+// (murni jumlah pertemuan sebelumnya), jadi aman dipasang di jalur bersama.
+// Di sparing, pasangan se-klub dikasih Infinity = DILARANG oleh
+// minCostPerfectMatching. Konvensi Infinity ini bukan barang baru -- persis
+// mekanisme yang dipakai format mix buat maksa tiap tim isinya 1 kubu A +
+// 1 kubu B. Bedanya di sini constraint-nya di level MATCH (siapa lawan
+// siapa), bukan di level TIM (siapa sepasang sama siapa).
+function sparingPairCost(a, b, hist) {
+  if (isSparing() && clubOf(a) === clubOf(b)) return Infinity;
+  return hist.opponent[a][b];
+}
+
+// Rekap klub buat satu sesi sparing. Rantai penentuan menangnya SENGAJA
+// sama persis dengan comparator klasemen mabar (Wins -> Points -> H2H ->
+// Diff), tinggal diangkat dari level entitas ke level klub.
+//
+// Catatan H2H: karena tiap match dipaksa lintas klub, "head to head" antar
+// klub itu mencakup SELURUH match di sesi -- nilainya jadi identik dengan
+// selisih poin total. Jadi H2H di sini gak pernah jadi pemisah yang berdiri
+// sendiri; rantainya efektif Wins -> Points -> Diff. Ini konsekuensi
+// matematis dari constraint lintas-klub, bukan rantai yang dipotong.
+function computeClubTally() {
+  const zero = () => ({ wins: 0, losses: 0, ties: 0, points: 0, conceded: 0, played: 0 });
+  const tally = { A: zero(), B: zero() };
+  const info = modeInfo(state.mode);
+
+  for (const round of state.rounds) {
+    if (!round || !round.matches) continue;
+    for (const m of round.matches) {
+      const scored = (m.scoreA || 0) !== 0 || (m.scoreB || 0) !== 0;
+      if (!scored) continue;
+      const sideA = clubOf(m.teamA[0]);
+      const sideB = clubOf(m.teamB[0]);
+      // Match se-klub gak boleh ada di sparing, tapi kalau muncul (data lama,
+      // atau assign klub diubah setelah ronde jalan) dia dilewat, bukan
+      // dihitung dobel ke klub yang sama -- itu bakal bikin skor ngaco tanpa
+      // jejak. Dilewat = skornya tetap kebaca di klasemen pair, cuma gak
+      // nyumbang ke rekap klub.
+      if (sideA === sideB) continue;
+      const sa = m.scoreA || 0, sb = m.scoreB || 0;
+      tally[sideA].points += sa; tally[sideA].conceded += sb; tally[sideA].played++;
+      tally[sideB].points += sb; tally[sideB].conceded += sa; tally[sideB].played++;
+      if (sa > sb)      { tally[sideA].wins++; tally[sideB].losses++; }
+      else if (sb > sa) { tally[sideB].wins++; tally[sideA].losses++; }
+      else              { tally[sideA].ties++; tally[sideB].ties++; }
+    }
+  }
+  tally.A.diff = tally.A.points - tally.A.conceded;
+  tally.B.diff = tally.B.points - tally.B.conceded;
+
+  // Pemenang: Wins -> Points -> Diff. null = benar-benar imbang.
+  let winner = null;
+  if      (tally.A.wins   !== tally.B.wins)   winner = tally.A.wins   > tally.B.wins   ? 'A' : 'B';
+  else if (tally.A.points !== tally.B.points) winner = tally.A.points > tally.B.points ? 'A' : 'B';
+  else if (tally.A.diff   !== tally.B.diff)   winner = tally.A.diff   > tally.B.diff   ? 'A' : 'B';
+
+  return { A: tally.A, B: tally.B, winner, mode: info };
+}
+
+// ===== SPARING: builder ronde (v0.71.47) =====
+// KENAPA BUILDER SENDIRI, BUKAN NUMPANG buildTeamAmericanoRound.
+//
+// Percobaan pertama cuma nyisipin constraint `Infinity` ke costFn builder
+// team biasa. Harness langsung nolak: di klub yang jumlah pair-nya TIMPANG
+// (3v5, 2v6), seleksi pool builder itu murni berbasis GP dan BUTA KLUB --
+// dia bisa milih dua pair dari klub yang sama buat ngisi satu court, dan
+// matching lintas-klub jadi mustahil. Terukur: di satu ronde 0 dari 120
+// attempt feasible, rondenya keluar KOSONG. Di undian lain bisa lolos jadi
+// match se-klub. Dua-duanya salah, dan dua-duanya diam-diam.
+//
+// Akarnya: constraint lintas-klub itu syarat di level SELEKSI SIAPA MAIN,
+// bukan cuma di level siapa lawan siapa. Jadi pool-nya harus dipilih per
+// klub sejak awal: PERSIS `courts` pair dari A dan `courts` dari B. Dengan
+// begitu matching lintas-klub feasible by construction, bukan diharapkan.
+//
+// Konsekuensi yang mengikuti dan MEMANG BENAR: GP rata itu dijaga PER KLUB,
+// bukan global. Kalau A bawa 3 pair dan B bawa 5, tiap ronde tetap kepake
+// 1 A + 1 B per court, jadi pair A otomatis main lebih sering. Itu aritmetika
+// sparing, bukan ketimpangan yang bisa "dibenerin" -- yang bisa dijaga adalah
+// keadilan DI DALAM masing-masing klub.
+function buildSparingRound(roundIdx) {
+  const hist = buildHistory(roundIdx);
+  const r1 = restedLastRoundSet(roundIdx);
+  const rested2 = restedTwoBackSet(roundIdx);
+  const playedLast = playedLastRoundSet(roundIdx);
+
+  const availA = [], availB = [], unavailable = [];
+  for (let i = 0; i < state.pairs; i++) {
+    if (!isAvailable(i)) { unavailable.push(i); continue; }
+    (clubOf(i) === 'A' ? availA : availB).push(i);
+  }
+
+  // Court efektif dibatasi klub yang pair-nya paling sedikit. Kalau A cuma
+  // punya 2 pair available, court ke-3 gak mungkin diisi match lintas-klub
+  // -- lebih baik court-nya kosong daripada maksa match se-klub yang bikin
+  // rekap sparing ngaco.
+  const usableCourts = Math.min(state.courts, availA.length, availB.length);
+  if (usableCourts < 1) {
+    return { pairOrder: [], resting: [...availA, ...availB, ...unavailable] };
+  }
+
+  // Seleksi per klub pakai helper yang sama dengan format lain, supaya aturan
+  // GP-tier / anti-double-rest konsisten -- cuma dijalanin dua kali, sekali
+  // per klub, bukan sekali buat gabungan.
+  const pickSide = (pool, strategy) => {
+    const t = gpTiers(pool, usableCourts, hist.games);
+    const { pick, sit } = sampleBubble(t.bubble, t.slots, r1, rested2, strategy);
+    return { play: [...t.forced, ...pick], sit: [...sit, ...t.above] };
+  };
+
+  let best = null;
+  for (let a = 0; a < 120; a++) {
+    const strategy = a % 2 === 0 ? 'rest' : 'free';
+    const sa = pickSide(availA, strategy);
+    const sb = pickSide(availB, strategy);
+    if (sa.play.length !== usableCourts || sb.play.length !== usableCourts) continue;
+
+    // Pool gabungan dijamin seimbang (n dari A, n dari B), jadi matching
+    // lintas-klub PASTI ada. costFn tetap dipakai supaya di antara semua
+    // kombinasi lintas-klub yang mungkin, yang paling sedikit ngulang lawan
+    // yang kepilih.
+    const m = minCostPerfectMatching([...sa.play, ...sb.play], (x, y) => sparingPairCost(x, y, hist));
+    if (!m) continue;
+
+    const sit = [...sa.sit, ...sb.sit];
+    const score = m.cost
+      + DOUBLE_REST_PENALTY * doubleRestCount(sit, r1)
+      + CONSEC_PLAY_PENALTY * consecPlayCount([...sa.play, ...sb.play], playedLast);
+    if (!best || score < best.score) best = { pairOrder: m.pairs.flat(), score, sit };
+    if (best.score === 0) break;
+  }
+
+  if (!best) return { pairOrder: [], resting: [...availA, ...availB, ...unavailable] };
+
+  const playing = new Set(best.pairOrder);
+  const resting = [...availA, ...availB].filter(id => !playing.has(id)).concat(unavailable);
+  return { pairOrder: best.pairOrder, resting };
+}
+
 function buildTeamAmericanoRound(roundIdx) {
   const total = state.pairs;
   const hist = buildHistory(roundIdx);
@@ -6639,7 +6913,7 @@ function buildTeamAmericanoRound(roundIdx) {
     for (const drop of dropCandidates) {
       const pool = drop === null ? playing : playing.filter(id => id !== drop);
       if (pool.length < 2) continue;
-      const m = minCostPerfectMatching(pool, (a, b) => hist.opponent[a][b]);
+      const m = minCostPerfectMatching(pool, (a, b) => sparingPairCost(a, b, hist));
       if (!m) continue;
       if (!best || m.cost < best.cost) {
         best = { pairOrder: m.pairs.flat(), cost: m.cost, used: new Set(m.pairs.flat()) };
@@ -7011,6 +7285,12 @@ function generateRound(idx) {
       // Pure standings-based Mexicano
       const result = buildTeamMexicanoMatches(idx);
       matches = result.matches;
+      resting = result.resting;
+    } else if (isSparing()) {
+      // Sparing punya builder sendiri karena seleksi pool-nya harus per klub,
+      // bukan cuma matching-nya yang dibatasi. Lihat catatan di buildSparingRound.
+      const result = buildSparingRound(idx);
+      matches = buildTeamMatches(result.pairOrder);
       resting = result.resting;
     } else if (state.format === 'team_americano') {
       // Berger round-robin for pair matchups
@@ -7513,7 +7793,43 @@ function renderAll() {
 
   // Landscape panel
   if (state.started) renderLandscapePanel();
+  renderSparingScoreHeader();
   renderRoundPills();
+}
+
+// v0.71.47: header skor besar CLUB A [W] [W] CLUB B, referensi PDLUP. Cuma
+// hidup di format club_sparing -- format lain gak pernah bikin elemennya
+// keliatan (display:none, di-skip paling awal). Angka besar = WINS (kriteria
+// #1 penentu menang), bukan points -- biar sekali lirik dari jauh langsung
+// kebaca siapa unggul, sama kayak orang liat skor bola. Points+diff jadi
+// info pendukung di baris kecil, bukan yang utama.
+function renderSparingScoreHeader() {
+  const el = document.getElementById('sparingScoreHeader');
+  if (!el) return;
+  if (!isSparing() || !state.started) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+
+  const t = computeClubTally();
+  // Nama klub itu input bebas dari user -> WAJIB di-escape sebelum masuk
+  // innerHTML. Tanpa ini, ngetik '&' atau '<' aja udah ngerusak render,
+  // dan tag apa pun bakal kebentuk beneran. Pola sama kayak mixLabelA/B
+  // di renderPlayersList (~4369) yang sudah pakai escapeHtml.
+  const nameA = escapeHtml(clubLabel('A')), nameB = escapeHtml(clubLabel('B'));
+  const leadA = t.winner === 'A', leadB = t.winner === 'B';
+  el.innerHTML = `
+    <div class="ssh-side ssh-a ${leadA ? 'ssh-lead' : ''}">
+      <span class="ssh-name">${nameA}</span>
+      <span class="ssh-sub">${t.A.points} pts · ${t.A.diff > 0 ? '+' : ''}${t.A.diff} diff</span>
+    </div>
+    <div class="ssh-scores">
+      <div class="ssh-box ${leadA ? 'ssh-box-lead' : ''}">${t.A.wins}</div>
+      <div class="ssh-box ${leadB ? 'ssh-box-lead' : ''}">${t.B.wins}</div>
+    </div>
+    <div class="ssh-side ssh-b ${leadB ? 'ssh-lead' : ''}">
+      <span class="ssh-name">${nameB}</span>
+      <span class="ssh-sub">${t.B.points} pts · ${t.B.diff > 0 ? '+' : ''}${t.B.diff} diff</span>
+    </div>
+  `;
 }
 
 function getMatchPlayerNames(m, side) {
@@ -7576,7 +7892,7 @@ function renderOverview() {
       }
       return names.map((name, pi) => {
         const id = ids[pi];
-        const badge = genderBadge(id);
+        const badge = genderBadge(id) + clubBadge(id);
         const safe = escapeHtml(name || defaultName(id));
         // With a badge, wrap the name in a truncating span so the badge is never
         // clipped by .sb-player's nowrap/overflow ellipsis.
@@ -8085,7 +8401,7 @@ function updateStandingTable() {
     if (s.bonus) anyBonus = true;
     tr.innerHTML = `
       <td><span class="rank ${rankClass}">${i+1}</span></td>
-      <td class="player-name-cell">${escapeHtml(s.name)}${genderBadge(s.id)}${bonusMarker}</td>
+      <td class="player-name-cell">${escapeHtml(s.name)}${genderBadge(s.id)}${clubBadge(s.id)}${bonusMarker}</td>
       <td class="num">${s.games}</td>
       <td class="num ${sortBy === 'wins' ? 'sort-active' : ''}">${s.wins}</td>
       <td class="num">${s.losses}</td>
@@ -8711,7 +9027,7 @@ function buildResultsPages() {
 
       const teamRow = (names, ids, isWinner) => {
         const dot = isWinner ? `<span class="result-row-dot"></span>` : '';
-        const namesHtml = names.map((n, i) => `${escapeHtml(n || '—')}${genderBadge(ids[i])}`).join(' & ');
+        const namesHtml = names.map((n, i) => `${escapeHtml(n || '—')}${genderBadge(ids[i])}${clubBadge(ids[i])}`).join(' & ');
         return `<div class="result-row-team ${isWinner ? 'winner' : ''}">${dot}${namesHtml}</div>`;
       };
 
@@ -8886,7 +9202,7 @@ function showPodium() {
         <div class="podium-card" data-rank="${rankNumbers[rank - 1] || rank}">
           <div>
             <div class="podium-place-label">${s.wins}W · ${s.losses}L${s.ties ? ' · ' + s.ties + 'T' : ''}</div>
-            <div class="podium-name" data-pid="${s.id}" data-rank="${rank - 1}">${escapeHtml(s.name)}${genderBadge(s.id)}${nameStar}</div>
+            <div class="podium-name" data-pid="${s.id}" data-rank="${rank - 1}">${escapeHtml(s.name)}${genderBadge(s.id)}${clubBadge(s.id)}${nameStar}</div>
             ${notesHtml}
           </div>
           <div class="podium-stats">
@@ -8932,7 +9248,7 @@ function showPodium() {
     return `
       <tr class="${rankClass}">
         <td class="rank-cell">${rank}</td>
-        <td class="name-cell" data-pid="${s.id}" data-rank="${rank - 1}">${escapeHtml(s.name)}${genderBadge(s.id)}${bonusMarker}</td>
+        <td class="name-cell" data-pid="${s.id}" data-rank="${rank - 1}">${escapeHtml(s.name)}${genderBadge(s.id)}${clubBadge(s.id)}${bonusMarker}</td>
         <td class="num-cell">${s.games}</td>
         <td class="num-cell">${winsDisplay}</td>
         <td class="num-cell">${s.diff > 0 ? '+' : ''}${s.diff}</td>
@@ -10788,8 +11104,8 @@ body.viewer-mode .score-box:disabled {
       inset -1.5px 0 1.5px rgba(255,255,255,0.20);
   --lq-float: 0 14px 38px rgba(20,46,32,0.15), 0 3px 10px rgba(20,46,32,0.07);
   --lq-hairline: rgba(255,255,255,0.40);
-  --lq-forest: #1d3b2a;
-  --lq-forest2: #142b1d;
+  --lq-forest: #1d3b2d;
+  --lq-forest2: #142b20;
   --lq-paper: #f7f3e8;
 }
 
@@ -11011,7 +11327,7 @@ body.viewer-mode .sb-score-box.winner .match-score-input:disabled {
   font-style: italic;
   font-size: 19px;
   font-weight: 700;
-  color: #1d3b2a;
+  color: #1d3b2d;
   line-height: 1.25;
   margin-bottom: 3px;
   word-break: break-word;
@@ -12003,7 +12319,7 @@ body:not(.viewer-mode)::before {
   color: #35755a !important;
 }
 .result-row-num.winner-score {
-  background: linear-gradient(160deg, #1d3b2a 0%, #142b1d 100%);
+  background: linear-gradient(160deg, #1d3b2d 0%, #142b20 100%);
   border-color: rgba(201,169,97,0.45);
   color: #f7f3e8 !important;
 }
@@ -12019,11 +12335,11 @@ body:not(.viewer-mode)::before {
 
 /* ---------- Next Round: forest glass, teks cream ---------- */
 /* Ganti gold: kontras teks naik dari ~7.4:1 (teks gelap di gold) ke
-   ~11:1 (cream di forest #1d3b2a), plus surface gelap gak silau di
+   ~11:1 (cream di forest #1d3b2d), plus surface gelap gak silau di
    outdoor siang. Gold turun kasta jadi aksen hairline + pulse glow,
    ngikutin material winner-chip yang udah ada. */
 .sb-nav-next {
-  background: linear-gradient(160deg, #1d3b2a 0%, #142b1d 100%) !important;
+  background: linear-gradient(160deg, #1d3b2d 0%, #142b20 100%) !important;
   color: #f7f3e8 !important;
   border: 1.5px solid rgba(201,169,97,0.45) !important;
   box-shadow: 0 5px 18px rgba(20,46,32,0.30),
@@ -12057,7 +12373,7 @@ body.viewer-url .sb-nav-next,
 .sb-nav-next:hover,
 .sb-nav-next:active,
 .sb-nav-next.lg-pressed {
-  background: #256653 !important;
+  background: #256648 !important;
   background-image: none !important;
   color: #fff !important;
   border: 1px solid rgba(15,35,24,0.12) !important;
@@ -12120,7 +12436,7 @@ body:has(#playerProfileModal.show) #podiumShareBtn {
 .sb-score-box.winner,
 body.viewer-mode .sb-score-box.winner,
 body.viewer-mode .sb-score-box.winner:disabled {
-  background: #256653 !important;
+  background: #256648 !important;
   background-image: none !important;
   border-color: rgba(37,102,83,0.92) !important;
   box-shadow: 0 5px 15px rgba(37,102,83,0.24), inset 0 1px 0 rgba(255,255,255,0.24) !important;
@@ -12142,12 +12458,12 @@ body.viewer-mode .sb-score-box.winner .match-score-input:disabled {
 .result-row-num.winner-score {
   background: rgba(37,102,83,0.10) !important;
   border-color: rgba(37,102,83,0.34) !important;
-  color: #256653 !important;
+  color: #256648 !important;
 }
 
 .match-score-input.winner,
 .score-box.winner {
-  color: #256653 !important;
+  color: #256648 !important;
   border-color: rgba(37,102,83,0.55) !important;
 }
 
@@ -12210,7 +12526,7 @@ body.viewer-mode .sb-score-box.winner .match-score-input:disabled {
 .schedule-round-jump,
 .status-player-card.is-available .status-player-state,
 .status-chip.status-available {
-  color: #256653 !important;
+  color: #256648 !important;
 }
 
 .status-player-card:hover {
@@ -12370,7 +12686,7 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
    menempelkan pseudo ::before specular putih (gradient 160deg, putih
    55% kiri-atas) menutupi seluruh muka .sb-nav-next, dan karena pseudo
    itu positioned z-index:0 dia tercat DI ATAS teks tombol juga. Di
-   tombol gold lama terbaca gloss; di solid sage #256653 (v0.70.38)
+   tombol gold lama terbaca gloss; di solid sage #256648 (v0.70.38)
    terbaca selubung putih burem. Setiap recolor hanya mengecat elemen,
    veil-nya tidak pernah mati, makanya bug ini berulang lintas versi.
    ATURAN PERMANEN: jangan tambah specular pseudo, blur, atau
@@ -12567,7 +12883,7 @@ html { background: #fbf7f0 !important; }
        compositor-safe; dock TETAP tanpa backdrop-filter (aturan permanen
        v0.69 tidak disentuh). Tab jadi transparan, pill yang bawa glass.
    [3] GRAMMAR RESERVE CUP di scoreboard admin. Loser tile kalem (ink
-       0.62 di tile rgba forest 0.055) supaya winner solid #256653
+       0.62 di tile rgba forest 0.055) supaya winner solid #256648
        bercerita sendiri; court name jadi eyebrow ink; kurasi gold:
        gold hanya untuk penghormatan (winner dot, Done, active label,
        champion). Viewer mode TIDAK disentuh — kontras #050505 untuk
@@ -12646,7 +12962,7 @@ html { background: #fbf7f0 !important; }
   transition: color 0.25s ease, transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .bottom-tab.active .bottom-tab-icon {
-  color: #1d3b2a;
+  color: #1d3b2d;
   transform: scale(1.08);
 }
 @media (prefers-reduced-motion: reduce) {
@@ -12669,7 +12985,7 @@ html { background: #fbf7f0 !important; }
   -webkit-text-fill-color: rgba(16,42,28,0.62) !important;
 }
 .sb-score-input::placeholder { color: rgba(16,42,28,0.25) !important; }
-/* Winner tetap milik v07039 (solid #256653) — hanya samakan radius via rule di atas */
+/* Winner tetap milik v07039 (solid #256648) — hanya samakan radius via rule di atas */
 
 /* Eyebrow court header: ink, bukan gold (dua mode; viewer lebih pekat
    untuk keterbacaan TV dari jauh) */
@@ -12692,25 +13008,25 @@ body.viewer-mode .sb-court-name { color: rgba(16,42,28,0.72) !important; }
 /* Kurasi gold: hairline & pill konteks balik ke ink */
 .sb-topbar { border-bottom-color: rgba(29,59,42,0.10) !important; }
 .tournament-name {
-  color: #1d3b2a !important;
+  color: #1d3b2d !important;
   background: rgba(255,255,255,0.55) !important;
   border: 1px solid rgba(29,59,42,0.18) !important;
 }
 
 /* Nama pemain: v0.71.33 -- #163726 kebaca item, bukan hijau brand.
-   Ganti ke #256653 (warna Next Round, kontras 6.77:1) biar satu bahasa
+   Ganti ke #256648 (warna Next Round, kontras 6.77:1) biar satu bahasa
    sama tombol aksi. Hover naik ke --green-light (#1a4a35), bukan balik
    ke ink gelap kayak sebelumnya. */
-.sb-player { color: #256653; font-weight: 800; }
+.sb-player { color: #256648; font-weight: 800; }
 .sb-player:hover { color: #1a4a35; }
 
 /* ---------- [4] podium ---------- */
 /* Nama podium: abu -> ink forest (payoff-nya nama juara, bukan gray) */
-.podium-slot .podium-card .podium-name { color: #1d3b2a !important; }
+.podium-slot .podium-card .podium-name { color: #1d3b2d !important; }
 .podium-slot.first .podium-card .podium-name { color: #14301f !important; }
 /* Blok PTS: hero tile solid forest, satu bahasa dengan winner tile */
 .podium-stat-block.pts {
-  background: #256653 !important;
+  background: #256648 !important;
   border-color: rgba(37,102,83,0.92) !important;
   box-shadow: 0 4px 12px rgba(37,102,83,0.22), inset 0 1px 0 rgba(255,255,255,0.22);
 }
@@ -12863,7 +13179,7 @@ body.viewer-mode .sb-court-name { color: rgba(16,42,28,0.72) !important; }
    ini yang mengubah width/height berdasarkan isi skor. Yang berubah
    adalah BOBOT VISUAL: sejak v0.70.49 tile kalah/netral diturunkan ke
    rgba(29,59,42,0.055) nyaris tak kelihatan, sementara tile menang
-   solid #256653 dengan glow shadow blur 15px. Saat 0-0 kedua tile
+   solid #256648 dengan glow shadow blur 15px. Saat 0-0 kedua tile
    sama-sama gaya netral (simetris, kelihatan sama). Begitu satu tile
    jadi winner, dia melebar SECARA VISUAL lewat glow di luar border,
    sementara tile satunya nyaris menyatu ke background card — dua tile
@@ -13012,12 +13328,12 @@ body.viewer-mode .sb-score-box.winner:disabled {
    definisi numpuk sepanjang file, dan yang MENANG cascade (paling
    akhir, di dalam codex-revision-v07039) cuma tint tipis
    rgba(37,102,83,0.10) -- jauh lebih lemah dari winner tile solid
-   #256653 di halaman input, jadi winner/loser di Results kelihatan
+   #256648 di halaman input, jadi winner/loser di Results kelihatan
    nyaris sama, gak ada kontras yang jelas kayak di scoreboard.
 
    FIX: samain persis resep tile skor aktif dari halaman input --
    loser: rgba(29,59,42,0.055) bg, border rgba(29,59,42,0.20), shadow
-   0 2px 6px (bahasa dari v0.70.49 + v0.70.54); winner: solid #256653,
+   0 2px 6px (bahasa dari v0.70.49 + v0.70.54); winner: solid #256648,
    border rgba(37,102,83,0.92), shadow sama persis (0 2px 6px, dari
    v0.70.55 parity fix). Chip di Results tetap bentuk kecil (bukan
    58x66 box, konteksnya beda: baris hasil bukan input skor), tapi
@@ -13029,7 +13345,7 @@ body.viewer-mode .sb-score-box.winner:disabled {
   color: rgba(16,42,28,0.62) !important;
 }
 .result-row-num.winner-score {
-  background: #256653 !important;
+  background: #256648 !important;
   border-color: rgba(37,102,83,0.92) !important;
   box-shadow: 0 2px 6px rgba(37,102,83,0.20), inset 0 1px 0 rgba(255,255,255,0.24) !important;
   color: #fff !important;
@@ -13223,7 +13539,7 @@ body.viewer-mode .sb-score-box.winner:disabled {
 #startBtn:hover,
 #startBtn:active,
 #startBtn.lg-pressed {
-  background: #256653 !important;
+  background: #256648 !important;
   background-image: none !important;
   color: #fff !important;
   border: 1px solid rgba(15,35,24,0.12) !important;
@@ -13416,7 +13732,7 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
    di HP high-end. */
 .podium-standings-table td,
 .podium-standings-table th {
-  color: #1d3b2a !important;
+  color: #1d3b2d !important;
 }
 .podium-standings-table .name-cell {
   color: #163726 !important;
@@ -13424,7 +13740,7 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
 }
 .podium-standings-table .num-cell,
 .podium-standings-table .pts-cell {
-  color: #1d3b2a !important;
+  color: #1d3b2d !important;
   font-weight: 700;
 }
 .podium-standings-table tr {
@@ -13541,7 +13857,7 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
   font-size: 14px;
   font-weight: 500;
   line-height: 1.5;
-  color: #1d3b2a;
+  color: #1d3b2d;
   margin: 0 0 6px;
 }
 .podium-tie-modal .ptm-actions {
@@ -13784,7 +14100,7 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
    Akar: warna medali asli (v awal, line ~1135) ditulis buat TEMA GELAP
    -- base .name-cell masih var(--cream), gold-nya #d9b971 pucat. Waktu
    podium dipindah ke light theme, block restyle-nya nyapu SEMUA sel:
-     .podium-standings-table td { color:#1d3b2a !important }
+     .podium-standings-table td { color:#1d3b2d !important }
      .podium-standings-table .name-cell { color:#163726 !important }
    Rule medali lama kalah dua kali: gak punya !important DAN datang
    lebih dulu di cascade. Hasilnya semua baris polos, termasuk rank 1.
@@ -14314,7 +14630,7 @@ html.dark .sb-player { color: #ece7da !important; }
 html.dark .sb-player:hover { color: #ffffff !important; }
 html.dark .sb-court-name { color: rgba(236,231,218,0.55) !important; }
 /* Tile KALAH/netral: gelap redup. WAJIB :not(.winner) -- kalau kena
-   semua, generik ini (spec 0,2,1) numpuk winner #256653 (spec 0,2,0)
+   semua, generik ini (spec 0,2,1) numpuk winner #256648 (spec 0,2,0)
    dan bikin menang == kalah, warnanya sama persis (bug di screenshot). */
 html.dark .sb-score-box:not(.winner) {
   color: #ece7da;
@@ -14328,10 +14644,10 @@ html.dark .sb-score-box:not(.winner) .sb-score-input:disabled {
   -webkit-text-fill-color: rgba(236,231,218,0.7) !important;
 }
 /* Tile MENANG: forest terang biar jelas beda dari tile kalah yang gelap.
-   Naik dari #256653 ke #2f8763 (lebih luminan) + glow halus -- di light
-   #256653 pop karena sekelilingnya cream, di dark butuh diangkat. */
+   Naik dari #256648 ke #2f875e (lebih luminan) + glow halus -- di light
+   #256648 pop karena sekelilingnya cream, di dark butuh diangkat. */
 html.dark .sb-score-box.winner {
-  background: linear-gradient(160deg, #2f8763 0%, #256653 100%) !important;
+  background: linear-gradient(160deg, #2f875e 0%, #256648 100%) !important;
   border: 1px solid rgba(95,189,142,0.55) !important;
   box-shadow: 0 3px 14px rgba(47,135,99,0.35), inset 0 1px 0 rgba(255,255,255,0.22) !important;
 }
@@ -14503,7 +14819,7 @@ html.dark .podium-stat-block.dark {
 }
 /* Hero .pts: forest terang biar pop di dark (sekelas winner tile) */
 html.dark .podium-stat-block.pts {
-  background: linear-gradient(160deg, #2f8763 0%, #256653 100%) !important;
+  background: linear-gradient(160deg, #2f875e 0%, #256648 100%) !important;
   border: 1px solid rgba(95,189,142,0.5) !important;
 }
 html.dark .podium-stat-block.pts .podium-stat-val { color: #ffffff !important; }
@@ -14530,7 +14846,7 @@ html.dark .podium-standings-table tr.rank-silver .name-cell { color: #c4c4c4 !im
    dipatch di atas.
 
    AKAR: baris NON-medali (rank 4+) gak pernah dapet dark override sama
-   sekali. Mereka warisin `.podium-standings-table td { color:#1d3b2a
+   sekali. Mereka warisin `.podium-standings-table td { color:#1d3b2d
    !important }` (blok light-legacy, ~13281) -- ink hampir hitam di atas
    wrap gelap. Dihitung: 1.29:1, jauh di bawah AA (butuh 4.5). Ini yang
    bikin rank 4-10 nyaris invisible di screenshot -- mayoritas baris.
@@ -14681,7 +14997,7 @@ html.dark .podium-tie-modal .ptm-line {
   color: rgba(236, 231, 218, 0.8) !important;
 }
 html.dark .podium-tie-modal .ptm-close {
-  background: #256653 !important;
+  background: #256648 !important;
   color: #ffffff !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
 }
@@ -14752,7 +15068,7 @@ html.dark .result-row-num {
   color: rgba(236, 231, 218, 0.6) !important;
 }
 html.dark .result-row-num.winner-score {
-  background: #2f8763 !important;
+  background: #2f875e !important;
   border-color: rgba(95, 189, 142, 0.5) !important;
   color: #ffffff !important;
 }
@@ -14906,7 +15222,7 @@ html.dark { color-scheme: dark; }
    di dalam .schedule-round / .status-player-card:
      - #14301f (ink nyaris hitam) -> .schedule-round-num,
        .schedule-match-team, .status-player-name
-     - #256653 (forest medium) -> .schedule-match-court,
+     - #256648 (forest medium) -> .schedule-match-court,
        .schedule-round-jump, status "available"
    Keduanya !important. Rule var() yang lebih tua (~2439-2463, resolve
    otomatis ke cream di dark) kalah lewat source order karena v07039
@@ -15721,7 +16037,7 @@ html.dark .mixg-custom {
 /* Blok ini HANYA nyentuh box-shadow. background/color/border sengaja
    tidak ditulis supaya codex-revision-v07038 (.sb-nav-next) dan
    codex-revision-v07062 (#startBtn) tetap yang menang -- dua-duanya
-   solid #256653 by design buat kontras outdoor.
+   solid #256648 by design buat kontras outdoor.
    #startBtn WAJIB ditulis sebagai selector ID: rule v07062 pakai
    #startBtn (specificity 1,0,0), jadi `.primary-btn` (0,1,0) di grup [2]
    KALAH walaupun posisinya lebih bawah -- !important gak nolong karena
@@ -15863,15 +16179,15 @@ html.dark {
 #nextRoundBtn,
 #startBtn {
   /* --- badan: core paling pekat (tempat teks) -> tepi sedikit terang --- */
-  --cap-core: #1f5a49;   /* putih 8.03:1 */
-  --cap-mid:  #256653;   /* putih 6.77:1 */
-  --cap-edge: #2f7a5f;   /* putih 5.16:1  <- titik paling tipis, masih AA */
+  --cap-core: #1f5a3e;   /* putih 8.03:1 */
+  --cap-mid:  #256648;   /* putih 6.77:1 */
+  --cap-edge: #2f7a57;   /* putih 5.16:1  <- titik paling tipis, masih AA */
   /* --- bezel logam: terang(atas) -> gelap(tengah) -> mantul -> pucat --- */
   --cap-metal: linear-gradient(180deg,
       #F2FBF6  0%,   /* kilau atas, hampir putih */
       #A9DEC4 20%,
       #4FA87C 46%,
-      #1F5A49 70%,   /* bayangan tengah-bawah: ini yang bikin kebaca LOGAM */
+      #1F5A3E 70%,   /* bayangan tengah-bawah: ini yang bikin kebaca LOGAM */
       #6FC49C 92%,   /* cahaya mantul */
       #C8EBD9 100%);
   --cap-halo: rgba(31,90,73,0.34);
@@ -15902,12 +16218,11 @@ html.dark {
 
 #nextRoundBtn:hover,
 #startBtn:hover {
-  --cap-core: #24654f;
-  --cap-mid:  #2b7159;
-  --cap-edge: #368568;
+  --cap-core: #246547;
+  --cap-mid:  #2b7150;
+  --cap-edge: #368560;
   background-color: var(--cap-core) !important;
 }
-
 /* Press: bezel diredupin (logam kehilangan sorot pas ketekan), halo
    luar padam, kedalaman dari inner shadow. ZERO scale. */
 #nextRoundBtn:active,
@@ -15916,10 +16231,10 @@ html.dark {
 #startBtn.lg-pressed {
   --cap-metal: linear-gradient(180deg,
       #8FC4AE 0%, #4A8A72 30%, #164537 62%, #3E7C64 100%);
-  --cap-core: #1a4d3e;
-  background-color: #1a4d3e !important;
+  --cap-core: #1a4d35;
+  background-color: #1a4d35 !important;
   background-image:
-    radial-gradient(ellipse 64% 122% at 50% 42%, #1a4d3e 0%, #1a4d3e 100%),
+    radial-gradient(ellipse 64% 122% at 50% 42%, #1a4d35 0%, #1a4d35 100%),
     var(--cap-metal) !important;
   box-shadow:
     inset 0 3px 9px rgba(0,0,0,0.38),
@@ -15936,9 +16251,9 @@ html.dark {
    cuma puncak highlight-nya biar gak bloom. */
 html.dark #nextRoundBtn,
 html.dark #startBtn {
-  --cap-core: #1d5645;   /* putih 8.50:1 */
-  --cap-mid:  #23624f;
-  --cap-edge: #2b7355;   /* putih 5.70:1 */
+  --cap-core: #1d563b;   /* putih 8.50:1 */
+  --cap-mid:  #236244;
+  --cap-edge: #2b7351;   /* putih 5.70:1 */
   --cap-metal: linear-gradient(180deg,
       #BFE6D2  0%,
       #6FC49C 20%,
@@ -16034,14 +16349,14 @@ html.dark #startBtn {
    gak peduli mana yang ditulis lebih akhir di file. */
 .sb-actions .end-game-btn[data-action="end"],
 .sb-actions .end-game-btn[data-action="podium"] {
-  --cap-core: #1f5a49;
-  --cap-mid:  #256653;
-  --cap-edge: #2f7a5f;
+  --cap-core: #1f5a3e;
+  --cap-mid:  #256648;
+  --cap-edge: #2f7a57;
   --cap-metal: linear-gradient(180deg,
       #F2FBF6  0%,
       #A9DEC4 20%,
       #4FA87C 46%,
-      #1F5A49 70%,
+      #1F5A3E 70%,
       #6FC49C 92%,
       #C8EBD9 100%);
   border-radius: 999px !important;
@@ -16068,9 +16383,9 @@ html.dark #startBtn {
 }
 .sb-actions .end-game-btn[data-action="end"]:hover,
 .sb-actions .end-game-btn[data-action="podium"]:hover {
-  --cap-core: #24654f;
-  --cap-mid:  #2b7159;
-  --cap-edge: #368568;
+  --cap-core: #246547;
+  --cap-mid:  #2b7150;
+  --cap-edge: #368560;
   background-color: var(--cap-core) !important;
   transform: none !important;
 }
@@ -16080,9 +16395,9 @@ html.dark #startBtn {
 .sb-actions .end-game-btn[data-action="podium"].lg-pressed {
   --cap-metal: linear-gradient(180deg,
       #8FC4AE 0%, #4A8A72 30%, #164537 62%, #3E7C64 100%);
-  background-color: #1a4d3e !important;
+  background-color: #1a4d35 !important;
   background-image:
-    radial-gradient(ellipse 64% 122% at 50% 42%, #1a4d3e 0%, #1a4d3e 100%),
+    radial-gradient(ellipse 64% 122% at 50% 42%, #1a4d35 0%, #1a4d35 100%),
     var(--cap-metal) !important;
   box-shadow:
     inset 0 3px 8px rgba(0,0,0,0.36),
@@ -16091,9 +16406,9 @@ html.dark #startBtn {
 }
 html.dark .sb-actions .end-game-btn[data-action="end"],
 html.dark .sb-actions .end-game-btn[data-action="podium"] {
-  --cap-core: #1d5645;
-  --cap-mid:  #23624f;
-  --cap-edge: #2b7355;
+  --cap-core: #1d563b;
+  --cap-mid:  #236244;
+  --cap-edge: #2b7351;
   --cap-metal: linear-gradient(180deg,
       #BFE6D2  0%,
       #6FC49C 20%,
@@ -16413,6 +16728,310 @@ html.dark .sb-tabs-motion .sb-tab-pill {
   flex: none;
 }
 </style>
+
+<style id="codex-revision-v07147-css">
+/* ============================================================
+   v0.71.47 - CLUB SPARING: header skor CLUB A [W] [W] CLUB B
+   (REVISI v0.71.49 -- lihat catatan di bawah)
+   ------------------------------------------------------------
+   REVISI v0.71.49, tiga koreksi terhadap versi pertama:
+
+   [1] BAND, BUKAN KARTU.
+   Versi pertama bikin ini `border: 1px` + `border-radius: 14px` +
+   `margin-bottom` alias KARTU, lalu dipasang selebar layar penuh.
+   Padahal tetangganya di stack yang sama -- `.sb-topbar` (~2560) dan
+   `#roundPillNav` (~11797) -- dua-duanya BAND full-bleed: translucent
+   + backdrop-filter, hairline `border-bottom` doang, TANPA radius,
+   TANPA margin. Jadi kartu ini nyempil sendirian di tengah tumpukan
+   band, sudutnya nabrak tepi layar. Sekarang ngikut kontrak band.
+
+   [2] FONT: 'JetBrains Mono' DICABUT.
+   Versi pertama nulis `font-family: 'JetBrains Mono', monospace`.
+   Itu REGRESI: v0.71.31 sudah sengaja nurunin sistem ke 2 typeface,
+   dan JetBrains Mono dicabut justru karena TIDAK PERNAH di-load di
+   <link> fonts (lihat catatan di blok codex-revision-v07131-css).
+   Efeknya angka skor diam-diam jatuh ke monospace bawaan device --
+   satu-satunya elemen di app yang typeface-nya beda sendiri.
+   Sekarang ikut resep numeral yang sudah baku di `.sb-score-input`:
+   font diwarisi (Google Sans Flex), `font-weight: 900`,
+   `letter-spacing` rapat, `font-variant-numeric: tabular-nums`.
+
+   [3] EMAS DICABUT DARI PENANDA UNGGUL.
+   Versi pertama pakai `var(--gold)` buat ring kotak skor + warna nama
+   klub yang lagi unggul. Itu langgar aturan keras design system: emas
+   DIRESERVASI buat penghormatan peringkat (medali/champion/crown),
+   bukan warna aksi/state umum. Di tengah sesi belum ada juara -- yang
+   ada cuma "lagi unggul". Penandanya sekarang pakai perlakuan yang
+   SUDAH BAKU buat "sisi ini menang" di app ini: isi forest gelap
+   solid, resep sama kayak `.sb-score-box.winner` (~11278).
+   ============================================================ */
+.sparing-score-header {
+  display: none;                      /* -> flex via JS pas format sparing */
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  /* Kontrak band, disamain sama .sb-topbar / #roundPillNav */
+  padding: 9px 16px;
+  background: rgba(245,240,230,0.92);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(29,59,42,0.10);
+  flex-shrink: 0;
+}
+/* Nama klub JANGAN didorong ke tepi layar pakai space-between: di layar
+   lebar (TV/landscape) nama jadi ketarik puluhan piksel jauhnya dari
+   kotak skor dan hubungannya putus. Cluster-nya di-center, tiap sisi
+   dikasih plafon lebar supaya nama panjang tetap kepotong rapi. */
+.ssh-side {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.ssh-side.ssh-a { align-items: flex-end;   text-align: right; }
+.ssh-side.ssh-b { align-items: flex-start; text-align: left;  }
+.ssh-name {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: #1d3b2d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.ssh-sub {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(29,59,42,0.60);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.ssh-scores {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+/* Kotak skor: radius 10px (token sah), bukan 18px kayak .sb-score-box --
+   kotak ini jauh lebih kecil, radius 18 bikin dia hampir bulat. */
+.ssh-box {
+  min-width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.72);
+  border: 1px solid rgba(29,59,42,0.16);
+  border-radius: 10px;
+  color: #1a3d2e;
+  font-size: 21px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.85);
+}
+/* Sisi unggul: resep sama persis .sb-score-box.winner, biar "menang" itu
+   satu bahasa visual di seluruh app -- bukan dialek baru per komponen. */
+.ssh-box-lead {
+  background:
+    linear-gradient(150deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.02) 38%, rgba(0,0,0,0.10) 100%),
+    linear-gradient(160deg, var(--lq-forest) 0%, var(--lq-forest2) 100%);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(20,46,32,0.18), inset 0 1px 0 rgba(255,255,255,0.22);
+}
+.ssh-side.ssh-lead .ssh-name { color: #14301f; }
+
+/* ---------- dark ---------- */
+html.dark .sparing-score-header {
+  background: rgba(18,32,24,0.92);
+  border-bottom-color: rgba(255,255,255,0.08);
+}
+html.dark .ssh-name { color: #ece7da; }
+html.dark .ssh-side.ssh-lead .ssh-name { color: #ffffff; }
+html.dark .ssh-sub { color: rgba(236,231,218,0.58); }
+html.dark .ssh-box {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.14);
+  color: #ece7da;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.10);
+}
+html.dark .ssh-box-lead {
+  background: linear-gradient(160deg, #2f7a57 0%, #1f5647 100%);
+  border-color: rgba(255,255,255,0.28);
+  color: #ffffff;
+}
+
+/* Layar sempit: sub-text (pts/diff) disembunyiin, bukan di-wrap.
+   Nama klub + skor itu inti; angka pendukung ada di tab Standings. */
+@media (max-width: 460px) {
+  .sparing-score-header { gap: 12px; padding: 8px 12px; }
+  .ssh-sub { display: none; }
+  .ssh-box { min-width: 38px; height: 38px; font-size: 19px; }
+}
+</style>
+
+<style id="codex-revision-v07148-css">
+/* ============================================================
+   v0.71.48 - FIX: bezel #startBtn ilang pas di-hover
+   ------------------------------------------------------------
+   Laporan user: "tombol start udah bener, tapi pas di-hover cursor
+   shapenya balik ke bentuk lama" -- maksudnya BENTUK TOMBOL (bezel
+   logam) yang ngilang pas hover, balik ke flat solid kayak versi
+   lama, BUKAN ikon mouse cursor.
+
+   Akar masalah (diverifikasi lewat cascade math, bukan tebak):
+   blok tua `codex-revision-v07062` (baris ~13520, jaman SEBELUM
+   bezel logam ada) punya rule:
+
+     #startBtn:hover { background: #2b725f !important; }
+
+   `background` itu SHORTHAND -- nulis dia otomatis nge-reset
+   `background-image` ke `none` juga, walau cuma warna doang yang
+   keliatan ditulis. Itu declaration match `#startBtn:hover`,
+   specificity (1,1,0).
+
+   Blok bezel baru (~16215) buat state hover CUMA nulis
+   `background-color`, gak pernah nulis ULANG `background-image`.
+   Base state (`#startBtn` polos) sama state `:active`/`.lg-pressed`
+   AMAN karena dua-duanya punya rule bezel yang eksplisit nulis ulang
+   `background-image` di selector match yang spesifik. `:hover` yang
+   KELEWAT -- satu-satunya deklarasi `background-image` yang match
+   `#startBtn:hover` cuma peninggalan v0.70.62 itu, dan spec (1,1,0)
+   > base bezel punya (1,0,0), jadi DIA YANG MENANG pas hover: gradient
+   ilang, balik flat.
+
+   #nextRoundBtn gak kena -- rule lama itu memang cuma nyasar ke
+   #startBtn, gak pernah nyebut #nextRoundBtn sama sekali.
+
+   Fix: nulis ulang background-image KHUSUS di #startBtn:hover, pola
+   sama kayak base/active (radial isi + --cap-metal bezel). Posisi
+   di file ini WAJIB paling akhir + specificity sama (1,1,0) -- itu
+   3 sumbu standar CLAUDE.md buat ngalahin sisa peninggalan lama
+   tanpa harus hapus/nyentuh blok v0.70.62 (masih dipakai buat
+   .format-card hover di blok yang sama, jangan diutak-atik). */
+#startBtn:hover {
+  background-image:
+    radial-gradient(ellipse 64% 122% at 50% 42%,
+      var(--cap-core) 0%,
+      var(--cap-core) 26%,
+      var(--cap-mid)  62%,
+      var(--cap-edge) 100%),
+    var(--cap-metal) !important;
+  background-origin: padding-box, border-box !important;
+  background-clip: padding-box, border-box !important;
+}
+</style>
+
+<style id="codex-revision-v0720-css">
+/* ============================================================
+   v0.72.0 - WINNER BOX: samain warna+style ke round-pill.active
+   ------------------------------------------------------------
+   User gak suka `.sb-score-box.winner` (kotak skor menang) kebaca
+   "hampir hitam" -- diskusi sebelumnya (lq-forest H=152 S=34% L=17%)
+   nunjukin hue-nya udah bener, cuma lightness kerendahan buat mata
+   bedain hue dari hitam. User lanjut minta: samain aja langsung ke
+   warna+style round-pill aktif (kotak "R 3" di nav ronde) -- itu
+   FLAT #2d6b4e, bukan gradient, shadow simpel satu lapis. Diikutin
+   sama persis, termasuk versi dark-nya.
+
+   TITIK GOLD DI ROUND-PILL SENGAJA GAK DIIKUTIN -- itu indikator
+   "ronde ini udah discore", konsep yang gak nyambung di context kotak
+   skor (dia justru LAGI nunjukin skor, bukan status selesai-input).
+   Kalau ternyata mau ditambahin juga, gampang nyusul.
+
+   KENAPA PERLU KONSOLIDASI, BUKAN SEKADAR TAMBAL SATU RULE:
+   selector ini punya 27 titik sentuh tersebar di file (admin light,
+   viewer light dengan warna FLAT LAIN #256648, dark admin dengan
+   gradient bright #2f875e->#256648, dan viewer+dark gak punya
+   override sendiri sama sekali -- empat kombinasi mode beda-beda
+   definisi, gak ada yang konsisten satu sama lain). Nulis satu rule
+   tambahan doang gak cukup kalau gak explicit nutup KEEMPAT
+   kombinasi -- blok ini nutup admin+viewer x light+dark eksplisit,
+   posisi paling akhir file, spec >= kompetitor terketat yang
+   ditemukan (0,3,1 buat viewer, 0,2,1 buat dark admin).
+   ============================================================ */
+
+/* ---------- ADMIN, LIGHT ---------- */
+.sb-score-box.winner {
+  background: #2d6b4e !important;
+  background-image: none !important;
+  border: 1px solid #2d6b4e !important;
+  box-shadow: 0 2px 10px rgba(45,107,78,0.35) !important;
+}
+.sb-score-box.winner .sb-score-input,
+.sb-score-box.winner .sb-score-input:disabled {
+  color: #f5f0e6 !important;
+  -webkit-text-fill-color: #f5f0e6 !important;
+}
+.sb-score-box.winner::after { content: none !important; } /* cabut gold dot sisa styling lama kalau ada */
+
+/* ---------- ADMIN, DARK ---------- */
+html.dark .sb-score-box.winner {
+  background: #2d6b4e !important;
+  background-image: none !important;
+  border: 1px solid #3d8a66 !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.14) !important;
+}
+html.dark .sb-score-box.winner .sb-score-input,
+html.dark .sb-score-box.winner .sb-score-input:disabled {
+  color: #f5f0e6 !important;
+  -webkit-text-fill-color: #f5f0e6 !important;
+}
+
+/* ---------- VIEWER, LIGHT ---------- */
+/* Viewer sebelumnya punya warna SENDIRI (#256648, flat, tanpa gradient
+   tapi beda hex dari admin) -- disamain persis ke #2d6b4e supaya admin
+   dan viewer nampilin warna yang SAMA, bukan cuma sama-sama flat. */
+body.viewer-mode .sb-score-box.winner,
+body.viewer-mode .sb-score-box.winner:disabled {
+  background: #2d6b4e !important;
+  background-image: none !important;
+  border-color: #2d6b4e !important;
+  box-shadow: 0 2px 10px rgba(45,107,78,0.35) !important;
+}
+body.viewer-mode .sb-score-box.winner .sb-score-input,
+body.viewer-mode .sb-score-box.winner .sb-score-input:disabled,
+body.viewer-mode .sb-score-box.winner .match-score-input:disabled {
+  color: #f5f0e6 !important;
+  -webkit-text-fill-color: #f5f0e6 !important;
+  opacity: 1 !important;
+}
+
+/* ---------- VIEWER, DARK ---------- */
+/* Kombinasi ini SEBELUMNYA gak punya override sendiri sama sekali --
+   celah yang ketauan pas ngonsolidasi. Ditutup sekalian. */
+html.dark body.viewer-mode .sb-score-box.winner,
+html.dark body.viewer-mode .sb-score-box.winner:disabled {
+  background: #2d6b4e !important;
+  background-image: none !important;
+  border-color: #3d8a66 !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.14) !important;
+}
+html.dark body.viewer-mode .sb-score-box.winner .sb-score-input,
+html.dark body.viewer-mode .sb-score-box.winner .sb-score-input:disabled {
+  color: #f5f0e6 !important;
+  -webkit-text-fill-color: #f5f0e6 !important;
+}
+
+/* ---------- SPARING HEADER (.ssh-box-lead) ---------- */
+/* Dibangun v0.71.49 niru resep .sb-score-box.winner persis by design
+   ("resep sama kayak .sb-score-box.winner" -- lihat komentar di situ).
+   Ikut berubah biar dua-duanya tetap satu bahasa, bukan diam-diam beda
+   sendiri setelah ini. */
+.ssh-box-lead {
+  background: #2d6b4e !important;
+  box-shadow: 0 2px 10px rgba(45,107,78,0.35) !important;
+}
+html.dark .ssh-box-lead {
+  background: #2d6b4e !important;
+  border-color: #3d8a66 !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.14) !important;
+}
+</style>
 </body>
 </html>
-</html>
+
