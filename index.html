@@ -3160,7 +3160,14 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
 #standingBody tr.standing-rank-1 td:first-child::before { background: linear-gradient(180deg, #d9b971, #8b6914); }
 #standingBody tr.standing-rank-2 td:first-child::before { background: linear-gradient(180deg, #c0c0c0, #707070); }
 #standingBody tr.standing-rank-3 td:first-child::before { background: linear-gradient(180deg, #cd7f32, #7a4a1a); }
-#standingBody tr.standing-rank-1 .points-cell { color: #2d6b4e !important; }
+/* v0.72.4: `#standingBody tr.standing-rank-1 .points-cell { color:#2d6b4e
+   !important }` DICABUT dari sini. Ini akar bug "PTS rank-1 beda sendiri"
+   yang dilaporkan user 3x. Sel PTS punya dua class (`num points-cell`),
+   dan `.standing-table .num` (spec 0,2,0) menang atas `.points-cell`
+   (0,1,0) -- jadi SEMUA baris lain dapat --rc-cream-dim. Rule ini maksa
+   rank-1 ke #2d6b4e (--rc-cream), yang emang beda. Dihapus supaya rank-1
+   jatuh ke rule yang sama dengan baris lain, bukan dikasih nilai kembar
+   yang harus dijaga sinkron manual. */
 .rank { width: 28px; height: 28px; border-radius: 8px; font-size: 12px !important; }
 
 /* Phone tweaks for sb */
@@ -3881,7 +3888,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.3</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.4</div>
     </div>
   </div>
 
@@ -16567,24 +16574,26 @@ html.dark body.viewer-mode [data-action="podium"].pdm-live::after {
 /* ------------------------------------------------------------
    [7] PTS PERINGKAT 1 SEWARNA BARIS LAIN
    ------------------------------------------------------------
-   Biang keroknya `#standingBody tr.standing-rank-1 .points-cell
-   { color:#2d6b4e !important }` (~3163), spec (1,2,0).
+   DICABUT DI v0.72.4 -- rule di sini SALAH TARGET dan malah bikin
+   bug-nya balik lagi. Ditinggal sebagai catatan supaya gak ada yang
+   nulis ulang pola yang sama.
 
-   Di LIGHT dia gak keliatan salah: semua .points-cell lain ambil
-   --rc-cream yang di :root juga #2d6b4e -- kebetulan sama persis.
-   Di DARK baru ketahuan: `html.dark .points-cell` = #ece7da tapi
-   spec-nya cuma (0,2,0), KALAH sama rule rank-1. Jadi satu sel itu
-   ketinggalan hijau gelap sementara sekelilingnya krem terang.
-   Itu yang kebaca "gelap sendiri".
+   Yang gue kira waktu itu: baris normal ambil warna dari
+   `.points-cell` (spec 0,1,0) = var(--rc-cream), jadi rank-1 tinggal
+   disamain ke situ.
 
-   Diperbaiki dengan nyamain ke sumber yang sama, bukan nambal satu
-   mode: light ikut --rc-cream, dark ikut #ece7da. */
-#standingBody tr.standing-rank-1 .points-cell {
-  color: var(--rc-cream) !important;
-}
-html.dark #standingBody tr.standing-rank-1 .points-cell {
-  color: #ece7da !important;
-}
+   Yang SEBENERNYA kejadian: `.standing-table .num` (spec 0,2,0)
+   MENGALAHKAN `.points-cell` (0,1,0) -- dua-duanya !important, jadi
+   specificity yang nentuin. Sel PTS punya DUA class (`num points-cell`,
+   lihat template render ~8404), jadi baris normal sebenernya dapat
+   var(--rc-cream-DIM), bukan var(--rc-cream). Nyamain rank-1 ke
+   --rc-cream justru NGEJAUHIN dia dari baris lain.
+
+   Fix v0.72.4: SEMUA override warna khusus rank-1 dihapus (termasuk
+   yang di ~3163). Sel PTS rank-1 sekarang jatuh ke rule yang sama
+   persis dengan semua baris lain (`.standing-table .num`) -- gak ada
+   nilai kembar yang harus dijaga sinkron, jadi secara struktural gak
+   bisa drift lagi. Ini alasan dicabut, bukan diganti nilai baru. */
 
 /* ------------------------------------------------------------
    [5] TAB SCORE <-> STANDINGS: kapsul geser + ikon
@@ -17091,3 +17100,5 @@ html.dark .ssh-box-lead {
 </style>
 </body>
 </html>
+
+  bor
