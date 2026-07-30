@@ -17,6 +17,21 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Google+Sans+Flex:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
+/* v0.72.6 - PERTAHANAN: isi elemen STYLE jangan pernah ke-render jadi teks.
+   File ini punya 69 blok STYLE di dalam BODY (pola append-only).
+   Normalnya browser nyembunyiin elemen itu lewat UA stylesheet, TAPI itu
+   default yang bisa kalah kalau ada satu aja author rule yang kena
+   elemen style (mis. selector universal atau body-anak-langsung yang nyetel
+   display). Kalau itu kejadian, isi CSS-nya nongol sebagai teks di
+   badan halaman -- persis gejala yang dilaporkan user.
+
+   Ditaruh di HEAD paling awal + !important supaya jadi lantai yang
+   gak bisa ditembus rule mana pun di 69 blok setelahnya. Rule ini gak
+   punya efek samping: elemen STYLE memang gak pernah dimaksudkan
+   kelihatan. Murni jaring pengaman. */
+style { display: none !important; }
+</style>
+<style>
   :root {
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
@@ -3888,7 +3903,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.5</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.6</div>
     </div>
   </div>
 
@@ -17153,6 +17168,61 @@ html.dark .ssh-box-lead {
   .switch::after { transition: none !important; }
 }
 </style>
+
+<script id="codex-revision-v0726-js">
+/* v0.72.6 - LAPIS KEDUA: sapu teks CSS yang terlanjur nyasar jadi konten.
+   ------------------------------------------------------------------
+   Rule `style { display:none }` di HEAD nutup kasus "elemen STYLE
+   ke-render". Tapi ADA kasus yang gak ketutup rule itu: kalau file-nya
+   sendiri rusak sampai sebuah tag penutup STYLE muncul lebih awal dari
+   seharusnya, sisa CSS-nya berhenti jadi milik elemen STYLE dan
+   berubah jadi TEXT NODE telanjang di BODY. CSS gak bisa nyembunyiin
+   text node telanjang -- gak ada elemen buat di-target.
+
+   Penyebab paling mungkin di alur kerja ini: file ke-corrupt waktu
+   di-upload. File-nya ~1MB dengan beberapa baris base64 raksasa, dan
+   editor GitHub mobile memang bermasalah kalau file segini di-PASTE
+   (dokumentasi di CLAUDE.md: pakai "Add file -> Upload files", jangan
+   paste). Satu byte hilang di tempat yang salah cukup buat bikin ini.
+
+   Guard ini SENGAJA dibikin sesempit mungkin supaya gak mungkin makan
+   konten beneran:
+   - cuma lihat text node yang jadi ANAK LANGSUNG BODY (di app ini
+     gak ada satu pun teks sah yang posisinya di situ -- semua teks
+     selalu ada di dalam div/span/button)
+   - DAN teksnya harus kelihatan seperti CSS (ada `:` dan `;`, plus
+     `!important` atau kurung kurawal)
+   Dua syarat itu harus kepenuhi dua-duanya. */
+(function () {
+  function sweepStrayCss() {
+    var body = document.body;
+    if (!body) return;
+    var doomed = [];
+    for (var n = body.firstChild; n; n = n.nextSibling) {
+      if (n.nodeType !== 3) continue;              // text node saja
+      var t = n.nodeValue;
+      if (!t || t.length < 8) continue;
+      var looksLikeCss =
+        t.indexOf(':') !== -1 &&
+        t.indexOf(';') !== -1 &&
+        (t.indexOf('!important') !== -1 || t.indexOf('{') !== -1 || t.indexOf('}') !== -1);
+      if (looksLikeCss) doomed.push(n);
+    }
+    doomed.forEach(function (n) { n.parentNode.removeChild(n); });
+    if (doomed.length) {
+      // Sengaja di-log: kalau guard ini sampai kepakai, artinya file yang
+      // ke-deploy RUSAK dan harus di-upload ulang. Jangan diem-diem.
+      console.warn('[padel.teroos] Teks CSS nyasar dibersihkan (' + doomed.length +
+                   ' node). File yang ke-deploy kemungkinan corrupt -- upload ulang, jangan paste.');
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', sweepStrayCss);
+  } else {
+    sweepStrayCss();
+  }
+})();
+</script>
 </body>
 </html>
 
