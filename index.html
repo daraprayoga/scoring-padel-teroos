@@ -3915,7 +3915,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.13</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.14</div>
     </div>
   </div>
 
@@ -17304,28 +17304,58 @@ html.dark .ssh-box-lead {
    (dokumentasi di CLAUDE.md: pakai "Add file -> Upload files", jangan
    paste). Satu byte hilang di tempat yang salah cukup buat bikin ini.
 
-   Guard ini SENGAJA dibikin sesempit mungkin supaya gak mungkin makan
-   konten beneran:
-   - cuma lihat text node yang jadi ANAK LANGSUNG BODY (di app ini
-     gak ada satu pun teks sah yang posisinya di situ -- semua teks
-     selalu ada di dalam div/span/button)
-   - DAN teksnya harus kelihatan seperti CSS (ada `:` dan `;`, plus
-     `!important` atau kurung kurawal)
-   Dua syarat itu harus kepenuhi dua-duanya. */
+   v0.72.14: DUA CELAH ketutup setelah laporan user nemu bocoran yang
+   masih lolos dari guard v0.72.6 di deploy yang katanya udah versi
+   terbaru:
+   1. Scope lama cuma cek ANAK LANGSUNG body (`body.firstChild` ->
+      `nextSibling`). Kalau corruption naruh text node itu SATU LEVEL
+      lebih dalam (nempel di dalam wrapper/container terakhir, bukan
+      langsung di body), guard lama gak pernah nyentuh dia. Sekarang
+      jalan TreeWalker ke SELURUH descendant body, skip subtree yang
+      ada di dalam STYLE/SCRIPT (biar isi style/script asli gak pernah
+      ketarget -- itu bukan "nyasar", itu emang tempatnya).
+   2. Heuristik lama wajib ADA `!important` ATAU `{` ATAU `}` selain
+      `:` dan `;`. Itu bikin lolos kasus corruption yang cuma nyisain
+      SATU baris deklarasi CSS polos tanpa brace/important (contoh
+      nyata dari laporan: "border-bottom-color: rgba(255,255,255,0.08);"
+      -- persis pola properti-css:nilai; tanpa token tambahan apa pun).
+      Ditambah cek pattern eksplisit "satu baris deklarasi CSS bersih"
+      (`^[a-z-]+\s*:\s*[^{};]+;?\s*$`, huruf kecil+strip di kiri titik
+      dua, gak ada brace) -- pattern ini AMAN dipakai longgar karena
+      gak ada teks user-facing di app ini yang formatnya persis
+      "kata-berstrip: isi;" (nama pemain/tombol/label gak pernah pakai
+      titik dua diikuti langsung nilai lalu titik koma).
+   Dua syarat asli (harus `:` DAN `;` DAN salah satu dari `!important`/
+   `{`/`}`) TETAP ada sebagai jalur kedua -- pattern baru cuma NAMBAH
+   cakupan, bukan gantiin. */
 (function () {
+  var CSS_DECL_LINE = /^[a-z-]+\s*:\s*[^{};]+;\s*$/i;
+  function looksLikeStrayCss(t) {
+    if (!t || t.length < 8) return false;
+    if (CSS_DECL_LINE.test(t.trim())) return true; // v0.72.14: satu baris deklarasi bersih
+    return t.indexOf(':') !== -1 && t.indexOf(';') !== -1 &&
+      (t.indexOf('!important') !== -1 || t.indexOf('{') !== -1 || t.indexOf('}') !== -1);
+  }
   function sweepStrayCss() {
     var body = document.body;
     if (!body) return;
     var doomed = [];
-    for (var n = body.firstChild; n; n = n.nextSibling) {
-      if (n.nodeType !== 3) continue;              // text node saja
-      var t = n.nodeValue;
-      if (!t || t.length < 8) continue;
-      var looksLikeCss =
-        t.indexOf(':') !== -1 &&
-        t.indexOf(';') !== -1 &&
-        (t.indexOf('!important') !== -1 || t.indexOf('{') !== -1 || t.indexOf('}') !== -1);
-      if (looksLikeCss) doomed.push(n);
+    // v0.72.14: TreeWalker ke seluruh descendant, bukan cuma anak langsung.
+    // Filter di sini biar subtree STYLE/SCRIPT di-skip TOTAL (rejectSubtree),
+    // bukan cuma diperiksa lalu diloloskan -- isi asli style/script gak
+    // boleh pernah masuk pertimbangan sama sekali.
+    var walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (node) {
+        var p = node.parentNode;
+        if (p && (p.nodeName === 'STYLE' || p.nodeName === 'SCRIPT')) {
+          return NodeFilter.FILTER_REJECT;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    var n;
+    while ((n = walker.nextNode())) {
+      if (looksLikeStrayCss(n.nodeValue)) doomed.push(n);
     }
     doomed.forEach(function (n) { n.parentNode.removeChild(n); });
     if (doomed.length) {
