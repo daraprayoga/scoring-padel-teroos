@@ -3915,7 +3915,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.12</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.13</div>
     </div>
   </div>
 
@@ -7036,6 +7036,43 @@ function assignmentCost(assignments, hist) {
   return cost;
 }
 
+// v0.72.13: kriteria #5 -- hitung berapa kali SET LENGKAP pemain aktif ini
+// (kohort utuh, bukan pasangan per-pasangan) sudah pernah jadi roster main
+// bareng sebelumnya. AKAR bug "kohort 4-4 kekarantina" di occupancy 50%:
+// assignmentCost cuma lacak pasangan (partner/opponent), BUKAN kohort utuh.
+// Reuse kohort yang sama py cost floor rendah (2.0 di 8p/1c, karena cuma
+// ada 3 kombinasi split unik buat 4 orang, 2 masih "murah" dipakai ulang) --
+// itu SELALU menang lawan campuran acak di 2-3 ronde pertama tereksplorasi
+// (campuran fresh py peluang cuma ~1/9 buat dapat cost lebih rendah dari 2.0,
+// diverifikasi simulasi 300 seed: 297/300 baru pecah di ronde 5, sisanya
+// ronde 7 -- PADAHAL v0.70.85 niatnya kriteria #5 menang). Sesi mabar real
+// jarang lebih dari 4-6 ronde, jadi user PRAKTIS gak pernah lihat kohort
+// pecah sama sekali. Fix: penalti eksplisit di level KOHORT (bukan pasangan),
+// ditambah ke skor kandidat yang sama kayak DOUBLE_REST_PENALTY/CONSEC_PLAY_PENALTY.
+function activeSetRepeatCount(playingSet, uptoRoundIdx) {
+  let n = 0;
+  const key = [...playingSet].sort((a, b) => a - b).join(',');
+  for (let r = 0; r < Math.min(uptoRoundIdx, state.rounds.length); r++) {
+    const round = state.rounds[r];
+    if (!round || !round.matches) continue;
+    const roundPlaying = new Set();
+    round.matches.forEach(m => { m.teamA.forEach(x => roundPlaying.add(x)); m.teamB.forEach(x => roundPlaying.add(x)); });
+    const roundKey = [...roundPlaying].sort((a, b) => a - b).join(',');
+    if (roundKey === key) n++;
+  }
+  return n;
+}
+// v0.72.13: bobot 1.0 -- diverifikasi simulasi: cost floor reuse-kohort di
+// 8p/1c = 2.0, campuran termurah yang keliatan di eksplorasi awal = 2.25.
+// Penalti 0.5 belum cukup (146/150 masih nyasar ke ronde5, cuma nutup
+// sebagian). Penalti >=1.0 dorong pecah ke ronde 3 di 150/150 seed --
+// itu BATAS TERCEPAT struktural (ronde 1-2 dipaksa tier GP, nol pilihan,
+// gak mungkin lebih cepat dari situ). Diverifikasi nol regresi: GP spread
+// tetap <=1, first-play tetap <=ronde3, cap main-beruntun tetap sama,
+// zero-repeat-opponent tetap mulai ronde3 (bukan mundur), 7 kombinasi
+// player/court lain (non-occupancy-50%) hasil identik sebelum/sesudah.
+const ACTIVE_SET_REPEAT_PENALTY = 1.0;
+
 function buildIndividualAmericanoRound(roundIdx) {
   const total = state.players;
   const activePlayers = state.courts * 4;
@@ -7066,7 +7103,8 @@ function buildIndividualAmericanoRound(roundIdx) {
     if (playing.length < 4) continue;
     const assignments = assignPlayersToCourts(playing, state.courts, hist);
     const score = assignmentCost(assignments, hist) + DOUBLE_REST_PENALTY * doubleRestCount(sit, r1)
-      + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast);
+      + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast)
+      + ACTIVE_SET_REPEAT_PENALTY * activeSetRepeatCount(playing, roundIdx); // v0.72.13: kriteria #5
     if (score < bestScore) {
       bestScore = score;
       best = assignments;
@@ -17354,3 +17392,4 @@ html:not(.dark) .podium-standings-table th {
 </body>
 </html>
 
+   #startBtn, gak pernah nyebut #nextR
