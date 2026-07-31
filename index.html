@@ -3903,7 +3903,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.9</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.10</div>
     </div>
   </div>
 
@@ -13771,7 +13771,11 @@ body:not(.viewer-mode) #view-setup .setup-wrap {
   color: #1d3b2d !important;
 }
 .podium-standings-table .name-cell {
-  color: #163726 !important;
+  /* v0.72.10: #163726 kebaca item/hitam, bukan hijau -- ganti ke
+     #256653, hijau brand yang sama dipakai nama pemain di score card
+     (v0.71.33) dan tombol Next Round. Baris medali (gold/silver/bronze)
+     TIDAK disentuh, sudah punya palet sendiri di rule bawah (0,3,1). */
+  color: #256653 !important;
   font-weight: 600;
 }
 .podium-standings-table .num-cell,
@@ -14870,10 +14874,15 @@ html.dark .podium-standings-table-wrap {
 }
 html.dark .podium-standings-header h2 { color: #ece7da !important; }
 html.dark .podium-standings-sub { color: rgba(236,231,218,0.6) !important; }
-html.dark .podium-standings-table th { color: rgba(236,231,218,0.5) !important; border-color: rgba(255,255,255,0.10) !important; }
+/* v0.72.10: th 0.5, num-cell 0.7 -- keduanya keliatan "dim" dibanding
+   name-cell/pts-cell yang solid #ece7da. Diselaraskan: th naik ke 0.78
+   (masih label, dikit lebih pudar dari data biar hierarki gak ilang),
+   num-cell disamain persis #ece7da -- PTS tetap kebeda lewat font-weight
+   700 (base rule, bukan warna) jadi gak kehilangan penekanan. */
+html.dark .podium-standings-table th { color: rgba(236,231,218,0.78) !important; border-color: rgba(255,255,255,0.10) !important; }
 html.dark .podium-standings-table td { border-color: rgba(255,255,255,0.08) !important; }
 html.dark .podium-standings-table .name-cell { color: #ece7da !important; }
-html.dark .podium-standings-table .num-cell { color: rgba(236,231,218,0.7) !important; }
+html.dark .podium-standings-table .num-cell { color: #ece7da !important; }
 html.dark .podium-standings-table .pts-cell { color: #ece7da !important; }
 /* Medali row: warna sudah terang (#d9b971/#8a8a8a/#cd9d6e), naikin silver dikit */
 html.dark .podium-standings-table tr.rank-silver .rank-cell,
@@ -14899,8 +14908,12 @@ html.dark .podium-standings-table tr.rank-silver .name-cell { color: #c4c4c4 !im
    baris tanpa medali. Token dark yang udah ada (--cream-dim, --gold-
    bright), bronze dapet copper baru senada gold-bright tapi beda hue
    biar tetep kebedain. Semua diukur >=6.6:1. */
+/* v0.72.10: --cream-dim (>=6.6:1, lolos AA) tapi tetap kerasa dim
+   dibanding name-cell/pts-cell yang solid #ece7da di baris yang sama --
+   diselaraskan ke #ece7da. Medal row (gold/silver/bronze) di bawah TETAP
+   beda warna, itu penekanan yang disengaja, bukan bug. */
 html.dark .podium-standings-table .rank-cell {
-  color: var(--cream-dim) !important;
+  color: #ece7da !important;
 }
 html.dark .podium-standings-table tr.rank-gold .rank-cell {
   color: var(--gold-bright) !important;
