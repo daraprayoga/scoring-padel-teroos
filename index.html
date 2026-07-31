@@ -3915,7 +3915,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.11</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.12</div>
     </div>
   </div>
 
@@ -17304,6 +17304,53 @@ html.dark .ssh-box-lead {
   }
 })();
 </script>
+
+<style id="codex-revision-v07212-css">
+/* v0.72.12: Full Standings light — GP..PTS hijau brand; scrollbar
+   phantom di portrait/desktop (bukan cuma landscape).
+
+   [1] Warna angka. v0.72.10/.11 udah benerin name-cell + rank-cell
+   non-medali ke #256653. Tapi .num-cell / .pts-cell MASIH #1d3b2d
+   (generic td) dan #14301f (pts override) dari v0.70.74 "kentang
+   contrast" — di cream background kebaca HITAM, bukan hijau.
+   User minta GP sampai PTS hijau. Fix: samakan ke #256653.
+   Header th ikut #4a8a6a (cream-dim / hijau redup) biar hierarki
+   label vs data tetap. Medali rank-gold/silver/bronze TIDAK
+   disentuh (palet sendiri di v0.70.82, spec 0,3,1 menang).
+   Dark mode sudah cream terang sejak dark-lab, gak diubah.
+
+   [2] Scrollbar. v0.72.11 cuma nutup di @media landscape
+   (~3535). Base .podium-backdrop (~727) masih overflow-y:auto +
+   scroll-snap + scrollbar-color — di portrait/desktop track
+   scrollbar tetap nongol di ujung kanan (admin + nonton).
+   Fix: override global (semua orientation) overflow-y:hidden +
+   sembunyiin scrollbar. .podium-content tetap scroll container
+   fungsional (overflow-x:hidden → computed overflow-y:auto per
+   CSS Overflow spec), jadi page-to-page scroll gak rusak. */
+/* Samakan ke warna judul "Full Standings" = var(--cream) = #2d6b4e
+   di light mode (bukan #256653 yang dipakai name-cell/Next Round). */
+html:not(.dark) .podium-standings-table .num-cell,
+html:not(.dark) .podium-standings-table .pts-cell {
+  color: #2d6b4e !important;
+}
+html:not(.dark) .podium-standings-table th {
+  color: #4a8a6a !important;
+}
+
+/* Scrollbar phantom: backdrop jangan scroll (semua orientation) */
+.podium-backdrop {
+  overflow-y: hidden !important;
+  overflow-x: hidden !important;
+  scroll-snap-type: none !important;
+  scroll-behavior: auto !important;
+  scrollbar-width: none !important;
+}
+.podium-backdrop::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+</style>
 </body>
 </html>
 
