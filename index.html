@@ -3903,7 +3903,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.8</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.9</div>
     </div>
   </div>
 
@@ -6866,6 +6866,20 @@ function buildSparingRound(roundIdx) {
     return { pairOrder: [], resting: [...availA, ...availB, ...unavailable] };
   }
 
+  // v0.72.9: kriteria #6 (zero-3x-main-beruntun, HARD) sebelum ini gak
+  // pernah dipasang di builder sparing -- 6 builder lain semua manggil
+  // mustRestNowSet()+capMustRest() duluan sebelum gpTiers, sparing cuma
+  // punya CONSEC_PLAY_PENALTY (soft, bisa kalah lawan cost matching
+  // lintas-klub). Ketauan dari run test: klub timpang (3v5) di occupancy
+  // PERSIS 2/3 -- batas yang harusnya masih clean -- tetap 3-in-a-row.
+  // Fix: sama seperti mixicano (kriteria #1, per-gender), capMustRest
+  // dijalanin dua kali, sekali per klub, SEBELUM gpTiers -- filter pool-nya
+  // dulu baru dieksplorasi gpTiers/sampleBubble seperti biasa.
+  const mustRest = mustRestNowSet(roundIdx);
+  const { pool: poolA, forcedRest: forcedA } = capMustRest(availA, mustRest, usableCourts, hist.games);
+  const { pool: poolB, forcedRest: forcedB } = capMustRest(availB, mustRest, usableCourts, hist.games);
+  const forcedRestByStreak = [...forcedA, ...forcedB];
+
   // Seleksi per klub pakai helper yang sama dengan format lain, supaya aturan
   // GP-tier / anti-double-rest konsisten -- cuma dijalanin dua kali, sekali
   // per klub, bukan sekali buat gabungan.
@@ -6878,8 +6892,8 @@ function buildSparingRound(roundIdx) {
   let best = null;
   for (let a = 0; a < 120; a++) {
     const strategy = a % 2 === 0 ? 'rest' : 'free';
-    const sa = pickSide(availA, strategy);
-    const sb = pickSide(availB, strategy);
+    const sa = pickSide(poolA, strategy);
+    const sb = pickSide(poolB, strategy);
     if (sa.play.length !== usableCourts || sb.play.length !== usableCourts) continue;
 
     // Pool gabungan dijamin seimbang (n dari A, n dari B), jadi matching
@@ -6900,7 +6914,7 @@ function buildSparingRound(roundIdx) {
   if (!best) return { pairOrder: [], resting: [...availA, ...availB, ...unavailable] };
 
   const playing = new Set(best.pairOrder);
-  const resting = [...availA, ...availB].filter(id => !playing.has(id)).concat(unavailable);
+  const resting = [...availA, ...availB].filter(id => !playing.has(id)).concat(unavailable, forcedRestByStreak).filter((id, i, arr) => arr.indexOf(id) === i);
   return { pairOrder: best.pairOrder, resting };
 }
 
@@ -17260,3 +17274,4 @@ html.dark .ssh-box-lead {
 </script>
 </body>
 </html>
+
