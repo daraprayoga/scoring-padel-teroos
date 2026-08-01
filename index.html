@@ -3915,7 +3915,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.15</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.16</div>
     </div>
   </div>
 
@@ -14680,10 +14680,30 @@ html.dark .switch { background: rgba(255,255,255,0.10); border-color: rgba(255,2
 html.dark .switch.on { background: #4fa87c; border-color: #4fa87c; }
 
 /* ---------- [6] Buttons ---------- */
+/* v0.72.16: .icon-btn DIPISAH dari box-shadow rule ini -- BUG SPECIFICITY
+   ketemu (bukan soal desain). `html.dark .icon-btn` (specificity 0,2,1)
+   ngalahin `.icon-btn` polos punya v0.71.38 (0,1,0) di line ~16137 yang
+   bawa 4-side lens rim (--lq-lens-btn), padahal v0.71.38 POSISINYA lebih
+   akhir di source -- kalah karena spesifisitas lebih rendah, bukan kalah
+   urutan. Dark mode SUDAH punya varian --lq-lens-btn yang dikalibrasi
+   khusus (line ~16233, alpha 0.22/0.24/0.07/0.07) tapi gak pernah nyampe
+   ke .icon-btn karena rule single-rim lemah (0.12 alpha) di sini yang
+   menang duluan. Header icon buttons (moon/share/download/folder/
+   fullscreen/reset) jadi keliatan flat di dark -- bukan kurang niat
+   desain, cuma gak pernah dapet giliran render.
+   Fix: .icon-btn dicabut dari selector list box-shadow di bawah, biar
+   fallback ke rule tak-scoped v0.71.38 yang menang lewat source order
+   (spesifisitas SAMA setelah dicabut dari sini, v0.71.38 lebih akhir).
+   `.ghost-btn`/`.sb-nav-btn` SENGAJA belum disentuh -- root cause sama,
+   tapi `.sb-nav-btn` mencakup `.sb-nav-next` yang punya proteksi kontras
+   permanen (v0.70.45/49); dipisah jadi revisi sendiri kalau memang perlu,
+   jangan digabung sembarangan ke perbaikan ini. */
 html.dark .ghost-btn,
-html.dark .icon-btn,
 html.dark .sb-nav-btn {
   box-shadow: inset 0 1px 1px rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.30) !important;
+  color: #ece7da !important;
+}
+html.dark .icon-btn {
   color: #ece7da !important;
 }
 html.dark .primary-btn { color: #f5f0e6 !important; }
@@ -14862,6 +14882,26 @@ html.dark .sb-nav-btn {
   background: rgba(255,255,255,0.05) !important;
   border: 1px solid rgba(255,255,255,0.10) !important;
   box-shadow: none !important;
+}
+/* v0.72.16: .icon-btn (tombol header: moon/share/download/folder/
+   fullscreen/reset) dapat pengecualian dari "box-shadow:none" di atas.
+   Alasan asli matte-in (komentar [11] di atas) nyebut SPESIFIK 2 sumber
+   kilau berlebih: gloss diagonal ::before + fill --lq-chip terang. Rim
+   inset 4-sisi (--lq-lens-btn) BUKAN salah satu dari itu -- dia jauh
+   lebih halus (alpha max 0.22, inset bukan gloss sweep), tapi ikut
+   kebunuh karena rule di atas matiin box-shadow TOTAL, bukan cuma
+   sumber gloss yang dimaksud. Efeknya: header icon buttons keliatan
+   rata/flat di dark, gak ada dimensi sama sekali -- padahal dock
+   (.dock-pill) di sebelahnya tetap dapet rim (rule terpisah, gak
+   kena sapuan box-shadow:none ini), jadi kontras "dock oke, tombol
+   flat" kelihatan jelas di device.
+   Scope SENGAJA cuma .icon-btn (bukan .ghost-btn/.sb-nav-btn) --
+   yang diminta cuma tombol header + dock, .sb-nav-btn nyerempet
+   .sb-nav-next yang punya proteksi kontras permanen (v0.70.45/49),
+   gak mau diutak-atik tanpa perlu. Fill TETAP flat 0.05 (gak disentuh)
+   -- cuma rim yang balik, gloss/fill tetap sesuai keputusan matte-in. */
+html.dark .icon-btn {
+  box-shadow: var(--lq-lens-btn) !important;
 }
 
 /* ---------- [12] Dark podium (admin + mode nonton) ---------- */
@@ -17427,4 +17467,4 @@ html:not(.dark) .podium-standings-table th {
 </body>
 </html>
 
-  border-bottom-color: rgba(255,255,255,0.08);
+.
