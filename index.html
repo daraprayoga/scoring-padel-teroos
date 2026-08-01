@@ -3915,7 +3915,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.14</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.15</div>
     </div>
   </div>
 
@@ -6627,7 +6627,8 @@ function buildMexicanoMatches(roundIdx) {
     if (playing.length < 4) continue;
     const matches = buildFromPlaying(playing);
     const score = matchesCost(matches) + DOUBLE_REST_PENALTY * doubleRestCount(sit, r1)
-      + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast); // kriteria #7
+      + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast)
+      + ACTIVE_SET_REPEAT_PENALTY * activeSetRepeatCount(playing, roundIdx); // v0.72.15: kriteria #5, sama fix v0.72.13
     if (score < bestScore) {
       bestScore = score;
       best = { matches, playing };
@@ -6695,7 +6696,8 @@ function buildTeamMexicanoMatches(roundIdx) {
     if (playing.length < 2) continue;
     const matches = buildTeamMatches(playing);
     let score = DOUBLE_REST_PENALTY * doubleRestCount(sit, r1)
-      + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast);
+      + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast)
+      + ACTIVE_SET_REPEAT_PENALTY * activeSetRepeatCount([...forced, ...pick], roundIdx); // v0.72.15: kriteria #5
     matches.forEach(m => { score += hist.opponent[m.teamA[0]][m.teamB[0]]; });
     if (score < bestScore) {
       bestScore = score;
@@ -7008,7 +7010,8 @@ function buildTeamAmericanoRound(roundIdx) {
     const { pick, sit } = sampleBubble(bubble, slots, r1, rested2, a % 2 === 0 ? 'rest' : 'free');
     const r = pairUp([...forced, ...pick]);
     const score = r.cost + DOUBLE_REST_PENALTY * doubleRestCount(sit, r1)
-      + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast);
+      + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast)
+      + ACTIVE_SET_REPEAT_PENALTY * activeSetRepeatCount([...forced, ...pick], roundIdx); // v0.72.15: kriteria #5
     if (!best || score < best.score) best = { pairOrder: r.pairOrder, score, restBubble: sit };
     if (best.score === 0) break;
   }
@@ -7219,7 +7222,8 @@ function buildMixAmericanoRound(roundIdx) {
 
     const totalCost = partnerMatch.cost * 3 + teamMatch.cost
       + DOUBLE_REST_PENALTY * doubleRestCount(finalResting, r1) // v0.70.85
-      + CONSEC_PLAY_PENALTY * consecPlayCount([...sM.pick, ...sF.pick], playedLast); // v0.71.11
+      + CONSEC_PLAY_PENALTY * consecPlayCount([...sM.pick, ...sF.pick], playedLast) // v0.71.11
+      + ACTIVE_SET_REPEAT_PENALTY * activeSetRepeatCount(combined, roundIdx); // v0.72.15: kriteria #5
     if (totalCost < bestCost) {
       bestCost = totalCost;
       best = courts;
@@ -7293,7 +7297,8 @@ function buildMixicanoRound(roundIdx) {
     const sm = [...pM.active].sort((x, y) => rk(x) - rk(y));
     const sf = [...pF.active].sort((x, y) => rk(x) - rk(y));
     let score = DOUBLE_REST_PENALTY * doubleRestCount([...pM.sit, ...pF.sit], lrSet)
-      + CONSEC_PLAY_PENALTY * consecPlayCount([...pM.active, ...pF.active].filter(id => !mustRest.has(id)), playedLast);
+      + CONSEC_PLAY_PENALTY * consecPlayCount([...pM.active, ...pF.active].filter(id => !mustRest.has(id)), playedLast)
+      + ACTIVE_SET_REPEAT_PENALTY * activeSetRepeatCount([...pM.active, ...pF.active], roundIdx); // v0.72.15: kriteria #5
     for (let c = 0; c < state.courts; c++) {
       const mG = sm.slice(c * 2, c * 2 + 2), fG = sf.slice(c * 2, c * 2 + 2);
       if (mG.length < 2 || fG.length < 2) break;
