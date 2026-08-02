@@ -1243,6 +1243,78 @@ style { display: none !important; }
     width: 100%;
   }
 
+  /* v0.72.21: banner "klub mana menang" di podium sparing -- di ATAS
+     .podium-stage (perorangan/pair), bukan gantiin. Palet & font sengaja
+     ngikutin .podium-header (Cormorant Garamond italic, --cream base)
+     biar berasa satu keluarga visual, bukan tempelan. Gold dipakai buat
+     sisi yang menang -- ini SAH menurut aturan reservasi gold (medali/
+     champion/crown) karena ini emang momen "juara klub", level lebih
+     tinggi dari podium perorangan di bawahnya. */
+  .podium-club-result {
+    text-align: center;
+    margin-bottom: 32px;
+    position: relative;
+    z-index: 1;
+    width: 100%;
+  }
+  .podium-club-result-label {
+    font-size: 10px;
+    color: var(--cream-dim);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 12px;
+    opacity: 0.7;
+  }
+  .podium-club-result-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(14px, 3vw, 28px);
+    flex-wrap: wrap;
+  }
+  .podium-club-name {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: clamp(18px, 3.2vw, 28px);
+    color: var(--cream-dim);
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: color 0.2s;
+  }
+  .podium-club-name.winner { color: var(--gold); }
+  .podium-club-result-score {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 900;
+    font-size: clamp(28px, 5vw, 44px);
+    color: var(--cream-dim);
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .podium-club-result-score .winner { color: var(--gold); }
+  .podium-club-result-score .sep { font-size: 0.6em; opacity: 0.35; }
+  .podium-club-result-tie {
+    margin-top: 10px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--cream-dim);
+    opacity: 0.6;
+    font-weight: 700;
+  }
+  @media (max-width: 640px) {
+    .podium-club-result { margin-bottom: 20px; }
+    .podium-club-result-row { gap: 12px; }
+    .podium-club-name { max-width: 120px; font-size: clamp(14px, 4vw, 20px); }
+    .podium-club-result-score { font-size: clamp(22px, 7vw, 32px); }
+  }
+
   /* Stage: glass cards horizontal */
   .podium-stage {
     display: flex;
@@ -3538,6 +3610,16 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
   .podium-page-1 .podium-header { flex-shrink:0 !important; width:100% !important; text-align:center !important; padding:0 0 clamp(4px,0.8vh,10px) 0 !important; margin:0 !important; }
   .podium-page-1 .podium-header h1 { font-size:clamp(32px,6.5vh,72px) !important; margin-bottom:4px !important; letter-spacing:-1.5px !important; line-height:1 !important; }
   .podium-page-1 .podium-header .subtitle { font-size:clamp(8px,1.1vh,11px) !important; letter-spacing:2px !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; max-width:90vw !important; opacity:0.65 !important; }
+  /* v0.72.21: landscape/TV podium-page-1 itu fixed 100dvh, ZERO toleransi
+     scroll (overflow:hidden di atas) -- elemen baru WAJIB dikompres pakai
+     vh-based clamp kayak tetangganya, kalau enggak bisa dorong podium-stage
+     turun/kepotong di layar pendek. */
+  .podium-club-result { flex-shrink:0 !important; margin-bottom:clamp(6px,1vh,14px) !important; }
+  .podium-club-result-label { font-size:clamp(7px,0.9vh,9px) !important; margin-bottom:clamp(3px,0.6vh,8px) !important; }
+  .podium-club-result-row { gap:clamp(8px,1.4vw,20px) !important; }
+  .podium-club-name { font-size:clamp(13px,2.2vh,20px) !important; max-width:clamp(90px,14vw,180px) !important; }
+  .podium-club-result-score { font-size:clamp(18px,3.2vh,32px) !important; gap:clamp(6px,0.8vw,10px) !important; }
+  .podium-club-result-tie { font-size:clamp(7px,0.9vh,9px) !important; margin-top:clamp(3px,0.5vh,6px) !important; }
   .podium-stage { flex:0 0 auto !important; display:flex !important; flex-direction:row !important; align-items:flex-end !important; justify-content:center !important; width:100% !important; gap:clamp(10px,1.6vw,24px) !important; padding-bottom:0 !important; overflow:visible !important; box-sizing:border-box !important; margin:0 !important; }
   .podium-slot { flex:1 1 0 !important; min-width:0 !important; max-width:30% !important; display:flex !important; flex-direction:column !important; align-items:center !important; justify-content:flex-end !important; overflow:visible !important; box-sizing:border-box !important; }
   .podium-slot.first { order:2 !important; } .podium-slot.second { order:1 !important; } .podium-slot.third { order:3 !important; }
@@ -3915,7 +3997,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.19</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.21</div>
     </div>
   </div>
 
@@ -4266,7 +4348,7 @@ function modeLabel(mode) {
 }
 
 function formatLabel(f) {
-  const map = { ind_mexicano:'Individual Mexicano', ind_americano:'Individual Americano', mixicano:'Mix-Mexicano', mix_americano:'Mix-Americano', team_mexicano:'Team Mexicano', team_americano:'Team Americano' };
+  const map = { ind_mexicano:'Individual Mexicano', ind_americano:'Individual Americano', mixicano:'Mix-Mexicano', mix_americano:'Mix-Americano', team_mexicano:'Team Mexicano', team_americano:'Team Americano', club_sparing:'Club Sparing' };
   return map[f] || f;
 }
 
@@ -9393,12 +9475,38 @@ function showPodium() {
     </div>`;
   }
 
+  // v0.72.21: Club Sparing -- klub mana yang menang harus keliatan DULUAN,
+  // di atas podium perorangan/pair, bukan cuma implisit dari clubBadge di
+  // tiap kartu. Reuse computeClubTally()/clubLabel() yang udah dipakai
+  // .sparing-score-header (~7897) -- satu sumber kebenaran yang sama,
+  // bukan hitung ulang logic menang-kalah klub dengan cara terpisah.
+  const clubResultHtml = isSparing() ? (() => {
+    const t = computeClubTally();
+    const nameA = escapeHtml(clubLabel('A')), nameB = escapeHtml(clubLabel('B'));
+    const leadA = t.winner === 'A', leadB = t.winner === 'B';
+    return `
+      <div class="podium-club-result">
+        <div class="podium-club-result-label">Hasil Sparing Antar Klub</div>
+        <div class="podium-club-result-row">
+          <div class="podium-club-name ${leadA ? 'winner' : ''}">${nameA}</div>
+          <div class="podium-club-result-score">
+            <span class="${leadA ? 'winner' : ''}">${t.A.wins}</span>
+            <span class="sep">–</span>
+            <span class="${leadB ? 'winner' : ''}">${t.B.wins}</span>
+          </div>
+          <div class="podium-club-name ${leadB ? 'winner' : ''}">${nameB}</div>
+        </div>
+        ${t.winner === null ? '<div class="podium-club-result-tie">Seri</div>' : ''}
+      </div>`;
+  })() : '';
+
   content.innerHTML = `
     <div class="podium-page podium-page-1">
       <div class="podium-header">
         <h1>Final Podium</h1>
         <div class="subtitle" style="text-align:center;width:100%;display:block;">${escapeHtml(title)}<br><span style="font-size:0.75em;opacity:0.8;">${formatLabel(state.format)} · ${date}</span></div>
       </div>
+      ${clubResultHtml}
       <div class="podium-stage${hasSharedRank ? ' ranks-tied' : ''}">
         ${slotsHtml}
       </div>
@@ -11072,27 +11180,45 @@ body.viewer-mode .sb-score-box.winner {
   border-color: rgba(45,107,78,0.58) !important;
 }
 
-body.viewer-mode .sb-score-input {
-  color: #050505 !important;
-  -webkit-text-fill-color: #050505 !important;
+/* v0.72.20: 3 rule numpuk di bawah (riwayat patch berulang tanpa pernah
+   nyentuh akar) DIKONSOLIDASI. Alasan 3 rule lama ada: input disabled
+   di viewer mode (read-only), browser natively bikin teks disabled
+   kelihatan pudar -- makanya di-override paksa jadi solid. Tapi
+   override-nya blanket ke SEMUA input tanpa syarat, jadi skor yang
+   BELUM diinput (0-0, dua-duanya otomatis "not winner" karena seri)
+   ikut kepaksa item pekat #050505, padahal di mode editor box yang
+   gak menang emang sengaja diredupin biar kebaca "belum ada pemenang
+   / belum discore" -- viewer mode nyaplok distingsi itu.
+   CATATAN: sengaja GAK nyentuh `.winner` di sini -- winner viewer mode
+   udah punya cascade sendiri lebih jauh di bawah file (~11415/12546/
+   17208), background solid hijau + teks krem `#f5f0e6` buat kontras.
+   Nambahin rule winner di sini bakal jadi dead code (ketiban rule
+   yang lebih akhir) sekaligus bikin bingung baca kode -- gak disentuh,
+   biar cascade winner yang udah bener tetep utuh.
+   Fix di sini KHUSUS not-winner: balik ke abu-abu redup yang sama
+   kayak editor mode (~13073, rgba(16,42,28,0.62)) -- konsisten dua
+   mode, dan user bisa langsung liat mana yang beneran belum main dari
+   kejauhan pas nonton. */
+body.viewer-mode .sb-score-box:not(.winner) .sb-score-input,
+body.viewer-mode .sb-score-box:not(.winner) .sb-score-input:disabled {
+  color: rgba(16,42,28,0.62) !important;
+  -webkit-text-fill-color: rgba(16,42,28,0.62) !important;
   opacity: 1 !important;
   filter: none !important;
   text-shadow: none !important;
 }
-
-body.viewer-mode .sb-score-input:disabled {
-  color: #050505 !important;
-  -webkit-text-fill-color: #050505 !important;
+/* v0.72.20: dark+viewer gabungan -- rgba(16,42,28,...) di atas itu
+   HIJAU GELAP, cocok buat background cream. Di dark mode background-nya
+   gelap, teks hijau gelap di atas gelap nyaris gak kebaca. Warna dark
+   mode not-winner yang udah bener ada di editor (~14770,
+   rgba(236,231,218,0.7), krem redup) -- disamain di sini. */
+html.dark body.viewer-mode .sb-score-box:not(.winner) .sb-score-input,
+html.dark body.viewer-mode .sb-score-box:not(.winner) .sb-score-input:disabled {
+  color: rgba(236,231,218,0.7) !important;
+  -webkit-text-fill-color: rgba(236,231,218,0.7) !important;
   opacity: 1 !important;
-}
-
-body.viewer-mode .sb-score-box .sb-score-input,
-body.viewer-mode .sb-score-box .sb-score-input:disabled,
-body.viewer-mode .sb-score-box input,
-body.viewer-mode .sb-score-box input:disabled {
-  color: #050505 !important;
-  -webkit-text-fill-color: #050505 !important;
-  opacity: 1 !important;
+  filter: none !important;
+  text-shadow: none !important;
 }
 
 body.viewer-mode .match-team-player,
