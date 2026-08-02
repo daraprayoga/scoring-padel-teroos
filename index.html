@@ -929,6 +929,22 @@ style { display: none !important; }
   .ss-overlay .t1-wlt { font-size: 28px; color: rgba(245,240,230,0.78); font-weight: 700; }
   .ss-overlay .t1-pts { font-family: 'Cormorant Garamond', serif; font-size: 52px; font-weight: 900; color: #c9a961; line-height: 1; }
 
+  /* v0.72.25: skor besar antar-klub buat Club Sparing, khusus template
+     Podium (t1). Ditaro top:300px -- di bawah title (mulai top:84px,
+     font 60px, bisa wrap 2-3 baris kalau nama tournament panjang) dan
+     di atas t1-podium (mulai dari bottom:110px, slot champ ~400px total
+     tinggi -- top edge podium sekitar 1410px di kanvas 1920px). Ruang
+     tengah itu lega (foto background doang), aman ditaro di situ tanpa
+     nabrak title atau podium. Sama persis pola gold-for-winner kayak
+     versi in-app (showPodium(), ~9420-an) -- reuse computeClubTally()/
+     clubLabel(), bukan hitung ulang logic terpisah. */
+  .ss-overlay .t1-club-result { position: absolute; top: 300px; left: 60px; right: 60px; display: flex; align-items: center; justify-content: center; gap: 28px; }
+  .ss-overlay .t1-club-name { font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-weight: 700; font-size: 36px; color: rgba(245,240,230,0.78); max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 2px 10px rgba(0,0,0,0.4); }
+  .ss-overlay .t1-club-name.winner { color: #c9a961; }
+  .ss-overlay .t1-club-score { font-family: 'Cormorant Garamond', serif; font-weight: 900; font-size: 58px; color: rgba(245,240,230,0.78); display: flex; align-items: baseline; gap: 16px; line-height: 1; text-shadow: 0 2px 10px rgba(0,0,0,0.4); }
+  .ss-overlay .t1-club-score .winner { color: #c9a961; }
+  .ss-overlay .t1-club-score .sep { font-size: 0.5em; opacity: 0.4; }
+
   /* ---- Template 2: Top-3 rows ---- */
   .ss-overlay .t2-rows { position: absolute; bottom: 160px; left: 50px; right: 50px; display: flex; flex-direction: column; gap: 20px; }
   .ss-overlay .t2-row { display: flex; align-items: center; gap: 24px; background: linear-gradient(135deg, rgba(20,48,31,0.88), rgba(20,48,31,0.72)); border: 1px solid rgba(201,169,97,0.35); border-radius: 30px; padding: 24px 32px; }
@@ -3408,7 +3424,23 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
    di parent (.result-row-team) udah cukup buat centering vertikal yang
    bener tanpa nudge manual yang berpotensi ke-fight sama ukuran font baris
    yang beda-beda tergantung breakpoint (12px normal - 17px story/landscape). */
-.result-row-team .gender-badge { transform: none; }
+/* v0.72.24: user masih lapor kepotong walau overflow-x fix (v0.72.23) --
+   pendekatan diganti total: bukan ngoprek overflow/transform lagi, badge
+   dikecilin LANGSUNG di context ini biar ada headroom pasti muat, gak
+   peduli mekanisme clip presisinya apa. height 15->11px, font 9->7px,
+   padding/min-width ikut diciutin proporsional. Base .gender-badge
+   (dipakai di standings table dll, TIDAK ada laporan kepotong di sana)
+   SENGAJA gak disentuh -- shrink ini scoped ketat ke dalam
+   .result-row-team doang. */
+.result-row-team .gender-badge {
+  transform: none;
+  height: 11px;
+  min-width: 13px;
+  padding: 0 3px;
+  font-size: 7px;
+  border-radius: 3px;
+  margin-left: 3px;
+}
 .result-row-dot {
   width: 4px; height: 4px;
   border-radius: 50%;
@@ -4018,7 +4050,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.23</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.25</div>
     </div>
   </div>
 
@@ -8843,11 +8875,30 @@ function tplPodium() {
   const rest = ent.filter(e => e.rank !== 1);
   const left = rest.length > 1 ? [rest[0]] : (rest.length && r1.length === 1 ? [rest[0]] : []);
   const right = rest.filter(e => !left.includes(e));
+  // v0.72.25: Club Sparing -- skor besar antar-klub, sama persis pola
+  // yang udah dipasang di podium in-app (showPodium()). Reuse langsung
+  // computeClubTally()/clubLabel(), satu sumber kebenaran.
+  const clubResultHtml = isSparing() ? (() => {
+    const t = computeClubTally();
+    const nameA = escapeHtml(clubLabel('A')), nameB = escapeHtml(clubLabel('B'));
+    const leadA = t.winner === 'A', leadB = t.winner === 'B';
+    return `
+      <div class="t1-club-result">
+        <div class="t1-club-name ${leadA ? 'winner' : ''}">${nameA}</div>
+        <div class="t1-club-score">
+          <span class="${leadA ? 'winner' : ''}">${t.A.wins}</span>
+          <span class="sep">–</span>
+          <span class="${leadB ? 'winner' : ''}">${t.B.wins}</span>
+        </div>
+        <div class="t1-club-name ${leadB ? 'winner' : ''}">${nameB}</div>
+      </div>`;
+  })() : '';
   return `
     <div class="ss-scrim-top"></div>
     <div class="ss-scrim-bot"></div>
     <div class="t1-title">${title}</div>
     <div class="ss-logo t1-logo">padel<span>.</span>teroos</div>
+    ${clubResultHtml}
     <div class="t1-podium">${left.map(slot).join('')}${r1.map(slot).join('')}${right.map(slot).join('')}</div>`;
 }
 function tplTop3() {
