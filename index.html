@@ -4050,7 +4050,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.25</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.26</div>
     </div>
   </div>
 
@@ -9272,7 +9272,21 @@ function buildResultsPages() {
 
       const teamRow = (names, ids, isWinner) => {
         const dot = isWinner ? `<span class="result-row-dot"></span>` : '';
-        const namesHtml = names.map((n, i) => `${escapeHtml(n || '—')}${genderBadge(ids[i])}${clubBadge(ids[i])}`).join(' & ');
+        // v0.72.26: clubBadge() ambil PAIR index (lihat komentar di
+        // definisinya, ~4459), BUKAN per-player id. `ids` di sini ('m.teamA'
+        // format team) cuma 1 elemen (index pair), sementara `names` 2
+        // elemen (dua pemain pair itu). Dulu clubBadge(ids[i]) per i -- buat
+        // nama kedua (i=1), ids[1] itu undefined (array cuma 1 elemen),
+        // clubOf(undefined) jatuh ke default 'A' (PA) SELALU, gak peduli
+        // pair-nya beneran klub apa. Reported: nama kanan/kedua di tiap
+        // baris consistently kebaca PA meski pair-nya SI. Fix: clubBadge
+        // pakai ids[0] (satu-satunya pair index yang valid) buat KEDUA nama
+        // -- satu pair, satu klub, jadi ini emang seharusnya sama buat
+        // dua-duanya, bukan di-index per nama. genderBadge(ids[i]) TIDAK
+        // ikut kena/gak diubah -- dia no-op buat semua format team (club_
+        // sparing bukan isMixedGender()), jadi ids[i] undefined di situ
+        // gak pernah keliatan efeknya.
+        const namesHtml = names.map((n, i) => `${escapeHtml(n || '—')}${genderBadge(ids[i])}${clubBadge(ids[0])}`).join(' & ');
         return `<div class="result-row-team ${isWinner ? 'winner' : ''}">${dot}${namesHtml}</div>`;
       };
 
