@@ -3381,13 +3381,34 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
   letter-spacing: 0.3px;
   color: #4a8a6a;
   white-space: nowrap;
-  overflow: hidden;
+  /* v0.72.23: dulu `overflow: hidden` (dua sumbu). Ellipsis cuma butuh
+     horizontal (text-overflow beroperasi di inline-axis) -- clip vertikal
+     itu efek samping yang gak diminta. Di context story/landscape yang
+     font-nya membesar sampai 17px (~3671), badge klub/gender (.gender-badge,
+     height:15px fixed + transform:translateY(-1px), didesain buat teks
+     9px kecil) ke-dorong dikit ke atas relatif ke line-box baris yang
+     lebih tinggi -- dan overflow:hidden dua-sumbu motong bagian atasnya
+     (laporan user: huruf PA/SI kepotong). overflow-x:hidden doang cukup
+     buat ellipsis tetap jalan (nama panjang tetap kepotong "..." di
+     kanan), overflow-y otomatis jadi 'auto' per spec CSS Overflow (bukan
+     'visible' murni, tapi 'auto' gak nge-clip kecuali beneran butuh
+     scroll -- baris ini gak punya height tetap yang lebih kecil dari
+     konten, jadi badge yang dikit poke ke atas tetap kebaca utuh). */
+  overflow-x: hidden;
   text-overflow: ellipsis;
   display: flex;
   align-items: center;
   gap: 4px;
 }
 .result-row-team.winner { color: #0f2318; font-weight: 900; }
+/* v0.72.23: lapis kedua -- transform:translateY(-1px) di base .gender-badge
+   (~314) itu nudge optik yang ditune buat konteks 9px/15px normal. Di sini
+   dicabut khusus (bukan di base -- badge dipakai di banyak tempat lain yang
+   gak ada laporan kepotong, gak mau ganggu itu). Flex align-items:center
+   di parent (.result-row-team) udah cukup buat centering vertikal yang
+   bener tanpa nudge manual yang berpotensi ke-fight sama ukuran font baris
+   yang beda-beda tergantung breakpoint (12px normal - 17px story/landscape). */
+.result-row-team .gender-badge { transform: none; }
 .result-row-dot {
   width: 4px; height: 4px;
   border-radius: 50%;
@@ -3997,7 +4018,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.22</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.23</div>
     </div>
   </div>
 
