@@ -3915,7 +3915,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.18</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.19</div>
     </div>
   </div>
 
@@ -17400,7 +17400,42 @@ html.dark .ssh-box-lead {
       titik dua diikuti langsung nilai lalu titik koma).
    Dua syarat asli (harus `:` DAN `;` DAN salah satu dari `!important`/
    `{`/`}`) TETAP ada sebagai jalur kedua -- pattern baru cuma NAMBAH
-   cakupan, bukan gantiin. */
+   cakupan, bukan gantiin.
+
+   v0.72.19: BLIND SPOT ketemu -- laporan user kali ini bukan CSS yang
+   bocor, tapi KOMENTAR (blok comment prosa Indonesia panjang) yang
+   nyasar jadi teks halaman. Dua pattern di atas cuma nyari bentuk CSS
+   (titik dua + titik koma + brace/important) -- komentar prosa SAMA
+   SEKALI gak match pola itu, jadi kalau corruption-nya nutup tag STYLE
+   prematur PAS DI TENGAH KOMENTAR (bukan di tengah rule), guard lama
+   lolosin begitu aja.
+   Diverifikasi dulu source app.html BERSIH (jsdom, exclude subtree
+   STYLE/SCRIPT: 83 text node ditemukan di body, semua konten UI sah,
+   NOL match ke teks yang dilaporkan) -- jadi corruption-nya di sisi
+   upload/deploy user, BUKAN source ini, sama persis pola v0.72.6 dan
+   kasus "border-bottom-color" sebelumnya. Tapi guard runtime tetap
+   harus nutup celah ini, karena dia satu-satunya lapisan yang jalan
+   di BROWSER USER kalau file yang ke-deploy corrupt -- gak peduli
+   sumber corruption-nya, guard tetap harus nangkep gejalanya.
+   Fix: CROSS-REFERENCE, bukan pattern-matching. Kumpulin seluruh
+   REGION KOMENTAR (bukan seluruh textContent -- percobaan pertama
+   ambil semua textContent style+script, GAGAL: tag SCRIPT juga berisi
+   string literal yang dipakai generate teks UI asli, jadi teks UI sah
+   ikut ke-flag "match corpus" dan kesapu; lihat catatan di
+   buildSourceCorpus()) dari elemen STYLE+SCRIPT jadi satu corpus
+   (sekali, pas sweep jalan), lalu buat tiap text node kandidat yang
+   CUKUP PANJANG (>=30 char) cek: apa isinya PERSIS ada sebagai
+   substring di corpus itu? Kalau ya, itu DIJAMIN bocoran verbatim
+   dari komentar kita sendiri, bukan kebetulan.
+   Ambang 30 char DIKALIBRASI pakai data nyata, bukan ditebak: dicoba
+   15/20/25/30/35/40/50/60 terhadap 53 text node UI asli di app ini.
+   15 -> 3 false-positive ("Mabar Session Setup", "Individual Mexicano",
+   "Individual Americano" -- nama-nama format YANG JUGA disebut di
+   komentar teknis). 20 -> masih 1 FP ("Individual Americano", persis
+   20 char). 25 ke atas -> 0 FP. Dipilih 30 (bukan 25) buat kasih
+   headroom kalau nanti ada heading baru yang panjangnya mepet. Leak
+   asli yang dilaporkan user jauh di atas ambang ini (100+ char), jadi
+   nol risiko kelewat. */
 (function () {
   var CSS_DECL_LINE = /^[a-z-]+\s*:\s*[^{};]+;\s*$/i;
   function looksLikeStrayCss(t) {
@@ -17408,6 +17443,30 @@ html.dark .ssh-box-lead {
     if (CSS_DECL_LINE.test(t.trim())) return true; // v0.72.14: satu baris deklarasi bersih
     return t.indexOf(':') !== -1 && t.indexOf(';') !== -1 &&
       (t.indexOf('!important') !== -1 || t.indexOf('{') !== -1 || t.indexOf('}') !== -1);
+  }
+  function buildSourceCorpus() {
+    // v0.72.19: HARUS cuma bagian KOMENTAR, bukan seluruh textContent.
+    // Percobaan pertama ambil textContent penuh style+script -- GAGAL:
+    // tag SCRIPT juga berisi STRING LITERAL yang dipakai generate teks UI
+    // asli (mis. innerHTML = '...Score...'), jadi teks UI sah ikut
+    // "match" corpus dan kesapu (false positive, diverifikasi lewat
+    // test: 4 node UI asli ikut kebersihin, bukan cuma bocoran).
+    // Fix: extract cuma REGION KOMENTAR (/* */ dan //) dari style+script.
+    // Teks UI gak pernah datang dari komentar (non-executing, dev-facing
+    // doang) -- jadi corpus komentar-doang gak akan pernah nyerempet
+    // string literal UI asli, tapi TETAP nangkep komentar yang bocor
+    // (itu literally asalnya dari situ).
+    var parts = [];
+    var els = document.querySelectorAll('style, script');
+    var blockRe = /\/\*[\s\S]*?\*\//g;
+    var lineRe = /\/\/[^\n]*/g;
+    for (var i = 0; i < els.length; i++) {
+      var txt = els[i].textContent;
+      var m;
+      while ((m = blockRe.exec(txt))) parts.push(m[0]);
+      while ((m = lineRe.exec(txt))) parts.push(m[0]);
+    }
+    return parts.join('\n');
   }
   function sweepStrayCss() {
     var body = document.body;
@@ -17426,15 +17485,24 @@ html.dark .ssh-box-lead {
         return NodeFilter.FILTER_ACCEPT;
       }
     });
+    var corpus = null; // lazy: cuma dibangun kalau ada kandidat panjang yang butuh dicek
     var n;
     while ((n = walker.nextNode())) {
-      if (looksLikeStrayCss(n.nodeValue)) doomed.push(n);
+      var t = n.nodeValue;
+      if (looksLikeStrayCss(t)) { doomed.push(n); continue; }
+      // v0.72.19: jalur ketiga -- cross-reference ke source corpus,
+      // nangkep komentar/prosa yang bocor (gak match pola CSS di atas).
+      var trimmed = t && t.trim();
+      if (trimmed && trimmed.length >= 30) {
+        if (corpus === null) corpus = buildSourceCorpus();
+        if (corpus.indexOf(trimmed) !== -1) doomed.push(n);
+      }
     }
     doomed.forEach(function (n) { n.parentNode.removeChild(n); });
     if (doomed.length) {
       // Sengaja di-log: kalau guard ini sampai kepakai, artinya file yang
       // ke-deploy RUSAK dan harus di-upload ulang. Jangan diem-diem.
-      console.warn('[padel.teroos] Teks CSS nyasar dibersihkan (' + doomed.length +
+      console.warn('[padel.teroos] Teks nyasar dibersihkan (' + doomed.length +
                    ' node). File yang ke-deploy kemungkinan corrupt -- upload ulang, jangan paste.');
     }
   }
@@ -17495,4 +17563,4 @@ html:not(.dark) .podium-standings-table th {
 </body>
 </html>
 
-   klub yang lagi ungg
+   + backdrop-filter, hairline `border-bottom` doang, TANPA
