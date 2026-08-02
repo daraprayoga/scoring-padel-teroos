@@ -3997,7 +3997,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.21</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.22</div>
     </div>
   </div>
 
@@ -9486,7 +9486,6 @@ function showPodium() {
     const leadA = t.winner === 'A', leadB = t.winner === 'B';
     return `
       <div class="podium-club-result">
-        <div class="podium-club-result-label">Hasil Sparing Antar Klub</div>
         <div class="podium-club-result-row">
           <div class="podium-club-name ${leadA ? 'winner' : ''}">${nameA}</div>
           <div class="podium-club-result-score">
