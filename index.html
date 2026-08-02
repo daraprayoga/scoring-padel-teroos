@@ -3915,7 +3915,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.16</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.18</div>
     </div>
   </div>
 
@@ -14899,9 +14899,23 @@ html.dark .sb-nav-btn {
    yang diminta cuma tombol header + dock, .sb-nav-btn nyerempet
    .sb-nav-next yang punya proteksi kontras permanen (v0.70.45/49),
    gak mau diutak-atik tanpa perlu. Fill TETAP flat 0.05 (gak disentuh)
-   -- cuma rim yang balik, gloss/fill tetap sesuai keputusan matte-in. */
+   -- cuma rim yang balik, gloss/fill tetap sesuai keputusan matte-in.
+
+   v0.72.18: user test di device real -- rim 4-sisi (--lq-lens-btn)
+   kebaca "kayaknya agak terlalu shadow". Kemungkinan besar term KEDUA
+   di --lq-lens-btn ("inset 0 -1.5px 1.5px rgba(0,0,0,0.24)" -- inset
+   HITAM di bawah) yang jadi biang: di atas fill yang udah nyaris gelap
+   (0.05 alpha), inset hitam nambah kesan "kotor"/numpuk-shadow di tepi
+   bawah tiap tombol, ke-6 tombol berjejer bikin makin kerasa berat.
+   Turun ke SATU rim tipis doang (highlight atas, bukan --lq-lens-btn
+   penuh) -- niatnya cuma kasih "tepi kaca kena cahaya", bukan geometri
+   4-sisi lengkap. Alpha 0.14 dipilih di antara: 0.12 punya rule lama
+   (yang user complain kelewat flat) dan 0.22 punya --lq-lens-btn (yang
+   user complain kelewat shadow) -- titik tengah, tanpa inset gelap
+   sama sekali. Kalau masih berasa terlalu banyak, langkah berikutnya
+   turunin alpha lagi, BUKAN nambah term baru. */
 html.dark .icon-btn {
-  box-shadow: var(--lq-lens-btn) !important;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.14) !important;
 }
 
 /* ---------- [12] Dark podium (admin + mode nonton) ---------- */
@@ -16983,6 +16997,14 @@ html.dark .sb-tabs-motion .sb-tab-pill {
   color: rgba(29,59,42,0.60);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  /* v0.72.17: overflow:hidden + ellipsis, pola sama persis .ssh-name di
+     atas. Sebelum ini .ssh-sub gak punya pengaman sama sekali -- kalau
+     dipaksa keliatan di layar sempit tanpa ini, teksnya bisa TUMPAH
+     keluar container (bukan rapi kepotong "..."), beda kasus sama nama
+     klub yang emang udah lama aman lewat ellipsis. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 .ssh-scores {
   display: flex;
@@ -17040,11 +17062,17 @@ html.dark .ssh-box-lead {
   color: #ffffff;
 }
 
-/* Layar sempit: sub-text (pts/diff) disembunyiin, bukan di-wrap.
-   Nama klub + skor itu inti; angka pendukung ada di tab Standings. */
+/* v0.72.17: dulu di-hide total di layar sempit ("angka pendukung ada di
+   Standings"), tapi itu bikin beda perilaku antar-device -- device yang
+   viewport-nya pas di atas 460px (banyak Android) tetep nampilin,
+   device di bawahnya (kebanyakan iPhone) gak. User exect PARITAS antar
+   platform, bukan trade-off berbasis lebar layar yang gak konsisten.
+   Fix: TETAP TAMPIL, cuma dikecilin (8.5px) biar muat -- ellipsis di
+   atas jadi pengaman kalau kombinasi nama klub panjang + angka masih
+   kesempitan, ketimbang tumpah keluar container. */
 @media (max-width: 460px) {
   .sparing-score-header { gap: 12px; padding: 8px 12px; }
-  .ssh-sub { display: none; }
+  .ssh-sub { font-size: 8.5px; letter-spacing: -0.1px; }
   .ssh-box { min-width: 38px; height: 38px; font-size: 19px; }
 }
 </style>
@@ -17467,4 +17495,4 @@ html:not(.dark) .podium-standings-table th {
 </body>
 </html>
 
-.
+   klub yang lagi ungg
