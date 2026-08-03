@@ -131,8 +131,16 @@ style { display: none !important; }
     box-shadow: 0 1px 6px rgba(0,0,0,0.08);
     z-index: 100;
   }
-  .brand { display: flex; align-items: center; gap: 10px; }
-  .brand-img-logo { height: 36px; width: auto; flex-shrink: 0; display: block; filter: brightness(0) saturate(100%) invert(35%) sepia(40%) saturate(500%) hue-rotate(110deg) brightness(0.8); }
+  /* v0.72.35: user lapor logo header kepotong di Samsung Z Flip (viewport
+     sempit -- cover screen luar atau quirk browser Samsung). Akar: classic
+     flexbox trap numpuk 2 lapis -- (1) .brand gak punya min-width:0, default
+     flexbox min-width:auto bikin dia gak pernah ngecil di bawah ukuran
+     konten aslinya; (2) .brand-img-logo eksplisit flex-shrink:0, gak pernah
+     ngecil sama sekali. Fix: min-width:0 di .brand + flex-shrink:1 (dari 0)
+     + max-width:100% di .brand-img-logo -- logo BISA ngecil graceful kalau
+     kepepet, bukan keblok hard floor lalu overflow/keclip. */
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .brand-img-logo { height: 36px; width: auto; max-width: 100%; flex-shrink: 1; display: block; filter: brightness(0) saturate(100%) invert(35%) sepia(40%) saturate(500%) hue-rotate(110deg) brightness(0.8); }
   .brand-logo { font-weight: 800; font-size: 15px; line-height: 1; color: var(--cream); letter-spacing: -0.3px; white-space: nowrap; }
   .brand-logo span { color: var(--green-bright); }
   .tournament-name { font-weight: 700; font-size: 12px; color: var(--gold); padding: 3px 10px; background: rgba(201,169,97,0.08); border: 1px solid rgba(201,169,97,0.3); border-radius: 20px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; }
@@ -1741,18 +1749,64 @@ style { display: none !important; }
       font-size: 13px;
       text-align: center;
     }
+    /* v0.72.36: user lapor logo ketutupan SPESIFIK pas LIVE pill
+       (#fbPushStatus) muncul -- "sebelum live nongol aman, begitu
+       muncul, ketutup". Ini konfirmasi kenapa: pill defaultnya
+       display:none (JS: `pill.style.display = state.started ?
+       'inline-flex' : 'none'`), baru switch ke inline-flex begitu sesi
+       mulai. Grup .header-actions (yang nampung pill ini + icon
+       buttons) POSITION:ABSOLUTE (top:10px, right:12px) -- begitu pill
+       muncul, grup ini jadi LEBIH LEBAR (nambah ~teks "LIVE 12:04:13"),
+       dan karena absolute-anchor-nya dari KANAN (right:12px), nambah
+       lebar berarti merambat lebih JAUH KE KIRI -- bisa nutupin logo
+       di device yang tadinya "aman" (cukup lebar buat icon-only, tapi
+       gak cukup lebar begitu pill nambah ~100px). Ini bukan cuma soal
+       device ultra-sempit (Z Flip) kayak v0.72.35 kemarin -- device
+       yang lebih lebar pun bisa kena kalau pas mepet ambang.
+       Fix DI SINI (breakpoint ≤640px, bukan nested ≤340px doang):
+       .header-actions ditarik balik ke flow normal (bukan absolute),
+       jadi baris terpisah full-width di bawah logo -- robust ke
+       PANJANG KONTEN APAPUN (LIVE pill sependek atau sepanjang apa
+       pun), bukan cuma ke lebar viewport. Nested block ≤340px di
+       bawah jadi sebagian redundant buat urusan posisi (udah dihandle
+       di sini), tapi tetep dipertahanin buat ukuran icon yang lebih
+       kecil di layar paling sempit. */
     .header-actions {
-      position: absolute;
-      top: 10px;
-      right: 12px;
+      position: static;
+      order: 2;
+      width: 100%;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      margin-top: 6px;
     }
     body.viewer-mode .header-actions {
-      position: absolute !important;
-      top: 50% !important;
-      right: 12px !important;
-      transform: translateY(-50%) !important;
+      position: static !important;
+      top: auto !important;
+      right: auto !important;
+      transform: none !important;
+      order: 2;
+      width: 100%;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      margin-top: 6px;
     }
     .icon-btn { width: 32px; height: 32px; font-size: 14px; }
+
+    /* v0.72.35: awalnya block ini yang narik .header-actions keluar
+       dari position:absolute (biar gak overlap sama logo) -- KHUSUS
+       breakpoint ≤340px doang. v0.72.36 lebih lengkap: masalahnya
+       ternyata bukan cuma soal viewport sempit (Z Flip), tapi juga
+       soal LIVE pill yang muncul dinamis nambah lebar grup absolute
+       itu -- jadi fix posisinya DINAIKIN ke level ≤640px (lihat
+       .header-actions di atas), robust ke device manapun DAN ke
+       panjang konten pill apapun. Block ≤340px ini SEKARANG cuma
+       nyisain size reduction ekstra (logo+icon lebih kecil lagi) buat
+       layar paling sempit -- urusan posisi udah beres di level 640px,
+       gak perlu diulang di sini. */
+    @media (max-width: 340px) {
+      .brand-img-logo { height: 24px; }
+      .icon-btn { width: 30px; height: 30px; font-size: 13px; }
+    }
 
     /* Setup */
     .setup-wrap { padding: 12px; gap: 10px; }
@@ -4050,7 +4104,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.34</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.37</div>
     </div>
   </div>
 
@@ -13095,11 +13149,13 @@ html { background: #fbf7f0 !important; }
     else document.querySelector('header')?.appendChild(pill);
     return pill;
   }
-  function setPill(cls, text) {
+  function setPill(cls, text, detail) {
     if (IS_VIEWER) return;
     const pill = ensurePill();
     pill.className = cls;
     pill.textContent = text;
+    pill.title = detail || text; // v0.72.37: detail (jam/kode error) di
+    // tooltip hover, BUKAN teks visible -- lihat catatan di pemanggil.
     pill.style.display = state.started ? 'inline-flex' : 'none';
   }
   const fmtTime = () => new Date().toTimeString().slice(0, 8);
@@ -13110,19 +13166,23 @@ html { background: #fbf7f0 !important; }
   pushToFirebase = async function () {
     if (IS_VIEWER || !state.started) return;
     if (!_fbDb) await initFirebase();
-    if (!_fbDb) { setPill('off', 'OFFLINE'); return; }
+    if (!_fbDb) { setPill('off', 'OFFLINE', 'Firebase belum terhubung'); return; }
     try {
       const roomId = getRoomId();
       _currentRoomId = roomId;
       const rawSnap = { ...state, endedAt: state.endedAt ? state.endedAt.toISOString() : null, _pushedAt: Date.now() };
       const snap = JSON.parse(JSON.stringify(rawSnap));
       await _fbDb.ref(`tournaments/${roomId}`).set(snap);
-      setPill('ok', 'LIVE ' + fmtTime());
+      // v0.72.37: user lapor "LIVE 12:04:13" (jam ikut nempel, nambah
+      // lebar terus tiap detik) itu yang bikin .header-actions melebar
+      // nutupin logo (lihat v0.72.36). Jam gak krusial buat visual --
+      // pindah ke title tooltip (hover), teks tampak cuma "LIVE".
+      setPill('ok', 'LIVE', 'Live · sinkron terakhir ' + fmtTime());
       if (_retryTimer) { clearTimeout(_retryTimer); _retryTimer = null; }
     } catch (e) {
       const code = (e && (e.code || e.message)) ? String(e.code || e.message).slice(0, 28) : 'unknown';
       console.warn('Firebase push failed:', e);
-      setPill('fail', 'PUSH GAGAL ' + code);
+      setPill('fail', 'GAGAL', 'Push gagal: ' + code);
       if (!_retryTimer) {
         _retryTimer = setTimeout(() => { _retryTimer = null; pushToFirebase(); }, 2000);
       }
@@ -13136,7 +13196,7 @@ html { background: #fbf7f0 !important; }
     try {
       _fbDb.ref('.info/connected').on('value', s => {
         if (IS_VIEWER || !state.started) return;
-        if (s.val() !== true) setPill('off', 'OFFLINE');
+        if (s.val() !== true) setPill('off', 'OFFLINE', 'Koneksi realtime terputus');
       });
     } catch (e) { /* diagnostics best-effort */ }
   })();
