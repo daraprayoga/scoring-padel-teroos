@@ -4050,7 +4050,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.26</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.28</div>
     </div>
   </div>
 
@@ -16388,8 +16388,15 @@ html.dark .mixg-custom {
       inset 1.5px 0 1.5px rgba(255,255,255,0.09),
       inset -1.5px 0 1.5px rgba(255,255,255,0.09);
   /* Float tombol: lebih pendek dari --lq-float (card). Tombol melayang
-     tipis di atas permukaan, bukan mengambang seperti kartu. */
-  --lq-float-btn: 0 8px 22px rgba(20,46,32,0.13), 0 2px 6px rgba(20,46,32,0.06);
+     tipis di atas permukaan, bukan mengambang seperti kartu.
+     v0.72.27: user lapor drop shadow di belakang header icon buttons
+     (moon/share/LIVE/download/folder/fullscreen/reset, light mode)
+     masih kelewat kentara -- blur 22px di tombol 34px emang lebar,
+     kebaca sebagai "gumpal bayangan" bukan "melayang tipis". Blur
+     dipotong hampir setengah + opacity diturunin, kedua layer.
+     v0.72.28: user MASIH lapor kentara -- dipotong lagi ke titik nyaris
+     hilang (blur 12->7px, opacity 0.08->0.045 / 0.05->0.03). */
+  --lq-float-btn: 0 2px 7px rgba(20,46,32,0.045), 0 1px 2px rgba(20,46,32,0.03);
   --lq-float-btn-solid: 0 10px 24px rgba(20,46,32,0.26), 0 2px 6px rgba(20,46,32,0.12);
 }
 
@@ -16505,7 +16512,8 @@ html.dark {
       inset 0 -1.5px 1.5px rgba(0,0,0,0.30),
       inset 1.5px 0 1.5px rgba(255,255,255,0.06),
       inset -1.5px 0 1.5px rgba(255,255,255,0.06);
-  --lq-float-btn: 0 8px 22px rgba(0,0,0,0.34), 0 2px 6px rgba(0,0,0,0.20);
+  /* v0.72.27: konsisten sama light mode -- blur dipotong, opacity turun. */
+  --lq-float-btn: 0 4px 12px rgba(0,0,0,0.22), 0 1px 3px rgba(0,0,0,0.13);
   --lq-float-btn-solid: 0 10px 24px rgba(0,0,0,0.42), 0 2px 6px rgba(0,0,0,0.24);
 }
 
