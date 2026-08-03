@@ -4050,7 +4050,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.29</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.31</div>
     </div>
   </div>
 
@@ -17861,12 +17861,21 @@ html.dark .round-pill:not(.active) {
       inset -1.5px 0 1.5px rgba(255,255,255,0.14) !important;
 }
 html.dark .sb-score-box:not(.winner) {
-  background: rgba(255,255,255,0.065) !important;
+  /* v0.72.30: user lapor tile kalah dark kerasa flat dibanding light --
+     benar, root cause bukan rim, tapi FILL. Card pembungkus (.sb-court-card
+     dark) solid #1c2520 nyaris gelap penuh; tile 0.065 white-on-dark
+     blend jadi cuma ~2-3 value lebih terang, mata gak nangkep beda.
+     Light kontras karena BORDER (14% dark-green di atas cream) + rim
+     atas 45% yang jelas nongol -- dark cuma dapet border 12% putih +
+     rim 16%, dua-duanya kurang buat ngelawan card gelap. Naikin fill +
+     border + rim top biar separation-nya proporsional sama light. */
+  background: rgba(255,255,255,0.11) !important;
+  border: 1px solid rgba(255,255,255,0.24) !important;
   box-shadow:
-      inset 0 1.5px 1px rgba(255,255,255,0.16),
-      inset 0 -1px 1.5px rgba(0,0,0,0.22),
-      inset 1.5px 0 1.5px rgba(255,255,255,0.05),
-      inset -1.5px 0 1.5px rgba(255,255,255,0.05) !important;
+      inset 0 1.5px 1px rgba(255,255,255,0.38),
+      inset 0 -1.5px 1.5px rgba(0,0,0,0.28),
+      inset 1.5px 0 1.5px rgba(255,255,255,0.12),
+      inset -1.5px 0 1.5px rgba(255,255,255,0.12) !important;
 }
 
 /* ---------- [5] Status pill sync (#fbPushStatus): flat bg+border,
