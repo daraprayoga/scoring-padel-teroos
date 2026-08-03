@@ -4050,7 +4050,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.32</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.34</div>
     </div>
   </div>
 
@@ -17916,6 +17916,36 @@ html.dark .sb-court-card {
       inset 1.5px 0 1.5px rgba(255,255,255,0.07),
       inset -1.5px 0 1.5px rgba(255,255,255,0.07),
       0 4px 16px rgba(0,0,0,0.30) !important;
+}
+</style>
+<style id="codex-revision-v07233-css">
+/* v0.72.33: rim v0.72.32 masih kebaca flat -- user benar. Root cause
+   BUKAN rim, tapi FILL: page bg dark #0f1613 vs card #1c2520 (base
+   v0.70.91) cuma beda ~13 value per channel, dan drop shadow hitam
+   (yang bikin light mode "menonjol") gak kebaca sama sekali di atas
+   page bg yang udah nyaris hitam -- makanya nambah rim doang di
+   v0.72.32 gak cukup, cardnya tetap nyaris nyatu sama bg.
+   Light pop dari KOMBINASI shadow+border di atas card yang HAMPIR PUTIH
+   (var(--rc-panel) light #eae4d6, jauh dari page bg). Buat efek
+   setara di dark, jalurnya beda: shadow hitam gak ada gunanya, jadi
+   FILL-nya yang dinaikin biar ada jarak jelas dari page bg -- sama
+   filosofi kayak fix .sb-score-box v0.72.30 (pool solusi yang sama,
+   diterapkan di elemen yang bener kali ini). */
+html.dark .sb-court-card {
+  background: #263a30 !important;
+  border-color: rgba(255,255,255,0.16) !important;
+}
+</style>
+<style id="codex-revision-v07234-css">
+/* v0.72.34: user lapor fill v0.72.33 (#263a30) kelewat hijau -- lebih
+   deket ke bahasa "kartu hijau" ketimbang "netral yang naik dari bg".
+   Turunin saturation + lightness: #1c2622 (masih ada jarak dari page
+   bg #0f1613, tapi hue-nya diredam biar gak baca "hijau", lebih ke
+   abu-hijau gelap netral). Border ikut diturunin tipis (0.16->0.14)
+   biar sepadan sama fill yang lebih redup. */
+html.dark .sb-court-card {
+  background: #1c2622 !important;
+  border-color: rgba(255,255,255,0.14) !important;
 }
 </style>
 </body>
