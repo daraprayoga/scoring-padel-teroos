@@ -4050,7 +4050,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.28</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.29</div>
     </div>
   </div>
 
@@ -17777,6 +17777,120 @@ html:not(.dark) .podium-standings-table th {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
+}
+</style>
+<style id="codex-revision-v07229-css">
+/* v0.72.29: user minta liquid-glass balik ke beberapa titik yang
+   kena "matte-in" (v0.72.16 [11], sengaja diflat-in waktu itu) atau
+   emang dari awal gak pernah dapet rim/translucency: tombol back
+   round-nav, round-pill R1/R2/dst, score card, +Add Round/Delete
+   Round, status pill sync. Plus Next Round shadow light mode
+   diturunin (kelewat kentara).
+
+   TIDAK nambah backdrop-filter ke elemen manapun di sini -- aturan
+   permanen (nested blur = smear bug Chrome Android di chip/tombol/
+   score-box, lihat CLAUDE.md). Efek kaca murni dari rim inset 4-sisi
+   + translucency + outer shadow tipis, pola yang sama kayak
+   --lq-lens-btn di seluruh file. */
+
+/* ---------- [1] Back button (round-nav): matte-in v0.72.16 nyabut
+   box-shadow SAMA SEKALI dari .sb-nav-btn dark (bukan cuma .icon-btn
+   yang dikecualiin). Kasih .sb-nav-btn:not(.sb-nav-next) exception
+   yang sama persis polanya kayak .icon-btn dulu. ---------- */
+html.dark .sb-nav-btn:not(.sb-nav-next) {
+  background: rgba(255,255,255,0.07) !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  box-shadow:
+      inset 0 1.5px 1px rgba(255,255,255,0.20),
+      inset 0 -1.5px 1.5px rgba(0,0,0,0.22),
+      inset 1.5px 0 1.5px rgba(255,255,255,0.06),
+      inset -1.5px 0 1.5px rgba(255,255,255,0.06),
+      0 2px 8px rgba(0,0,0,0.28) !important;
+}
+
+/* ---------- [2] +Add Round (.ghost-btn): sama akar, sama fix. ---------- */
+html.dark .ghost-btn {
+  background: rgba(255,255,255,0.07) !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  box-shadow:
+      inset 0 1.5px 1px rgba(255,255,255,0.20),
+      inset 0 -1.5px 1.5px rgba(0,0,0,0.22),
+      inset 1.5px 0 1.5px rgba(255,255,255,0.06),
+      inset -1.5px 0 1.5px rgba(255,255,255,0.06),
+      0 2px 8px rgba(0,0,0,0.28) !important;
+}
+/* Delete Round (.danger-btn) sudah dapet lens-btn-solid dari rule [2]
+   codex-revision-v07138, tapi rim-nya nyaris gak kebaca di atas fill
+   merah-gelap solid #3a1414 -- naikin dikit khusus di sini. */
+html.dark .danger-btn {
+  box-shadow:
+      inset 0 1.5px 1px rgba(255,255,255,0.16),
+      inset 0 -1.5px 1.5px rgba(0,0,0,0.30),
+      0 4px 14px rgba(0,0,0,0.30) !important;
+}
+
+/* ---------- [3] Round pill R1/R2/dst: dari awal gak pernah punya rim,
+   cuma flat bg+border. Tambah 4-sisi + outer lift tipis, active
+   state (solid forest) sengaja gak disentuh -- udah kebaca beda. */
+.round-pill:not(.active) {
+  box-shadow:
+      inset 0 1.5px 1px rgba(255,255,255,0.55),
+      inset 0 -1px 1.5px rgba(255,255,255,0.12),
+      inset 1.5px 0 1.5px rgba(255,255,255,0.12),
+      inset -1.5px 0 1.5px rgba(255,255,255,0.12),
+      0 2px 8px rgba(20,46,32,0.08) !important;
+}
+html.dark .round-pill:not(.active) {
+  box-shadow:
+      inset 0 1.5px 1px rgba(255,255,255,0.18),
+      inset 0 -1px 1.5px rgba(0,0,0,0.24),
+      inset 1.5px 0 1.5px rgba(255,255,255,0.05),
+      inset -1.5px 0 1.5px rgba(255,255,255,0.05),
+      0 2px 8px rgba(0,0,0,0.26) !important;
+}
+
+/* ---------- [4] Score card: cuma punya rim atas (inset 1px), gak
+   pernah 4-sisi. :not(.winner) doang -- winner udah solid forest
+   sendiri dengan glow yang benar, jangan disentuh. */
+.sb-score-box:not(.winner) {
+  background: rgba(29,59,42,0.075) !important;
+  box-shadow:
+      inset 0 1.5px 1px rgba(255,255,255,0.45),
+      inset 0 -1px 1.5px rgba(255,255,255,0.14),
+      inset 1.5px 0 1.5px rgba(255,255,255,0.14),
+      inset -1.5px 0 1.5px rgba(255,255,255,0.14) !important;
+}
+html.dark .sb-score-box:not(.winner) {
+  background: rgba(255,255,255,0.065) !important;
+  box-shadow:
+      inset 0 1.5px 1px rgba(255,255,255,0.16),
+      inset 0 -1px 1.5px rgba(0,0,0,0.22),
+      inset 1.5px 0 1.5px rgba(255,255,255,0.05),
+      inset -1.5px 0 1.5px rgba(255,255,255,0.05) !important;
+}
+
+/* ---------- [5] Status pill sync (#fbPushStatus): flat bg+border,
+   nol rim. Tambah highlight atas tipis, bukan full 4-sisi (pill kecil,
+   4-sisi kebaca berat di elemen setipis ini). */
+#fbPushStatus {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 1px 4px rgba(20,46,32,0.06) !important;
+}
+html.dark #fbPushStatus {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 1px 4px rgba(0,0,0,0.24) !important;
+}
+
+/* ---------- [6] Next Round/Start: shadow light mode kelewat kentara.
+   BUKAN --lq-float-btn-solid yang menang di tombol ini (dicek live di
+   browser: box-shadow ternyata dari --cap-halo, selector ID
+   #nextRoundBtn/#startBtn di codex-revision-v07142, spec lebih tinggi
+   dari rule [3] class .sb-nav-next) -- token yang bener diturunin di
+   sini, bukan --lq-float-btn-solid (itu tetap diturunin juga di bawah,
+   guna buat primary/danger/end-game yang MEMANG pakai token itu). */
+#nextRoundBtn, #startBtn {
+  --cap-halo: rgba(31,90,73,0.16) !important;
+}
+:root {
+  --lq-float-btn-solid: 0 5px 14px rgba(20,46,32,0.14), 0 1px 4px rgba(20,46,32,0.07);
 }
 </style>
 </body>
