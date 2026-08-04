@@ -132,14 +132,30 @@ style { display: none !important; }
     z-index: 100;
   }
   /* v0.72.35: user lapor logo header kepotong di Samsung Z Flip (viewport
-     sempit -- cover screen luar atau quirk browser Samsung). Akar: classic
-     flexbox trap numpuk 2 lapis -- (1) .brand gak punya min-width:0, default
-     flexbox min-width:auto bikin dia gak pernah ngecil di bawah ukuran
-     konten aslinya; (2) .brand-img-logo eksplisit flex-shrink:0, gak pernah
-     ngecil sama sekali. Fix: min-width:0 di .brand + flex-shrink:1 (dari 0)
-     + max-width:100% di .brand-img-logo -- logo BISA ngecil graceful kalau
-     kepepet, bukan keblok hard floor lalu overflow/keclip. */
-  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+     sempit -- cover screen luar atau quirk browser Samsung). Awalnya
+     dicoba min-width:0 di .brand + flex-shrink:1 di .brand-img-logo.
+
+     v0.72.38: KOREKSI -- min-width:0 di .brand itu SALAH, dan bikin
+     regresi lebih parah: logo HILANG TOTAL (bukan cuma kepotong).
+     Sebabnya: rule ini GLOBAL/gak di-scope, jadi kepakai juga di sistem
+     LAIN yang gak gue sadari ada waktu itu ("one clean row" ~12353,
+     `body:not(.viewer-mode) header { flex-wrap:nowrap !important }`,
+     lebih spesifik + !important, MENANG di render asli buat admin/
+     scoring view). Sistem itu punya `.brand-img-logo { max-width:
+     min(168px, calc(100vw - 184px)) }` -- reservasi 184px based on
+     asumsi icon COUNT sebelum sesi live (cuma 3: theme+load+fullscreen,
+     ~130px). Begitu sesi live: shareBtn (dibikin dinamis JS, hidden
+     default) + saveBtn + resetBtn ikut muncul + fbPushStatus pill =
+     total 6 icon + 1 pill, butuh ~270-290px -- JAUH di atas reservasi
+     184px. Sebelum v0.72.35, default browser min-width:auto masih
+     kasih .brand floor (nyegah collapse total, at-worst overflow
+     dikit). Setelah gue kasih min-width:0, floor itu ilang -- .brand
+     (flex:1 1 auto, BISA shrink) kepaksa collapse ke 0 buat ngasih
+     ruang ke .header-actions (flex:0 0 auto, GAK BISA shrink) yang
+     butuh lebih banyak dari yang direservasi. min-width:0 DICABUT dari
+     rule global ini. Reservasi 184px-nya sendiri diperbaiki terpisah
+     di sistem aslinya (lihat komentar v0.72.38 di ~12353). */
+  .brand { display: flex; align-items: center; gap: 10px; }
   .brand-img-logo { height: 36px; width: auto; max-width: 100%; flex-shrink: 1; display: block; filter: brightness(0) saturate(100%) invert(35%) sepia(40%) saturate(500%) hue-rotate(110deg) brightness(0.8); }
   .brand-logo { font-weight: 800; font-size: 15px; line-height: 1; color: var(--cream); letter-spacing: -0.3px; white-space: nowrap; }
   .brand-logo span { color: var(--green-bright); }
@@ -3218,7 +3234,12 @@ body.viewer-mode .sb-nav-next { pointer-events: auto !important; opacity: 1 !imp
 
 /* Sitting out */
 .sb-rest {
-  margin-top: 4px;
+  /* v0.72.39: user tandain jarak ke box ini kemepetan dibanding jarak
+     antar-court-card. Akarnya: .sb-courts pakai gap:10px (~2981) buat
+     antar-card, tapi box ini nempel pakai margin-top:4px sendiri --
+     gak nyambung ke sistem gap yang sama, jadi kelihatan beda padahal
+     niatnya sama-sama "jarak antar section". Disamain ke 10px. */
+  margin-top: 10px;
   padding: 10px 16px;
   background: rgba(255,255,255,0.55);
   border: 1px solid rgba(45,107,78,0.2);
@@ -4104,7 +4125,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.37</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.41</div>
     </div>
   </div>
 
@@ -12359,18 +12380,63 @@ body.viewer-mode .sb-nav-next,
     max-height: 50px !important;
     padding-top: 5px !important;
     padding-bottom: 5px !important;
-    padding-right: 10px !important;
+    /* v0.72.40: user lapor icon terlalu mepet tepi kanan layar. 10px
+       dinaikin ke 14px, kasih napas lebih tanpa ngurangin ruang buat
+       icon secara berarti. */
+    padding-right: 14px !important;
     padding-left: 10px !important;
   }
   body:not(.viewer-mode) .brand {
     width: auto !important;
     flex: 1 1 auto !important;
-    min-width: 0 !important;
+    /* v0.72.39: v0.72.38 masih GAGAL -- logo tetap gak muncul. Root
+       cause pendekatan sebelumnya (calc(100vw - Npx) buat nge-cap
+       max-width logo) itu RAPUH: itu cuma NEBAK berapa lebar
+       .header-actions bakal makan, terus batesin logo based on
+       tebakan itu. Kalau tebakannya meleset dikit aja (real rendering:
+       border, subpixel, font metrics beda-beda antar browser) --
+       .brand yang FLEX:1 1 AUTO dengan min-width:0 bisa collapse ke
+       nyaris 0 kalau .header-actions (flex:0 0 AUTO, gak pernah
+       ngalah) minta lebih dari yang dikira, TERLEPAS dari max-width
+       yang di-set di si logo -- karena max-width anak itu batas ATAS,
+       bukan JAMINAN dia dapet ruang segitu dari flex distribution.
+       Fix definitif: min-width FLOOR di container-nya (.brand),
+       BUKAN calc-prediction di anaknya (logo). 44px floor -- brand
+       GAK PERNAH bisa direbut abis sama header-actions berapa pun
+       banyak icon yang nongol, logo PASTI keliatan minimal sekilas.
+       .header-actions yang harus ngalah kalo kepepet (overflow:visible
+       di situ udah ada, icon boleh dikit "napak keluar" secara visual
+       ketimbang logo ilang total -- app-branding lebih prioritas). */
+    /* v0.72.41: floor 44px (v0.72.39) KEKECILAN -- itu angka asal "biar
+       kelihatan dikit", bukan diitung dari ukuran logo asli. Logo PNG
+       rasio 240x95; di height 24px lebar naturalnya = 24 x (240/95) =
+       ~60.6px (di height 26px = ~65.7px). Floor 44px < itu, jadi pas
+       .brand kepepet ke floor, sisa logo kepotong `overflow:hidden` --
+       PERSIS gejala yang dilaporkan: ke-crop di tengah huruf
+       ("pad|tero"), BUKAN mengecil proporsional. Floor dinaikin ke 76px
+       (65.7px kasus terbesar + headroom subpixel). Ditambah
+       .header-actions dibikin bisa ngalah (flex 0 0 auto -> 0 1 auto,
+       lihat rule-nya di bawah) -- selama ini dia gak pernah nyusut
+       sedikit pun, jadi .brand selalu jadi korban duluan. */
+    min-width: 76px !important;
     overflow: hidden !important;
   }
   body:not(.viewer-mode) .brand-img-logo {
     height: 24px !important;
     width: auto !important;
+    /* v0.72.40: user minta ukuran persis kayak v0.72.29 (dikonfirmasi:
+       height udah SAMA dari dulu, 24px, gak pernah berubah -- yang beda
+       cuma max-width formula). Balikin persis angka v0.72.29
+       (min(168px, calc(100vw-184px))) -- v0.72.39 ganti ke 100% relatif
+       parent, niatnya robust, tapi ternyata bikin render lebih kecil
+       dari yang user harapkan di beberapa konteks (kemungkinan preview
+       WebView beda dikit cara itung width parent vs Safari biasa --
+       gak sepenuhnya kekonfirmasi kenapa, tapi user eksplisit minta
+       balik ke angka v0.72.29, jadi dituruti persis).
+       min-width:44px di .brand (v0.72.39, fix collapse-total) TETAP
+       dipertahankan -- itu yang nyegah logo ilang sama sekali kalau
+       kelak jumlah icon nambah lagi, gak konflik sama max-width di
+       sini karena beda elemen (container vs anak). */
     max-width: min(168px, calc(100vw - 184px)) !important;
     object-fit: contain !important;
   }
@@ -12378,7 +12444,12 @@ body.viewer-mode .sb-nav-next,
     position: static !important;
     top: auto !important;
     right: auto !important;
-    flex: 0 0 auto !important;
+    /* v0.72.41: 0 0 auto -> 0 1 auto. Selama ini header-actions GAK
+       PERNAH mau nyusut (shrink factor 0), jadi tiap kali ruang kurang,
+       .brand yang selalu jadi korban duluan sampai nabrak floor lalu
+       logonya kepotong. Sekarang dia ikut ngalah proporsional. */
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
     gap: 5px !important;
   }
   body:not(.viewer-mode) .header-actions .icon-btn {
@@ -12415,7 +12486,9 @@ body.viewer-mode .sb-nav-next,
     height: 50px !important;
     min-height: 50px !important;
     max-height: 50px !important;
-    padding: 5px 10px !important;
+    /* v0.72.40: sama kayak fix ~12383 -- padding-right dilebarin dikit
+       (10px->14px) biar icon gak terlalu mepet tepi layar. */
+    padding: 5px 14px 5px 10px !important;
     display: flex !important;
     flex-wrap: nowrap !important;
     align-items: center !important;
@@ -12434,7 +12507,21 @@ body.viewer-mode .sb-nav-next,
   body:not(.viewer-mode) .brand {
     width: auto !important;
     flex: 1 1 auto !important;
-    min-width: 0 !important;
+    /* v0.72.39: sama kayak fix di ~12381 -- min-width:0 dicabut, ganti
+       floor 44px. Lihat catatan panjang di sana buat alasan lengkap
+       (calc-prediction rapuh, floor di container jauh lebih robust). */
+    /* v0.72.41: floor 44px (v0.72.39) KEKECILAN -- itu angka asal "biar
+       kelihatan dikit", bukan diitung dari ukuran logo asli. Logo PNG
+       rasio 240x95; di height 24px lebar naturalnya = 24 x (240/95) =
+       ~60.6px (di height 26px = ~65.7px). Floor 44px < itu, jadi pas
+       .brand kepepet ke floor, sisa logo kepotong `overflow:hidden` --
+       PERSIS gejala yang dilaporkan: ke-crop di tengah huruf
+       ("pad|tero"), BUKAN mengecil proporsional. Floor dinaikin ke 76px
+       (65.7px kasus terbesar + headroom subpixel). Ditambah
+       .header-actions dibikin bisa ngalah (flex 0 0 auto -> 0 1 auto,
+       lihat rule-nya di bawah) -- selama ini dia gak pernah nyusut
+       sedikit pun, jadi .brand selalu jadi korban duluan. */
+    min-width: 76px !important;
     height: 38px !important;
     display: flex !important;
     align-items: center !important;
@@ -12443,6 +12530,9 @@ body.viewer-mode .sb-nav-next,
   body:not(.viewer-mode) .brand-img-logo {
     height: 26px !important;
     width: auto !important;
+    /* v0.72.40: sama kayak fix ~12410 -- balikin formula persis v0.72.29
+       (min(178px, calc(100vw-206px))), min-width:44px di .brand tetap
+       jadi safety net. */
     max-width: min(178px, calc(100vw - 206px)) !important;
     object-fit: contain !important;
     display: block !important;
@@ -12452,7 +12542,10 @@ body.viewer-mode .sb-nav-next,
     top: auto !important;
     right: auto !important;
     height: 38px !important;
-    flex: 0 0 auto !important;
+    /* v0.72.41: sama kayak block portrait -- biar ikut ngalah, gak
+       maksa .brand nabrak floor terus. */
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: flex-end !important;
@@ -18006,6 +18099,29 @@ html.dark .sb-court-card {
 html.dark .sb-court-card {
   background: #1c2622 !important;
   border-color: rgba(255,255,255,0.14) !important;
+}
+</style>
+<style id="codex-revision-v07239-css">
+/* v0.72.39: user masih lapor outline .sb-court-card "flat", minta lebih
+   liquid glass TAPI warna jangan jauh dari sekarang (v0.72.34 fill
+   #1c2622 sengaja gak disentuh -- itu udah di-tune biar gak "kartu
+   hijau"). Yang dinaikin cuma INTENSITAS rim (v0.72.32), bukan ganti
+   resep/warna. Top highlight 0.20->0.34 (paling kerasa "kena cahaya"),
+   sisi kiri-kanan 0.07->0.14 (dobel, biar 4-sisi lebih jelas kebaca
+   utuh, gak cuma garis-atas-doang). Bottom-inset (hitam) SENGAJA gak
+   dinaikin -- pelajaran dari tuning .icon-btn (v0.72.16->18 sesi ini
+   sebelumnya): inset hitam yang kuat di bawah kebaca sebagai "numpuk
+   shadow" bukan "kaca", bukan itu yang diminta. Outer lift (0 4px 16px
+   rgba(0,0,0,0.30)) dinaikin dikit ke rgba(0,0,0,0.36) + blur 16->20px,
+   biar card kerasa "ngambang" lebih jelas dari page bg tanpa nambah
+   inset gelap di dalam. */
+html.dark .sb-court-card {
+  box-shadow:
+      inset 0 1.5px 1px rgba(255,255,255,0.34),
+      inset 0 -1.5px 1.5px rgba(0,0,0,0.30),
+      inset 1.5px 0 1.5px rgba(255,255,255,0.14),
+      inset -1.5px 0 1.5px rgba(255,255,255,0.14),
+      0 5px 20px rgba(0,0,0,0.36) !important;
 }
 </style>
 </body>
