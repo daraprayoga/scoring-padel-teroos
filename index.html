@@ -4125,7 +4125,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.41</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.42</div>
     </div>
   </div>
 
@@ -18115,12 +18115,24 @@ html.dark .sb-court-card {
    rgba(0,0,0,0.30)) dinaikin dikit ke rgba(0,0,0,0.36) + blur 16->20px,
    biar card kerasa "ngambang" lebih jelas dari page bg tanpa nambah
    inset gelap di dalam. */
+/* v0.72.42: user lapor rim .sb-court-card (v0.72.32/39) kebaca flat di
+   Android, padahal di iOS udah "berasa liquid glass". Kemungkinan besar
+   akarnya: blur radius rim KECIL banget (1.5px) -- di iOS (device
+   relatif seragam, OLED kontras tinggi) itu cukup buat kebaca halus,
+   tapi Android nyebar di banyak vendor GPU/driver/panel beda-beda,
+   subpixel blur sekecil itu rawan ke-round/alias jadi nyaris invisible
+   di sebagian rasterizer. Blur dinaikin 1.5px->2.5px (top/bottom) dan
+   1.5px->2px (sisi), alpha top dinaikin dikit (0.34->0.40) buat jaga2
+   kalau ada Android display yang lebih terang/kurang kontras dari OLED
+   iPhone. Gak ada cara verifikasi visual langsung dari sini (gak bisa
+   render/screenshot Android) -- ini best-effort berdasarkan mekanisme
+   CSS yang paling masuk akal, BUKAN dikonfirmasi ngerender bener. */
 html.dark .sb-court-card {
   box-shadow:
-      inset 0 1.5px 1px rgba(255,255,255,0.34),
-      inset 0 -1.5px 1.5px rgba(0,0,0,0.30),
-      inset 1.5px 0 1.5px rgba(255,255,255,0.14),
-      inset -1.5px 0 1.5px rgba(255,255,255,0.14),
+      inset 0 2px 2.5px rgba(255,255,255,0.40),
+      inset 0 -2px 2.5px rgba(0,0,0,0.32),
+      inset 2px 0 2px rgba(255,255,255,0.18),
+      inset -2px 0 2px rgba(255,255,255,0.18),
       0 5px 20px rgba(0,0,0,0.36) !important;
 }
 </style>
