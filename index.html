@@ -4125,7 +4125,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.47</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.48</div>
     </div>
   </div>
 
@@ -18364,6 +18364,45 @@ html.dark .switch::after {
 @media (prefers-reduced-motion: reduce) {
   .switch,
   .switch::after { transition: none !important; }
+}
+</style>
+<style id="codex-revision-v07248-css">
+/* v0.72.48: FIX header mode nonton (viewer) stack vertikal di ponsel
+   portrait -- logo penuh 1 baris, tombol moon/fullscreen turun ke
+   baris kedua dengan jarak gede. Screenshot user (~350-375px CSS width
+   portrait, di-capture 3x DPR jadi kelihatan ~1050px).
+
+   AKAR: @media (max-width:640px) (~1738, admin+viewer, TANPA
+   orientation restriction) narik header ke `flex-wrap:wrap` + `.brand
+   {width:100%}` + `.header-actions{width:100%;order:2}` -- ini
+   DISENGAJA buat admin (komentar ~1780: "header-actions ditarik balik
+   ke flow normal, baris terpisah full-width di bawah logo", biar
+   robust ke LIVE pill yang panjangnya dinamis).
+   Ada "fix" khusus viewer di @media (max-width:640px) and
+   (orientation:portrait) (~12592) yang niatnya balikin viewer ke SATU
+   baris (device kecil gak butuh 2 baris, viewer cuma punya 2 icon).
+   TAPI fix itu cuma nulis display/align-items/padding/margin --
+   `flex-wrap:wrap` di header dan `width:100%` di .brand/.header-actions
+   gak pernah di-override balik, jadi tetap kepakai dan header
+   viewer TETAP kepecah 2 baris walau propertinya kelihatan "sudah
+   flex-direction:row".
+
+   FIX: reset 3 properti yang kelewat, scoped body.viewer-mode, TANPA
+   batasan orientation (bug-nya juga bakal kejadian landscape sempit
+   karena rule sumbernya ~1738 gak orientation-scoped) -- viewer
+   emang dimaksud satu baris independen dari orientasi device. */
+@media (max-width: 640px) {
+  body.viewer-mode header {
+    flex-wrap: nowrap !important;
+  }
+  body.viewer-mode .brand {
+    width: auto !important;
+  }
+  body.viewer-mode .header-actions {
+    width: auto !important;
+    order: 0 !important;
+    margin-top: 0 !important;
+  }
 }
 </style>
 </body>
