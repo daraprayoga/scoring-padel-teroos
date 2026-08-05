@@ -4125,7 +4125,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.45</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.47</div>
     </div>
   </div>
 
@@ -18240,6 +18240,130 @@ html.dark .sb-tabs-motion .sb-tab-pill {
   .sb-tabs-motion .sb-tab { transition: none !important; }
   .sb-page-in-from-right,
   .sb-page-in-from-left { animation: none !important; }
+}
+</style>
+<style id="codex-revision-v07246-css">
+/* v0.72.46: toggle Censor dibawa ke bahasa liquid glass (rim lensa),
+   nyusul dock-pill/round-pill/sb-tab-pill/sb-court-card. Tiga hal yang
+   ketemu pas audit live (getComputedStyle 4 kombinasi mode x state),
+   bukan satu:
+
+   [1] DARK MODE KONTROL INI MATI TOTAL -- bug nyata, bukan cuma gaya.
+   Terukur: DARK/OFF dan DARK/ON byte-identik sama LIGHT/OFF dan
+   LIGHT/ON. Sebabnya `html.dark .switch` (~15043, spec 0,2,0, TANPA
+   !important) kalah lawan `.switch { ... !important }` blok "Gel"
+   (~12729, spec 0,1,0, PAKAI !important) -- !important ngalahin
+   specificity, source order gak relevan. Jadi selama ini toggle di
+   dark mode nampilin gradient gel versi LIGHT. Blok ini nulis ulang
+   dark dengan !important juga + posisi paling akhir, jadi menang.
+
+   [2] Masih bahasa "gel" v0.70.x (fill gradient + groove dalam
+   `inset 0 2px 4px` + garis bawah `inset 0 -1px 0`), bukan lensa.
+   Diganti resep lens yang dipakai kapsul lain: fill FLAT (translusen
+   pas off, solid pas on) dan rim yang bawa cahayanya.
+   Offset rim sengaja 1px, BUKAN 1.5px kayak kapsul lain: track cuma
+   20px tinggi -- 1.5px per sisi makan ~15% tinggi, kebaca outline
+   tebal bukan biasan. Ini penyesuaian proporsi, sama alasannya kayak
+   catatan radius v0.72.7 (elemen kecil butuh angka beda buat kebaca
+   SAMA, bukan angka yang sama).
+   Knob: rim atas terang + bayangan bawah + drop shadow (baca "bola"),
+   TANPA rim kiri-kanan -- di lingkaran radius 7px inset samping
+   nyapu melengkung dan kebaca kotor, bukan tepi.
+
+   [3] TIMING UNSYNC, persis defect yang baru difix v0.72.45 di tab.
+   Track transisi 0.2s (background/border/box-shadow) sementara knob
+   jalan 340ms -- warna track mendarat 140ms sebelum knob berhenti.
+   Disamain ke 340ms.
+   KURVA track sengaja BUKAN easeOutBack: overshoot di properti WARNA
+   artinya nilainya nyelonong lewat warna tujuan dulu -- di knob itu
+   "jelly" yang diminta, di warna itu cuma kelihatan salah. Track
+   pakai kurva mulus (0.32,0.72,0.24,1); knob TETAP easeOutBack
+   (pengecualian resmi v0.72.8, gak disentuh). Dua-duanya beres di
+   340ms, jadi mendarat bareng.
+
+   CATATAN CASCADE: blok prefers-reduced-motion lama (~17731) cuma
+   nyebut `.switch::after`, gak nyentuh track -- dan sekarang track
+   PUNYA transition sendiri. Ditegasin ulang di akhir blok ini buat
+   dua-duanya, sekalian nutup masalah source-order yang sama kayak
+   v0.72.45.
+
+   v0.72.47: warna ON dark DIKOREKSI. Nilai asli (#4fa87c, dari
+   token --accent dark) TERNYATA BEDA dari pola "on-state" yang
+   dipakai elemen lain di dark mode -- `round-pill.active` (~15189)
+   dan `sb-score-box.winner` (~17548) dua-duanya flat #2d6b4e +
+   border #3d8a66 (SAMA PERSIS kayak nilai light, gak dinaikin ke
+   --accent). #4fa87c itu token accent buat teks/border aksen, bukan
+   fill "state aktif solid". Disamain ke #2d6b4e/#3d8a66 biar toggle
+   ini ikut bahasa yang sama kayak dua elemen itu. */
+
+/* ---------- track: OFF (light) ---------- */
+.switch {
+  background-image: none !important;
+  background-color: rgba(45,107,78,0.14) !important;
+  border: 1px solid rgba(45,107,78,0.28) !important;
+  box-shadow:
+      inset 0 1px 1.5px rgba(20,46,32,0.16),
+      inset 0 -1px 1px rgba(255,255,255,0.55),
+      inset 1px 0 1px rgba(20,46,32,0.06),
+      inset -1px 0 1px rgba(20,46,32,0.06) !important;
+  transition:
+      background-color 340ms cubic-bezier(0.32, 0.72, 0.24, 1),
+      border-color     340ms cubic-bezier(0.32, 0.72, 0.24, 1),
+      box-shadow       340ms cubic-bezier(0.32, 0.72, 0.24, 1) !important;
+}
+/* ---------- track: ON (light) -- fill solid, rim varian gelap ---------- */
+.switch.on {
+  background-image: none !important;
+  background-color: #2d6b4e !important;
+  border-color: rgba(45,107,78,0.60) !important;
+  box-shadow:
+      inset 0 1px 1px rgba(255,255,255,0.30),
+      inset 0 -1px 1.5px rgba(0,0,0,0.26),
+      inset 1px 0 1px rgba(255,255,255,0.08),
+      inset -1px 0 1px rgba(255,255,255,0.08) !important;
+}
+/* ---------- track: OFF (dark) ---------- */
+html.dark .switch {
+  background-image: none !important;
+  background-color: rgba(255,255,255,0.10) !important;
+  border-color: rgba(255,255,255,0.16) !important;
+  box-shadow:
+      inset 0 1px 1.5px rgba(0,0,0,0.34),
+      inset 0 -1px 1px rgba(255,255,255,0.10),
+      inset 1px 0 1px rgba(0,0,0,0.16),
+      inset -1px 0 1px rgba(0,0,0,0.16) !important;
+}
+/* ---------- track: ON (dark) ---------- */
+html.dark .switch.on {
+  background-image: none !important;
+  background-color: #2d6b4e !important;
+  border-color: #3d8a66 !important;
+  box-shadow:
+      inset 0 1px 1px rgba(255,255,255,0.34),
+      inset 0 -1px 1.5px rgba(0,0,0,0.28),
+      inset 1px 0 1px rgba(255,255,255,0.08),
+      inset -1px 0 1px rgba(255,255,255,0.08) !important;
+}
+/* ---------- knob ---------- */
+.switch::after {
+  background-image: none !important;
+  background-color: #f7f3e8 !important;
+  box-shadow:
+      inset 0 1px 0.5px rgba(255,255,255,0.95),
+      inset 0 -1px 1px rgba(20,46,32,0.18),
+      0 1px 3px rgba(20,46,32,0.30) !important;
+}
+html.dark .switch::after {
+  background-color: #ece7da !important;
+  box-shadow:
+      inset 0 1px 0.5px rgba(255,255,255,0.90),
+      inset 0 -1px 1px rgba(0,0,0,0.24),
+      0 1px 3px rgba(0,0,0,0.50) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch,
+  .switch::after { transition: none !important; }
 }
 </style>
 </body>
