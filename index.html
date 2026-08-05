@@ -4125,7 +4125,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.42</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.43</div>
     </div>
   </div>
 
@@ -18127,7 +18127,18 @@ html.dark .sb-court-card {
    iPhone. Gak ada cara verifikasi visual langsung dari sini (gak bisa
    render/screenshot Android) -- ini best-effort berdasarkan mekanisme
    CSS yang paling masuk akal, BUKAN dikonfirmasi ngerender bener. */
-html.dark .sb-court-card {
+/* v0.72.43: user lapor card yang UDAH DONE (state .complete) masih
+   flat di Android, meski card yang belum main (new round) udah oke
+   pasca fix di atas. Akarnya BUKAN Android lagi -- murni specificity:
+   ada rule terpisah lebih awal di file (~15620) `html.dark
+   .sb-court-card.complete { box-shadow:none !important; }`, 3 kelas
+   (html.dark + .sb-court-card + .complete) VS rule rim di atas yang
+   cuma 2 kelas (html.dark + .sb-court-card) -- si "done" MENANG duluan
+   walau posisinya lebih awal, karena spesifisitas lebih tinggi. Fix:
+   `.complete` ditambahin ke selector rim, DISAMAKAN spesifisitasnya,
+   biar kena juga. */
+html.dark .sb-court-card,
+html.dark .sb-court-card.complete {
   box-shadow:
       inset 0 2px 2.5px rgba(255,255,255,0.40),
       inset 0 -2px 2.5px rgba(0,0,0,0.32),
