@@ -4125,7 +4125,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.49</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.72.50</div>
     </div>
   </div>
 
@@ -6448,11 +6448,40 @@ function gpTiers(available, activeCount, gamesArr) {
 // strategi diadu lewat skor matchup + penalti double-rest; yang menang
 // yang dipakai. Jadi double-rest cuma terjadi kalau BAYARANNYA setimpal
 // (variasi lawan yang didapat lebih besar dari penaltinya).
-function sampleBubble(bubble, slots, r1, rested2, strategy) {
+function sampleBubble(bubble, slots, r1, rested2, strategy, rankOf) {
+  // v0.72.50: parameter `rankOf` BARU, opsional. Kalau gak dioper (semua
+  // pemanggil Americano-family: buildIndividualAmericanoRound,
+  // buildTeamAmericanoRound, buildMixAmericanoRound), behavior PERSIS
+  // sama kayak sebelumnya -- tie-break murni dari shuffle acak.
+  //
+  // Kalau DIOPER (3 pemanggil Mexicano-family), dalam satu tx-tier yang
+  // sama, kandidat rank LEBIH BAGUS (angka lebih kecil) diprioritasin
+  // MAIN duluan (sort lebih awal -> lebih mungkin masuk `pick`), rank
+  // jelek diprioritasin ISTIRAHAT. Ini nutup gap lama: komentar "FAIR
+  // SIT-OUT: GP first, then rank tiebreak" di 3 builder Mexicano UDAH
+  // ADA dari sebelumnya (rankOf DIHITUNG di situ), tapi gak pernah
+  // benar-benar DIOPER ke sini -- rankOf lama cuma kepakai buat PAIRING
+  // (siapa lawan siapa), bukan buat SIAPA YANG MAIN. Akibatnya: pas GP
+  // lagi seri semua (kejadian wajar setelah beberapa ronde), siapa
+  // istirahat murni random, termasuk rank #1 global bisa kepilih
+  // istirahat sementara rank #2/#3 tetap main -- user lapor lewat
+  // screenshot real, diverifikasi behavioral sebelum fix (bukan asumsi).
+  //
+  // PENTING: ini CUMA tie-break TAMBAHAN di dalam tx-tier yang SAMA --
+  // urutan tx (rested2 > r1-kalau-strategy-rest > sisanya) TETAP nomor
+  // satu, gak pernah dikalahkan rank. Kriteria #1 (GP rata, KAKU) dan
+  // kriteria #6/#7 (anti-3x-beruntun) TETAP di atas rank -- rank cuma
+  // mutusin di antara kandidat yang SUDAH SAMA-SAMA GP & rest-history,
+  // bukan override itu.
   const pool = shuffle(bubble).sort((x, y) => {
     const tx = rested2.has(x) ? 0 : (strategy === 'rest' && r1.has(x) ? 1 : 2);
     const ty = rested2.has(y) ? 0 : (strategy === 'rest' && r1.has(y) ? 1 : 2);
-    return tx - ty;
+    if (tx !== ty) return tx - ty;
+    if (rankOf) {
+      const rx = rankOf[x] ?? 999, ry = rankOf[y] ?? 999;
+      if (rx !== ry) return rx - ry; // rank kecil (bagus) = main duluan
+    }
+    return 0; // gak ada rankOf ATAU rank-nya sama juga -> pertahankan urutan shuffle
   });
   return { pick: pool.slice(0, slots), sit: pool.slice(slots) };
 }
@@ -6832,7 +6861,7 @@ function buildMexicanoMatches(roundIdx) {
   const POOL_ATTEMPTS = 16;
   let best = null, bestScore = Infinity, bestResting = [];
   for (let a = 0; a < POOL_ATTEMPTS; a++) {
-    const { pick, sit } = sampleBubble(bubble, slots, r1, rested2, a % 2 === 0 ? 'rest' : 'free');
+    const { pick, sit } = sampleBubble(bubble, slots, r1, rested2, a % 2 === 0 ? 'rest' : 'free', rankOf);
     const playing = [...forced, ...pick];
     if (playing.length < 4) continue;
     const matches = buildFromPlaying(playing);
@@ -6914,7 +6943,7 @@ function buildTeamMexicanoMatches(roundIdx) {
   const POOL_ATTEMPTS = 16;
   let best = null, bestScore = Infinity, bestResting = [];
   for (let a = 0; a < POOL_ATTEMPTS; a++) {
-    const { pick, sit } = sampleBubble(bubble, slots, r1, rested2, a % 2 === 0 ? 'rest' : 'free');
+    const { pick, sit } = sampleBubble(bubble, slots, r1, rested2, a % 2 === 0 ? 'rest' : 'free', rankOf);
     const playing = [...forced, ...pick].sort((x, y) => (rankOf[x] ?? 999) - (rankOf[y] ?? 999));
     if (playing.length < 2) continue;
     const matches = buildTeamMatches(playing);
@@ -7507,7 +7536,7 @@ function buildMixicanoRound(roundIdx) {
   const tiersM = gpTiers(mPool, needM, hist.games);
   const tiersF = gpTiers(fPool, needF, hist.games);
   const pickGender = (tiers, strategy) => {
-    const s = sampleBubble(tiers.bubble, tiers.slots, lrSet, rested2x, strategy);
+    const s = sampleBubble(tiers.bubble, tiers.slots, lrSet, rested2x, strategy, rankOf);
     return { active: [...tiers.forced, ...s.pick], sit: [...s.sit, ...tiers.above] };
   };
 
