@@ -4138,7 +4138,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.26</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.29</div>
     </div>
   </div>
 
@@ -21018,6 +21018,181 @@ header .header-actions{
 header .brand-img-logo{
   height: 28px !important;
   width: auto !important;
+}
+</style>
+
+
+<style id="codex-revision-v07327-css">
+/* ============================================================
+   v0.73.27 -- setup: jarak header → "Mabar Session Setup" terlalu jauh.
+
+   Akar: padding-top setup = safe-area + 12/26px, PADAHAL header sudah
+   menyerap safe-area di padding-nya sendiri → double counting,
+   terutama di PWA standalone (safe-area ~47–59px).
+
+   Fix: padding atas setup kecil saja (gap visual di bawah header).
+   ============================================================ */
+
+body:not(.viewer-mode) #view-setup .setup-wrap,
+#view-setup .setup-wrap{
+  padding-top: 12px !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+}
+#view-setup .setup-hero,
+#view-setup .setup-title.setup-hero,
+.setup-hero{
+  padding-top: 4px !important;
+  padding-bottom: 2px !important;
+  margin-top: 0 !important;
+  margin-bottom: 4px !important;
+}
+#view-setup .setup-title h1,
+#view-setup .setup-hero h1{
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Standalone: tetap rapat, jangan tambah safe-area lagi */
+@media all and (display-mode: standalone) {
+  body:not(.viewer-mode) #view-setup .setup-wrap,
+  #view-setup .setup-wrap{
+    padding-top: 10px !important;
+  }
+}
+@media (max-width: 640px) {
+  body:not(.viewer-mode) #view-setup .setup-wrap,
+  #view-setup .setup-wrap{
+    padding-top: 10px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
+</style>
+
+
+<style id="codex-revision-v07328-css">
+/* ============================================================
+   v0.73.28 -- onboarding: orang di foto JANGAN kecrop.
+
+   Akar: background-size: cover memaksa isi penuh frame → potong
+   kepala/kaki tergantung rasio layar vs foto.
+
+   Fix: zoom-out pakai contain + center, letterbox warna cream.
+   Blur layer luar tetap cover (hanya dekorasi).
+   ============================================================ */
+
+.onboarding-content{
+  background-size: contain !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  background-color: #ebe4d4 !important;
+}
+
+/* Pastikan tidak ada override position top/bottom yang re-crop */
+#onboardingScreen .onboarding-content{
+  background-size: contain !important;
+  background-position: center center !important;
+}
+
+/* Blur ambient di belakang kartu: boleh cover, posisi center */
+#onboardingScreen::before{
+  background-size: cover !important;
+  background-position: center center !important;
+}
+
+/* Mobile full-bleed: tetap contain biar figure utuh */
+@media (max-width: 640px){
+  .onboarding-content,
+  #onboardingScreen .onboarding-content{
+    background-size: contain !important;
+    background-position: center center !important;
+    background-color: #ebe4d4 !important;
+  }
+}
+
+/* Landscape / tablet: contain + center, jangan center-bottom */
+@media (min-width: 641px){
+  .onboarding-content{
+    background-size: contain !important;
+    background-position: center center !important;
+  }
+}
+</style>
+
+
+<style id="codex-revision-v07329-css">
+/* ============================================================
+   v0.73.29 -- header JANGAN turun saat toggle dark mode.
+
+   Akar: campuran rule top/padding
+     - top: env(safe-area) + padding kecil (v0.70.x)
+     - top: 0 + padding: safe-area (v0.73.21/26)
+   Light & dark menang rule berbeda → sticky offset / padding beda
+   → header "turun" pas ganti mode.
+
+   Fix: kunci geometri IDENTIK light & dark.
+   ============================================================ */
+
+html:not(.dark) header,
+html.dark header,
+html:not(.dark) body.header-scrolled header,
+html.dark body.header-scrolled header,
+body:not(.viewer-mode) header,
+html.dark body:not(.viewer-mode) header{
+  position: sticky !important;
+  top: 0 !important;
+  padding-top: max(10px, env(safe-area-inset-top, 0px)) !important;
+  padding-bottom: 10px !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  height: auto !important;
+  box-sizing: border-box !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  border-top: none !important;
+  transform: none !important;
+  overflow: visible !important;
+}
+
+/* Hanya warna yang beda — bukan geometri */
+html:not(.dark) header,
+html:not(.dark) body.header-scrolled header{
+  background: #f3f5ec !important;
+  background-image: none !important;
+  border-bottom: 1px solid rgba(60,93,0,0.08) !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+html.dark header,
+html.dark body.header-scrolled header{
+  background: #141a0c !important;
+  background-image: none !important;
+  border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+@media (max-width: 640px) {
+  html:not(.dark) header,
+  html.dark header,
+  body:not(.viewer-mode) header{
+    top: 0 !important;
+    padding-top: max(10px, env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: 10px !important;
+    max-height: none !important;
+  }
+}
+
+@media all and (display-mode: standalone) {
+  html:not(.dark) header,
+  html.dark header{
+    top: 0 !important;
+    padding-top: max(12px, env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: 10px !important;
+  }
 }
 </style>
 
