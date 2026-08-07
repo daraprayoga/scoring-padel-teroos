@@ -4135,7 +4135,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.17</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.18</div>
     </div>
   </div>
 
@@ -20500,6 +20500,49 @@ header{
   align-items: center !important;
   margin: 0 !important;
   transform: none !important;
+}
+</style>
+
+
+<style id="codex-revision-v07318-css">
+/* ============================================================
+   v0.73.18 -- kembalikan pill OFFLINE ke bentuk pipih v0.73.15.
+
+   v0.73.16 memaksa height:34px di #fbPushStatus (samain icon) →
+   pill jadi gemuk. User mau yang pipih: padding 4px 9px natural.
+   Icon tetap di-nudge -1px biar optik rata dengan pill pipih.
+   ============================================================ */
+
+/* Cabut paksa tinggi 34px dari pill — biarkan padding natural */
+.header-actions > #fbPushStatus,
+#fbPushStatus{
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: 4px 9px !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 1px !important;
+  line-height: 1 !important;
+  border-radius: 999px !important;
+  gap: 5px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+  transform: none !important;
+}
+#fbPushStatus::before{
+  width: 7px !important;
+  height: 7px !important;
+}
+
+/* Icon: tetap center di row, nudge tipis ke atas biar sejajar pill pipih */
+.header-actions{
+  align-items: center !important;
+}
+.header-actions > .icon-btn,
+.header-actions > label.icon-btn{
+  transform: translateY(-1px) !important;
 }
 </style>
 
