@@ -4135,7 +4135,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.14</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.15</div>
     </div>
   </div>
 
@@ -20308,6 +20308,77 @@ html.dark .sb-score-box.winner{
   width: 52px !important;
   height: 56px !important;
   box-sizing: border-box !important;
+}
+</style>
+
+
+<style id="codex-revision-v07315-css">
+/* ============================================================
+   v0.73.15 -- rapikan whitespace vertikal di sekitar round nav.
+
+   Stack yang bikin "kegedean":
+     topbar margin-bottom 14px (v0.73.13)
+     + #roundPillNav margin 2+10
+     + padding vertikal pill strip (sampai 12px)
+   Total jauh lebih besar dari gap antar court card (10px).
+
+   Target: ritme 8–10px konsisten.
+   - Ada round nav: topbar → pills → courts ≈ 8px masing-masing
+   - Belum ada round nav (display:none): topbar → courts = 10px
+     (sama dengan .sb-courts gap)
+   ============================================================ */
+
+/* Topbar → konten di bawahnya */
+html:not(.dark) .sb-topbar,
+html.dark .sb-topbar,
+html.dark body:not(.viewer-mode) .sb-topbar,
+body:not(.viewer-mode) .sb-topbar{
+  margin-top: 10px !important;
+  margin-bottom: 10px !important;
+}
+
+/* Round pill strip: pad & margin ketat, no band ekstra */
+#roundPillNav,
+html:not(.dark) #roundPillNav,
+html.dark #roundPillNav,
+html:not(.dark) body:not(.viewer-mode) #roundPillNav,
+body:not(.viewer-mode) #roundPillNav,
+body.viewer-mode #roundPillNav{
+  margin-top: 0 !important;
+  margin-bottom: 10px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  gap: 6px !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+@media (max-width: 640px){
+  #roundPillNav,
+  html:not(.dark) #roundPillNav,
+  html.dark #roundPillNav{
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+}
+
+/* Saat belum visible (≤1 ronde): elemen display:none, margin tidak
+   ikut — topbar mb 10px langsung ke courts. Sama dengan gap courts. */
+#roundPillNav:not(.visible){
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Courts gap tetap 10px — acuan ritme */
+html:not(.dark) .sb-courts,
+html.dark .sb-courts,
+.sb-courts{
+  gap: 10px !important;
 }
 </style>
 
