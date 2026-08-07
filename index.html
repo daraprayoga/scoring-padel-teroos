@@ -4135,7 +4135,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.16</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.17</div>
     </div>
   </div>
 
@@ -20447,6 +20447,59 @@ header{
   height: 6px !important;
   margin: 0 !important;
   flex-shrink: 0 !important;
+}
+</style>
+
+
+<style id="codex-revision-v07317-css">
+/* ============================================================
+   v0.73.17 -- icon header naik dikit biar rata dengan pill OFFLINE.
+
+   Pill shape/padding TIDAK disentuh (udah bener). Yang kurang rata
+   itu icon circle: visual weight SVG + border bikin terasa turun
+   1–2px dibanding pill teks. Nudge transform ke atas + pastikan
+   flex center di row.
+   ============================================================ */
+
+header{
+  align-items: center !important;
+}
+.header-actions{
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+/* Icon buttons: naik 1px optik, tinggi sama row */
+.header-actions > .icon-btn,
+.header-actions > label.icon-btn{
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: 0 !important;
+  box-sizing: border-box !important;
+  transform: translateY(-1px) !important;
+}
+.header-actions > .icon-btn svg,
+.header-actions > .icon-btn .icn,
+.header-actions > label.icon-btn svg,
+.header-actions > label.icon-btn .icn{
+  display: block !important;
+  margin: 0 !important;
+  position: relative !important;
+  top: 0 !important;
+}
+/* Pill OFFLINE/LIVE: jangan diubah bentuk — cuma pastikan center di flex */
+.header-actions > #fbPushStatus{
+  display: inline-flex !important;
+  align-items: center !important;
+  margin: 0 !important;
+  transform: none !important;
 }
 </style>
 
