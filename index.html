@@ -4138,7 +4138,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.25</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.26</div>
     </div>
   </div>
 
@@ -20944,6 +20944,82 @@ html.dark #roundPillNav,
   setTimeout(wipe, 600);
 })();
 </script>
+
+
+<style id="codex-revision-v07326-css">
+/* ============================================================
+   v0.73.26 -- header PWA/standalone: jangan kepotong status bar.
+
+   Akar screenshot: rule mobile portrait v0.72.x
+     max-height: 50px !important;
+     padding-top: 5px !important;
+   Di home screen (black-translucent + viewport-fit=cover),
+   safe-area-inset-top ~47–59px. Header dipaksa 50px total →
+   logo & icon kepotong di bawah status bar.
+
+   Fix: cabut max-height, padding-top = safe-area, header solid.
+   ============================================================ */
+
+/* Override max-height 50px di semua mode mobile */
+@media (max-width: 640px) {
+  body:not(.viewer-mode) header,
+  body.viewer-mode header,
+  header{
+    max-height: none !important;
+    min-height: 44px !important;
+    height: auto !important;
+    padding-top: max(10px, env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: 10px !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+    align-items: center !important;
+  }
+}
+
+/* Standalone / installed PWA (iOS & Android) */
+@media all and (display-mode: standalone) {
+  header{
+    max-height: none !important;
+    height: auto !important;
+    padding-top: max(12px, env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: 10px !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 300 !important;
+    overflow: visible !important;
+  }
+  html:not(.dark) header{
+    background: #f3f5ec !important;
+    background-image: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  html.dark header{
+    background: #141a0c !important;
+    background-image: none !important;
+  }
+}
+
+/* iOS legacy standalone class */
+@supports (-webkit-touch-callout: none) {
+  header{
+    max-height: none !important;
+    padding-top: max(10px, env(safe-area-inset-top, 0px)) !important;
+  }
+}
+
+/* Logo & actions jangan kepotong */
+header .brand,
+header .brand-img-logo,
+header .header-actions{
+  overflow: visible !important;
+  max-height: none !important;
+}
+header .brand-img-logo{
+  height: 28px !important;
+  width: auto !important;
+}
+</style>
 
 </body>
 </html>
