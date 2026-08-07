@@ -4135,7 +4135,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.13</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.14</div>
     </div>
   </div>
 
@@ -5703,7 +5703,7 @@ function renderTourneyGroupPhase() {
       <div class="sb-court-card${complete ? ' complete' : ''}">
         <div class="sb-court-header">
           <div class="sb-court-name" data-court-idx="${m.court}" title="Tap to rename">${escapeHtml(courtName)} <span class="sb-edit-icon">✎</span></div>
-          ${statusText ? `<div class="sb-court-status ${statusClass}">${statusText}</div>` : ''}
+          ${statusText ? `<div class=\"sb-court-status ${statusClass}\">${statusText}</div>` : `<div class=\"sb-court-status idle\" aria-hidden=\"true\">Done</div>`}
         </div>
         <div class="sb-match-body">
           <div class="sb-team left">
@@ -8272,7 +8272,7 @@ function renderOverview() {
     card.innerHTML = `
       <div class="sb-court-header">
         <div class="sb-court-name" data-court-idx="${i}" title="Tap to rename">${escapeHtml(courtName)} <span class="sb-edit-icon">✎</span></div>
-        ${statusText ? `<div class="sb-court-status ${statusClass}">${statusText}</div>` : ''}
+        ${statusText ? `<div class=\"sb-court-status ${statusClass}\">${statusText}</div>` : `<div class=\"sb-court-status idle\" aria-hidden=\"true\">Done</div>`}
       </div>
       <div class="sb-match-body">
         <div class="sb-team left">
@@ -8455,18 +8455,29 @@ function refreshCourtCard(mIdx) {
     if (inp.value !== String(val)) inp.value = val;
   });
 
-  // Status badge
-  const statusEl = card.querySelector('.sb-court-status');
-  if (complete) {
-    if (statusEl) { statusEl.textContent = 'Done'; statusEl.className = 'sb-court-status done'; }
-    else {
-      const hdr = card.querySelector('.sb-court-header');
-      const badge = document.createElement('div');
-      badge.className = 'sb-court-status done'; badge.textContent = 'Done';
-      hdr.appendChild(badge);
+  // Status badge — slot SELALU ada (idle/live/done) biar tinggi card stabil
+  let statusEl = card.querySelector('.sb-court-status');
+  if (!statusEl) {
+    const hdr = card.querySelector('.sb-court-header');
+    if (hdr) {
+      statusEl = document.createElement('div');
+      hdr.appendChild(statusEl);
     }
-  } else if (m.scoreA > 0 || m.scoreB > 0) {
-    if (statusEl) { statusEl.textContent = 'Live'; statusEl.className = 'sb-court-status live'; }
+  }
+  if (statusEl) {
+    if (complete) {
+      statusEl.textContent = 'Done';
+      statusEl.className = 'sb-court-status done';
+      statusEl.removeAttribute('aria-hidden');
+    } else if (m.scoreA > 0 || m.scoreB > 0) {
+      statusEl.textContent = 'Live';
+      statusEl.className = 'sb-court-status live';
+      statusEl.removeAttribute('aria-hidden');
+    } else {
+      statusEl.textContent = 'Done';
+      statusEl.className = 'sb-court-status idle';
+      statusEl.setAttribute('aria-hidden', 'true');
+    }
   }
 
   // Winner dot (v0.70.56): dot sudah SELALU ada di dua sisi sejak render
@@ -20253,6 +20264,52 @@ html:not(.dark) .bottom-nav{
   });
 })();
 </script>
+
+
+<style id="codex-revision-v07314-css">
+/* ============================================================
+   v0.73.14 -- tinggi court card stabil sebelum/sesudah input skor.
+
+   Akar: badge Done/Live cuma dirender SETELAH ada skor → header
+   tambah satu elemen → card memanjang vertikal. Winner-dot sudah
+   direservasi (v0.70.56); status badge belum.
+
+   Fix: slot status SELALU ada (idle = visibility:hidden, teks
+   placeholder "Done" biar lebar max terreservasi). Tinggi header
+   min-height dikunci ke ukuran dengan badge.
+   ============================================================ */
+
+.sb-court-status{
+  min-width: 52px !important;
+  min-height: 22px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+/* idle: tetap ambil ruang, tapi tidak kelihatan */
+.sb-court-status.idle{
+  visibility: hidden !important;
+  pointer-events: none !important;
+  /* jaga ukuran sama dengan .done (padding ikut rule status) */
+}
+html:not(.dark) .sb-court-header,
+html.dark .sb-court-header,
+.sb-court-header{
+  min-height: 28px !important;
+  align-items: center !important;
+}
+/* score box: jangan berubah ukuran saat .winner */
+html:not(.dark) .sb-score-box,
+html.dark .sb-score-box,
+html:not(.dark) .sb-score-box.winner,
+html.dark .sb-score-box.winner{
+  width: 52px !important;
+  height: 56px !important;
+  box-sizing: border-box !important;
+}
+</style>
 
 </body>
 </html>
