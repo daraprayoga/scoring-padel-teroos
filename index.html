@@ -4135,7 +4135,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.21</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.22</div>
     </div>
   </div>
 
@@ -11154,19 +11154,9 @@ saveState = window.saveState;
     const headerBottom = topPx + h.getBoundingClientRect().height;
     document.documentElement.style.setProperty('--app-header-h', headerBottom + 'px');
     // Pills stack directly below the (also-sticky) round-nav bar.
-    // v0.73.21: topbar sekarang sticky di `header bottom + 10px` (gap
-    // nafas, lihat blok CSS codex-revision-v07321). Jadi posisi bawah
-    // topbar = headerBottom + GAP + tinggi topbar -- GAP-nya WAJIB ikut
-    // dihitung, kalau enggak pills bakal naik 10px ketinggian dan nutupin
-    // bagian bawah topbar.
-    const TOPBAR_STICKY_GAP = 10;
     const tb = document.querySelector('.sb-topbar');
-    const tbVisible = tb && getComputedStyle(tb).display !== 'none';
-    const tbH = tbVisible ? tb.getBoundingClientRect().height : 0;
-    const pillsTop = tbVisible
-      ? (headerBottom + TOPBAR_STICKY_GAP + tbH + 8) // +8 = jarak topbar->pills
-      : headerBottom;
-    document.documentElement.style.setProperty('--nav-pills-top', pillsTop + 'px');
+    const tbH = (tb && getComputedStyle(tb).display !== 'none') ? tb.getBoundingClientRect().height : 0;
+    document.documentElement.style.setProperty('--nav-pills-top', (headerBottom + tbH) + 'px');
   }
   window.addEventListener('stateRendered', syncHeaderH);
   window.addEventListener('resize', syncHeaderH);
@@ -16094,7 +16084,27 @@ html.dark .mixg-custom {
     linear-gradient(110deg, rgba(250, 244, 233, 0.38) 0%, rgba(250, 244, 233, 0.08) 44%, rgba(49,62,23,0.08) 100%),
     var(--onboarding-photo);
   background-size: cover;
-  background-position: center 43%;
+  /* v0.73.22: user minta gambar sepatu orang jangan sampe kecrop. Dicek
+     langsung -- extract base64 foto ini dari kode, decode jadi file,
+     lihat komposisinya beneran (bukan nebak): 2 orang jalan bawa raket,
+     posisinya di SISI KIRI foto (bukan tengah), sepatu mereka DEKAT
+     tepi bawah komposisi foto aslinya.
+
+     `center 43%` (lama) disimulasikan pakai crop math background-size:
+     cover yang sebenarnya (bukan asumsi) di 2 skenario:
+     - viewport HP biasa (393x852): crop HORIZONTAL 18% dari lebar,
+       posisi center motong PERSIS di sepatu kedua orang (dikonfirmasi
+       visual, bukan dugaan).
+     - viewport lebih lebar (768x1024, mis. tablet/foldable): crop
+       VERTIKAL 25% dari tinggi, posisi 43% motong kaki sampai BETIS --
+       jauh lebih parah.
+
+     Fix: `15% 85%` -- digeser dari center/43% biar area yang "dikorbankan"
+     pas dipotong itu SISI KANAN (lapangan kosong, kurang penting) dan
+     ATAS (langit, kurang penting), bukan sisi kiri-bawah tempat 2 orang
+     dan sepatu mereka berada. Diverifikasi ulang lewat simulasi crop
+     yang SAMA di KEDUA skenario device -- sepatu utuh di dua-duanya. */
+  background-position: 15% 85%;
   transform: scale(1.01);
 }
 #onboardingScreen::after {
@@ -20749,77 +20759,78 @@ html.dark body:not(.viewer-mode) #roundPillNav.visible{
 
 <style id="codex-revision-v07321-css">
 /* ============================================================
-   v0.73.21 -- HUBUNGAN HEADER <-> STICKY TOPBAR
+   v0.73.21 -- STICKY TOPBAR: balik ke pola v0.72 yang terbukti bener
    ============================================================
-   MASALAH (user: "sangat tidak proper"): .sb-topbar di-styling sebagai
-   KARTU MELAYANG (margin kiri-kanan 12px, radius, shadow) TAPI
-   diposisikan sebagai BAND MENEMPEL (`top: var(--app-header-h)` = persis
-   di garis bawah header, nol jarak). Dua bahasa yang bentrok:
-     1. Pas nempel, kartu melayang itu mentok rapat ke header -- gak ada
-        nafas, kebaca "nyangkut" bukan "melayang di bawah header".
-     2. Karena dia punya margin kiri-kanan, ada CELAH 12px di kiri & kanan
-        yang GAK KETUTUP apa-apa -- court card di belakangnya (lebih lebar)
-        kelihatan lewat di celah itu pas discroll. Ini yang bikin kebaca
-        berantakan di screenshot.
+   User: "style design udah bener, problemnya dia ngumpet di belakang
+   header atau sticky nempel sama card bawahnya. Cek versi 72 itu bener."
 
-   FIX:
-   (a) Kasih jarak nafas: sticky top = header bottom + 10px, jadi kartu
-       beneran kebaca "melayang di bawah header", bukan nempel mentok.
-   (b) Tutup celah kiri-kanan + area gap pakai scrim ::before yang
-       melebar sampai ke tepi layar. Scrim pakai GRADIENT YANG SAMA PERSIS
-       dengan `html` + `background-attachment:fixed`. Karena fixed itu
-       nge-anchor gradient ke VIEWPORT (bukan ke elemen), scrim-nya
-       otomatis nyambung mulus sama background halaman -- gak keliatan
-       sebagai patch, dan tetap benar walau halaman discroll.
-       z-index:-1 supaya di belakang isi topbar sendiri tapi tetap di
-       depan konten yang lewat.
+   Dibandingkan langsung: di v0.72.50 `.sb-topbar` itu BAND FULL-WIDTH
+   NEMPEL -- tanpa margin kiri-kanan, tanpa radius, background solid +
+   blur, z-index 39. Bersih karena: (a) gak ada celah samping, jadi
+   konten yang lewat di belakangnya ketutup PENUH; (b) nempel rapat ke
+   header sebagai satu kesatuan band, bukan kartu yang ngambang.
+
+   Di v0.73.20 ini diubah jadi KARTU MELAYANG (margin-left/right 12px +
+   radius + shadow). Dua gejala yang user lapor lahir dari situ:
+     - "ngumpet di belakang header": kartu melayang yang mepet header
+       jadi ambigu batasnya, kebaca kayak nyelip ke belakang.
+     - "sticky nempel sama card bawahnya": pas nempel, court card di
+       bawahnya naik terus sampai mepet tanpa pemisah, dan karena topbar
+       punya celah 12px di kiri-kanan, court card kelihatan nyembul
+       lewat celah itu.
+
+   FIX: kembalikan geometri sticky-nya ke pola v0.72 (full-bleed, nempel
+   ke header), TAPI warna/blur/tipografi v0.73.20 DIPERTAHANKAN -- yang
+   user bilang udah bener itu style-nya, bukan geometrinya.
+
+   CATATAN: percobaan sebelumnya (scrim ::before buat nutup celah samping)
+   DIBATALKAN TOTAL -- scrim-nya malah nutupin header "TERRA" di court
+   card pertama. Pendekatan nutup-celah itu salah arah; yang bener ya
+   hilangin celahnya sama sekali.
    ============================================================ */
 
 body:not(.viewer-mode) .sb-topbar,
 html:not(.dark) body:not(.viewer-mode) .sb-topbar,
 html.dark body:not(.viewer-mode) .sb-topbar{
-  /* (a) jarak nafas dari header */
-  top: calc(var(--app-header-h, 64px) + 10px) !important;
-  /* margin-top flow dikurangi -- 18px kegedean sekarang karena udah ada
-     offset 10px di sticky top; total jadi terlalu jauh pas belum nempel */
-  margin-top: 12px !important;
   position: sticky !important;
-  isolation: isolate; /* jaga z-index anak (::before) gak bocor keluar */
+  top: var(--app-header-h, calc(env(safe-area-inset-top, 0px) + 52px)) !important;
+  /* full-bleed: hilangkan celah kiri-kanan yang bikin konten nyembul */
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  margin-top: 0 !important;
+  /* jarak ke court card pertama -- ini yang bikin gak "nempel sama card
+     bawahnya" pas sticky aktif */
+  margin-bottom: 14px !important;
+  border-radius: 0 !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+  /* shadow kartu diganti garis pemisah tipis + lift halus ke bawah doang,
+     biar batas bawahnya tegas pas konten lewat di belakangnya */
+  box-sizing: border-box !important;
+}
+html:not(.dark) body:not(.viewer-mode) .sb-topbar{
+  background: rgba(243,246,235,0.97) !important;
+  border-top: 0 !important;
+  border-bottom: 1px solid rgba(60,93,0,0.10) !important;
+  box-shadow: 0 6px 14px rgba(44,68,0,0.06) !important;
+}
+html.dark body:not(.viewer-mode) .sb-topbar{
+  background: rgba(20,26,12,0.97) !important;
+  border-top: 0 !important;
+  border-bottom: 1px solid rgba(255,255,255,0.10) !important;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.30) !important;
+}
+@media (max-width: 640px){
+  body:not(.viewer-mode) .sb-topbar{
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
 }
 
-/* (b) scrim penutup celah kiri-kanan + gap atas */
-body:not(.viewer-mode) .sb-topbar::before{
-  content: '' !important;
-  position: absolute !important;
-  /* -12px = persis selebar margin kiri/kanan topbar (lihat rule margin
-     di blok sebelumnya); -100vw jadi jaminan nutup penuh walau margin
-     berubah di breakpoint lain (mis. 10px di <=640px) */
-  left: -100vw !important;
-  right: -100vw !important;
-  /* ke atas: nutup gap 10px + margin-top, sampai ketemu garis header.
-     Dilebihin dikit (22px) biar gak ada garis rambut sisa pas subpixel. */
-  top: -22px !important;
-  bottom: -1px !important;
-  z-index: -1 !important;
-  pointer-events: none !important;
-}
-html:not(.dark) body:not(.viewer-mode) .sb-topbar::before{
-  background:
-    radial-gradient(78% 40% at 82% 0%, rgba(112,146,36,0.30) 0%, transparent 62%),
-    radial-gradient(60% 32% at 5% 12%, rgba(112,146,36,0.14) 0%, transparent 60%),
-    linear-gradient(180deg,#eef3e2 0%, #f2f5e9 100%) !important;
-  background-attachment: fixed !important;
-}
-html.dark body:not(.viewer-mode) .sb-topbar::before{
-  background: #141a0c !important;
-  background-attachment: fixed !important;
-}
-
-/* Round pills: ikut turun sesuai gap baru. --nav-pills-top dihitung ulang
-   di JS (lihat patch syncHeaderH v0.73.21) -- fallback statis dinaikin
-   biar konsisten kalau JS belum sempat jalan. */
+/* Round pills ikut pola sama: nempel di bawah topbar, full-bleed */
 body:not(.viewer-mode) #roundPillNav.visible{
-  top: var(--nav-pills-top, 174px) !important;
+  top: var(--nav-pills-top, calc(env(safe-area-inset-top, 0px) + 104px)) !important;
+  margin-top: 0 !important;
 }
 </style>
 </body>
