@@ -4138,7 +4138,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.32</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.33</div>
     </div>
   </div>
 
@@ -6907,14 +6907,17 @@ function buildMexicanoMatches(roundIdx) {
     const matches = buildFromPlaying(playing);
     // v0.73.31: ACTIVE_SET_REPEAT_PENALTY DIHIDUPIN LAGI di Mexicano.
     // User: "kohort break segera, jangan kebagi 4-4, semua mungkin saling
-    // ketemu segera". Pairing in-court tetap 1+4 vs 2+3 dari rank (kriteria
-    // #4). Yang dihukum = mengulang SET LENGKAP roster main yang sama
-    // (kriteria #5) -- biar di occupancy 50% (8p/1c, 16p/2c) kohort gak
-    // terkunci. GP-tier (kriteria #1) tetap kaku lewat gpTiers.
+    // v0.73.33: ACTIVE_SET_REPEAT_PENALTY (baris di atas) sempat balik lagi
+    // di v0.73.31 -- itu REGRESI GAK SENGAJA, dikonfirmasi user, bukan
+    // keputusan sadar. Dicabut lagi, balik ke keputusan v0.72.49: buat
+    // Mexicano, WAJAR dua orang ketemu lagi terus SELAMA pairing-nya
+    // tetap rank-based dari klasemen live (kriteria #4) -- itu bukti
+    // sistem kerja bener, bukan bug. Fairness Mexicano dari klasemen +
+    // GP-tier (kriteria #1, tetap kaku lewat gpTiers, TIDAK disentuh),
+    // bukan dari variasi kohort (#5, itu logic Americano).
     const score = matchesCost(matches)
       + DOUBLE_REST_PENALTY * doubleRestCount(sit, r1)
-      + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast)
-      + ACTIVE_SET_REPEAT_PENALTY * activeSetRepeatCount(playing, roundIdx);
+      + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast);
     if (score < bestScore) {
       bestScore = score;
       best = { matches, playing };
@@ -6982,11 +6985,12 @@ function buildTeamMexicanoMatches(roundIdx) {
     const playing = [...forced, ...pick].sort((x, y) => (rankOf[x] ?? 999) - (rankOf[y] ?? 999));
     if (playing.length < 2) continue;
     const matches = buildTeamMatches(playing);
-    // v0.73.31: ACTIVE_SET_REPEAT_PENALTY hidup lagi (kohort break, sama
-    // individual mexicano). Ranking pair tetap dipakai untuk matchup.
+    // v0.73.33: ACTIVE_SET_REPEAT_PENALTY (v0.73.31) DICABUT LAGI --
+    // regresi gak sengaja terhadap keputusan v0.72.49, dikonfirmasi user.
+    // Team Mexicano tetap Mexicano: fairness rank-based (#4), bukan
+    // cohort-variety (#5).
     let score = DOUBLE_REST_PENALTY * doubleRestCount(sit, r1)
-      + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast)
-      + ACTIVE_SET_REPEAT_PENALTY * activeSetRepeatCount(playing, roundIdx);
+      + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast);
     matches.forEach(m => { score += hist.opponent[m.teamA[0]][m.teamB[0]]; });
     if (score < bestScore) {
       bestScore = score;
@@ -7585,12 +7589,13 @@ function buildMixicanoRound(roundIdx) {
     const rk = (id) => rankOf[id] ?? 999;
     const sm = [...pM.active].sort((x, y) => rk(x) - rk(y));
     const sf = [...pF.active].sort((x, y) => rk(x) - rk(y));
-    // v0.73.31: ACTIVE_SET_REPEAT_PENALTY hidup lagi di Mixicano (kohort
-    // break). Pairing in-court tetap rank-based cross-gender.
+    // v0.73.33: ACTIVE_SET_REPEAT_PENALTY (v0.73.31) DICABUT LAGI --
+    // regresi gak sengaja, dikonfirmasi user. Mixicano = "true
+    // Mexicano-style: rank-based pairing" (beda dari mix_americano yang
+    // TETAP kena kriteria #5), jadi ikut prinsip Mexicano yang sama.
     const combinedPlaying = [...pM.active, ...pF.active];
     let score = DOUBLE_REST_PENALTY * doubleRestCount([...pM.sit, ...pF.sit], lrSet)
-      + CONSEC_PLAY_PENALTY * consecPlayCount(combinedPlaying.filter(id => !mustRest.has(id)), playedLast)
-      + ACTIVE_SET_REPEAT_PENALTY * activeSetRepeatCount(combinedPlaying, roundIdx);
+      + CONSEC_PLAY_PENALTY * consecPlayCount(combinedPlaying.filter(id => !mustRest.has(id)), playedLast);
     for (let c = 0; c < state.courts; c++) {
       const mG = sm.slice(c * 2, c * 2 + 2), fG = sf.slice(c * 2, c * 2 + 2);
       if (mG.length < 2 || fG.length < 2) break;
