@@ -4135,7 +4135,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.15</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.16</div>
     </div>
   </div>
 
@@ -20379,6 +20379,74 @@ html:not(.dark) .sb-courts,
 html.dark .sb-courts,
 .sb-courts{
   gap: 10px !important;
+}
+</style>
+
+
+<style id="codex-revision-v07316-css">
+/* ============================================================
+   v0.73.16 -- header actions: rata tengah vertikal.
+
+   Icon circle (34px) vs pill OFFLINE/LIVE (padding beda + line-height
+   teks) bikin baseline tidak sejajar. Kunci tinggi + flex center.
+   ============================================================ */
+
+header{
+  align-items: center !important;
+}
+.header-actions{
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 6px !important;
+}
+/* Semua anak (icon-btn + status pill + label load) satu tinggi */
+.header-actions > .icon-btn,
+.header-actions > label.icon-btn,
+.header-actions > #fbPushStatus{
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+  flex-shrink: 0 !important;
+}
+.header-actions > .icon-btn,
+.header-actions > label.icon-btn{
+  width: 34px !important;
+  min-width: 34px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+}
+.header-actions > .icon-btn svg,
+.header-actions > .icon-btn .icn,
+.header-actions > label.icon-btn svg,
+.header-actions > label.icon-btn .icn{
+  display: block !important;
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+}
+#fbPushStatus{
+  padding: 0 10px !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  border-radius: 999px !important;
+  gap: 5px !important;
+}
+#fbPushStatus::before{
+  width: 6px !important;
+  height: 6px !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
 }
 </style>
 
