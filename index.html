@@ -4135,7 +4135,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.18</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.19</div>
     </div>
   </div>
 
@@ -20543,6 +20543,68 @@ header{
 .header-actions > .icon-btn,
 .header-actions > label.icon-btn{
   transform: translateY(-1px) !important;
+}
+</style>
+
+
+<style id="codex-revision-v07319-css">
+/* ============================================================
+   v0.73.19 -- topbar/court card tidak boleh nyangkut di bawah header.
+
+   Gejala (video): baris ROUND + Score/Standings ketutup header sticky,
+   scroll mentok ke atas tetap tidak bisa dibuka penuh.
+
+   Akar:
+   1. Base .sb-topbar { position:sticky; top:0 } — kalau sticky menang,
+      topbar nempel viewport top di BAWAH header (z-index lebih rendah)
+      dan baris atasnya selalu ketutup.
+   2. v0.70.30 sudah static, tapi margin sat+6 tertimpa margin-top:10px
+      dari v0.73.13/15 → di iPhone dengan header sticky top:env(sat)
+      konten awal bisa masuk zona header.
+
+   Fix (akhir cascade, !important):
+   - Hanya <header> yang sticky
+   - .sb-topbar + #roundPillNav STATIC, scroll ikut konten
+   - margin-top topbar = gap visual saja (10px); header in-flow
+     sudah menyisakan ruang
+   ============================================================ */
+
+/* Hanya app header yang sticky */
+body:not(.viewer-mode) header,
+body.viewer-mode header,
+header{
+  position: sticky !important;
+  z-index: 100000 !important;
+}
+
+/* Topbar + round pills: ikut scroll, jangan sticky */
+body:not(.viewer-mode) .sb-topbar,
+body.viewer-mode .sb-topbar,
+body.viewer-url .sb-topbar,
+.viewer-url .sb-topbar,
+html:not(.dark) .sb-topbar,
+html.dark .sb-topbar,
+.sb-topbar{
+  position: static !important;
+  top: auto !important;
+  z-index: auto !important;
+  /* gap di bawah header — header in-flow, cukup 10px napas */
+  margin-top: 10px !important;
+}
+
+body:not(.viewer-mode) #roundPillNav,
+body.viewer-mode #roundPillNav,
+body.viewer-url #roundPillNav,
+.viewer-url #roundPillNav,
+#roundPillNav{
+  position: static !important;
+  top: auto !important;
+  z-index: auto !important;
+}
+
+/* Saat scroll ke elemen dalam score view, jangan ketutup header */
+html{
+  scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 56px) !important;
 }
 </style>
 
