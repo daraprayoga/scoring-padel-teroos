@@ -4135,7 +4135,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.18</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.19</div>
     </div>
   </div>
 
@@ -20543,6 +20543,67 @@ header{
 .header-actions > .icon-btn,
 .header-actions > label.icon-btn{
   transform: translateY(-1px) !important;
+}
+</style>
+
+
+<style id="codex-revision-v07319-css">
+/* ============================================================
+   v0.73.19 -- sb-topbar STICKY di bawah header (bukan static).
+
+   Akar: v0.70.30 memaksa `position:static !important` pada .sb-topbar
+   supaya tidak nutupin court card. Akibatnya saat scroll, topbar
+   (Next Round dll) ikut naik dan NGUMPET di belakang header sticky
+   (z-index 100000).
+
+   Fix: sticky lagi, top = --app-header-h (diukur JS = tepi bawah
+   header). z-index di bawah header, di atas konten. Background solid
+   cukup biar court card tidak kelihatan tembus di belakangnya.
+   ============================================================ */
+
+/* Override v0.70.30 static — topbar nempel di bawah header */
+body:not(.viewer-mode) .sb-topbar,
+html:not(.dark) body:not(.viewer-mode) .sb-topbar,
+html.dark body:not(.viewer-mode) .sb-topbar{
+  position: sticky !important;
+  top: var(--app-header-h, calc(env(safe-area-inset-top, 0px) + 52px)) !important;
+  z-index: 90 !important; /* header = 100000, konten < 90 */
+  margin-top: 10px !important;
+  margin-bottom: 10px !important;
+  /* tutup konten yang lewat di belakang saat sticky */
+  -webkit-backdrop-filter: blur(18px) saturate(160%) !important;
+  backdrop-filter: blur(18px) saturate(160%) !important;
+}
+html:not(.dark) body:not(.viewer-mode) .sb-topbar{
+  background: rgba(245,247,238,0.92) !important;
+  border: 1px solid rgba(255,255,255,0.85) !important;
+  box-shadow: 0 8px 20px rgba(44,68,0,0.08) !important;
+}
+html.dark body:not(.viewer-mode) .sb-topbar{
+  background: rgba(26,32,16,0.94) !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.28) !important;
+}
+
+/* Round pills ikut sticky di bawah topbar (kalau visible) */
+body:not(.viewer-mode) #roundPillNav.visible{
+  position: sticky !important;
+  top: var(--nav-pills-top, calc(env(safe-area-inset-top, 0px) + 110px)) !important;
+  z-index: 89 !important;
+  background: rgba(245,247,238,0.92) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  backdrop-filter: blur(14px) !important;
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+  margin-bottom: 8px !important;
+}
+html.dark body:not(.viewer-mode) #roundPillNav.visible{
+  background: rgba(26,32,16,0.94) !important;
+}
+/* tidak visible: jangan sticky, jangan ambil ruang */
+body:not(.viewer-mode) #roundPillNav:not(.visible){
+  position: static !important;
+  top: auto !important;
 }
 </style>
 
