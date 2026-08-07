@@ -4135,7 +4135,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.12</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.13</div>
     </div>
   </div>
 
@@ -20004,6 +20004,255 @@ html.dark .sb-court-header,
   font-size: 11px !important;
 }
 </style>
+
+
+<style id="codex-revision-v07313-css">
+/* ============================================================
+   v0.73.13 -- 4 revisi user.
+
+   [1] Gap header → card topbar terlalu deket. Samain dengan gap
+       antar court card (~10–12px) → naikkin margin-top topbar.
+   [2] Motion Score↔Standings lebih jelly (spring overshoot).
+   [3] Score quick-pick chips (CSS panel; JS di blok script terpisah).
+   [4] Sticky dock light: frosted + transparan, bukan putih solid.
+   ============================================================ */
+
+/* ---------- [1] Gap header → topbar card ---------- */
+html:not(.dark) .sb-topbar,
+html.dark .sb-topbar,
+html.dark body:not(.viewer-mode) .sb-topbar,
+body:not(.viewer-mode) .sb-topbar{
+  margin-top: 12px !important;
+  margin-bottom: 14px !important;
+}
+/* Round pill strip: sedikit napas di bawah topbar */
+#roundPillNav,
+html:not(.dark) #roundPillNav,
+html.dark #roundPillNav{
+  margin-top: 2px !important;
+  margin-bottom: 10px !important;
+}
+
+/* ---------- [2] Jelly spring Score↔Standings ----------
+   Overshoot spring (sama keluarga --transition-spring / easeOutBack).
+   Durasi sedikit lebih panjang biar "kenyal" kebaca. */
+.sb-tabs-motion .sb-tab-pill{
+  transition:
+      transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      width     420ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+.sb-tabs-motion .sb-tab-icn{
+  transition:
+      width        420ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      margin-right 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      opacity      280ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+.sb-tabs-motion .sb-tab{
+  transition:
+      color      420ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      background 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 420ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+.sb-page-in-from-right{
+  animation: sbPageInRightJelly 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both !important;
+}
+.sb-page-in-from-left{
+  animation: sbPageInLeftJelly 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both !important;
+}
+@keyframes sbPageInRightJelly{
+  from { opacity: 0; transform: translateX(14px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes sbPageInLeftJelly{
+  from { opacity: 0; transform: translateX(-14px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce){
+  .sb-tabs-motion .sb-tab-pill,
+  .sb-tabs-motion .sb-tab-icn,
+  .sb-tabs-motion .sb-tab{
+    transition: none !important;
+  }
+  .sb-page-in-from-right,
+  .sb-page-in-from-left{
+    animation: none !important;
+  }
+}
+
+/* ---------- [3] Score quick-pick panel ---------- */
+.score-quick-pick{
+  position: fixed;
+  z-index: 10050;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: min(320px, calc(100vw - 16px));
+  padding: 8px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(60,93,0,0.14);
+  box-shadow: 0 10px 28px rgba(44,68,0,0.16), 0 2px 8px rgba(44,68,0,0.08);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+  animation: sqpIn 180ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+html.dark .score-quick-pick{
+  background: rgba(26,32,16,0.94);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.40);
+}
+@keyframes sqpIn{
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+.score-quick-chip{
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(60,93,0,0.14);
+  background: rgba(60,93,0,0.06);
+  color: #3c5d00;
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, transform 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.score-quick-chip:active{ transform: scale(0.92); }
+.score-quick-chip.on{
+  background: #5d7c1c;
+  border-color: transparent;
+  color: #fff;
+}
+html.dark .score-quick-chip{
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.12);
+  color: #ece7da;
+}
+html.dark .score-quick-chip.on{
+  background: #5d7c1c;
+  color: #fff;
+  border-color: transparent;
+}
+@media (prefers-reduced-motion: reduce){
+  .score-quick-pick{ animation: none !important; }
+}
+
+/* ---------- [4] Sticky dock light: frosted, bukan putih solid ---------- */
+html:not(.dark) .bottom-nav{
+  background: rgba(245,247,238,0.72) !important;
+  border-top: 1px solid rgba(60,93,0,0.10) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  box-shadow: 0 -6px 20px rgba(44,68,0,0.06) !important;
+}
+</style>
+
+
+<script id="codex-revision-v07313-js">
+/* v0.73.13 -- score quick-pick chips.
+   Saat fokus ke .sb-score-input, tampilkan baris angka 0..target
+   (dari modeInfo: total_of_N / race_to_N / points_N). Tap chip =
+   set value + dispatch input (handler existing yang nge-commit).
+   Input manual tetap jalan. Viewer mode: skip. */
+(function(){
+  let panel = null;
+  let activeInp = null;
+  let hideTimer = null;
+
+  function removePanel(){
+    if (panel && panel.parentNode) panel.parentNode.removeChild(panel);
+    panel = null;
+    activeInp = null;
+  }
+
+  function targetMax(){
+    try {
+      if (typeof modeInfo === 'function' && typeof state !== 'undefined' && state && state.mode) {
+        const info = modeInfo(state.mode);
+        if (info && info.target && info.target > 0 && info.target <= 32) return info.target;
+      }
+    } catch (_) {}
+    return 5;
+  }
+
+  function placePanel(inp){
+    if (!panel) return;
+    const r = inp.getBoundingClientRect();
+    const pw = panel.offsetWidth || 200;
+    const ph = panel.offsetHeight || 44;
+    let left = r.left + r.width / 2 - pw / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+    let top = r.bottom + 8;
+    if (top + ph > window.innerHeight - 12) {
+      top = Math.max(8, r.top - ph - 8);
+    }
+    panel.style.left = left + 'px';
+    panel.style.top = top + 'px';
+  }
+
+  function showFor(inp){
+    if (!inp || inp.disabled || inp.readOnly) return;
+    if (document.body.classList.contains('viewer-mode')) return;
+    removePanel();
+    activeInp = inp;
+    const max = targetMax();
+    panel = document.createElement('div');
+    panel.className = 'score-quick-pick';
+    panel.setAttribute('role', 'listbox');
+    panel.setAttribute('aria-label', 'Pilih skor cepat');
+    const cur = String(inp.value || '');
+    for (let n = 0; n <= max; n++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'score-quick-chip' + (cur === String(n) ? ' on' : '');
+      btn.textContent = String(n);
+      btn.setAttribute('role', 'option');
+      btn.addEventListener('pointerdown', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+        inp.value = String(n);
+        try {
+          inp.dispatchEvent(new Event('input', { bubbles: true }));
+        } catch (_) {}
+        try { inp.blur(); } catch (_) {}
+        removePanel();
+      });
+      panel.appendChild(btn);
+    }
+    document.body.appendChild(panel);
+    placePanel(inp);
+  }
+
+  document.addEventListener('focusin', function(e){
+    const t = e.target;
+    if (!t || !t.classList || !t.classList.contains('sb-score-input')) return;
+    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+    showFor(t);
+  });
+
+  document.addEventListener('focusout', function(e){
+    const t = e.target;
+    if (!t || !t.classList || !t.classList.contains('sb-score-input')) return;
+    hideTimer = setTimeout(removePanel, 200);
+  });
+
+  window.addEventListener('scroll', function(){
+    if (panel && activeInp) placePanel(activeInp);
+  }, true);
+
+  window.addEventListener('resize', function(){
+    if (panel && activeInp) placePanel(activeInp);
+  });
+})();
+</script>
 
 </body>
 </html>
