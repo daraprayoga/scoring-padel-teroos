@@ -4138,7 +4138,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.31</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.32</div>
     </div>
   </div>
 
@@ -6791,6 +6791,29 @@ function buildIndividualMatchesFromAssignments(assignments) {
   });
 }
 
+// v0.73.32: ranking KHUSUS Mexicano-family untuk pairing.
+// UI sortBy (wins/diff/winrate) JANGAN mempengaruhi pairing — Mexicano
+// selalu dari klasemen LIVE: points → wins → h2h → diff → games.
+// Sit-out tetap GP (games played) dulu lewat gpTiers; saat GP sama,
+// rankOf dari list ini jadi tiebreak (sampleBubble).
+function mexicanoStandings() {
+  const base = computeStandings();
+  // computeStandings sudah apply bonus kompensasi. Re-sort points-first
+  // terlepas dari state.sortBy.
+  const h2h = (typeof h2hScoreDiff === 'function') ? h2hScoreDiff : (() => 0);
+  return [...base].sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points;
+    if (b.wins !== a.wins) return b.wins - a.wins;
+    const h = h2h(b.id, a.id);
+    if (h !== 0) return h;
+    if (b.diff !== a.diff) return b.diff - a.diff;
+    // GP (games) sama atau beda: yang lebih sedikit game sedikit di belakang
+    // (setelah kompensasi points biasanya sudah adil).
+    if (b.games !== a.games) return b.games - a.games;
+    return a.id - b.id; // stabil
+  });
+}
+
 // Individual Mexicano: pure standings-based assignment every round.
 // Round 0 or no scores yet → random (handled by caller).
 // Round N>0 with scores: sort by standings, top 4 → court 1, etc.
@@ -6830,17 +6853,14 @@ function buildMexicanoMatches(roundIdx) {
     };
   }
 
-  // === FAIR SIT-OUT: GP first, then rank tiebreak ===
-  // Step 1: get standings rank for each player
-  const standings = computeStandings();
+  // === FAIR SIT-OUT: GP first, then rank (latest standings) ===
+  // v0.73.32: mexicanoStandings() = points-first, independen sortBy UI.
+  // Saat GP (games played) sama, rankOf dari sini jadi tiebreak sit/main.
+  const standings = mexicanoStandings();
   const rankOf = {};
   standings.forEach((s, i) => { rankOf[s.id] = i; });
 
-  // v0.70.85: bubble GP-seri dieksplorasi soft-rest (lihat gpTiers),
-  // supaya di occupancy 50% pemain gak kebelah jadi 2 kohort tetap.
-  // Pairing di dalam pool TETAP murni rank-based (kriteria Mexicano:
-  // match berikutnya refer klasemen setelah skor terakhir) -- yang
-  // dieksplorasi cuma SIAPA yang main, bukan CARA masangnya.
+  // v0.70.85: bubble GP-seri soft-rest. Pairing in-court = rank LIVE.
   const r1 = restedLastRoundSet(roundIdx);
   const rested2 = restedTwoBackSet(roundIdx);
   // v0.71.11: kriteria #6 -- keluarin sebanyak slot yang ada dari pool
@@ -6942,7 +6962,7 @@ function buildTeamMexicanoMatches(roundIdx) {
   }
 
   // === FAIR SIT-OUT: GP first, then rank tiebreak ===
-  const standings = computeStandings();
+  const standings = mexicanoStandings(); // v0.73.32 points-first
   const rankOf = {};
   standings.forEach((s, i) => { rankOf[s.id] = i; });
 
@@ -7530,7 +7550,7 @@ function buildMixicanoRound(roundIdx) {
 
   let rankOf = {};
   if (scoredRounds > 0) {
-    computeStandings().forEach((s, i) => { rankOf[s.id] = i; });
+    mexicanoStandings().forEach((s, i) => { rankOf[s.id] = i; }); // v0.73.32
   }
 
   const lrSet = restedLastRoundSet(roundIdx); // v0.70.63
