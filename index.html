@@ -4138,7 +4138,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.30</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.31</div>
     </div>
   </div>
 
@@ -6876,29 +6876,25 @@ function buildMexicanoMatches(roundIdx) {
     return cost;
   };
 
-  const POOL_ATTEMPTS = 16;
+  // v0.73.31: lebih banyak attempt supaya sampleBubble eksplorasi
+  // kombinasi sit/main yang beda kohort (occupancy 50%).
+  const POOL_ATTEMPTS = 24;
   let best = null, bestScore = Infinity, bestResting = [];
   for (let a = 0; a < POOL_ATTEMPTS; a++) {
     const { pick, sit } = sampleBubble(bubble, slots, r1, rested2, a % 2 === 0 ? 'rest' : 'free', rankOf);
     const playing = [...forced, ...pick];
     if (playing.length < 4) continue;
     const matches = buildFromPlaying(playing);
-    // v0.72.49: ACTIVE_SET_REPEAT_PENALTY (kriteria #5, v0.72.15) DICABUT
-    // khusus di sini. Ketemu lewat diskusi user: kriteria #5 ("keputar
-    // semua", hindari kohort sama main bareng lagi) itu logic buat
-    // AMERICANO -- fairness-nya soal variasi lawan/partner. Mexicano beda:
-    // fairness-nya SKILL-BASED, pairing 1&4 vs 2&3 dari klasemen LIVE
-    // (kriteria #4, kepasang duluan di buildFromPlaying). Kalau dua orang
-    // konsisten rank berdekatan, WAJAR mereka ketemu lagi -- itu bukti
-    // sistem kerja bener, bukan bug. Diverifikasi behavioral sebelum
-    // dicabut: pairing DI DALAM kohort yang sama ikut geser ngikutin
-    // standings ronde-ke-ronde (bukan freeze), jadi kriteria #5 di sini
-    // nyelesain masalah yang gak ada, dan berpotensi ganggu GP-tier
-    // fairness (kriteria #1, tetap jadi pengaman utama -- gpTiers KAKU,
-    // gak disentuh) demi ngejar variasi kohort yang gak relevan buat
-    // format ini. Lihat RUN TEST protocol di CLAUDE.md buat detail.
-    const score = matchesCost(matches) + DOUBLE_REST_PENALTY * doubleRestCount(sit, r1)
-      + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast);
+    // v0.73.31: ACTIVE_SET_REPEAT_PENALTY DIHIDUPIN LAGI di Mexicano.
+    // User: "kohort break segera, jangan kebagi 4-4, semua mungkin saling
+    // ketemu segera". Pairing in-court tetap 1+4 vs 2+3 dari rank (kriteria
+    // #4). Yang dihukum = mengulang SET LENGKAP roster main yang sama
+    // (kriteria #5) -- biar di occupancy 50% (8p/1c, 16p/2c) kohort gak
+    // terkunci. GP-tier (kriteria #1) tetap kaku lewat gpTiers.
+    const score = matchesCost(matches)
+      + DOUBLE_REST_PENALTY * doubleRestCount(sit, r1)
+      + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast)
+      + ACTIVE_SET_REPEAT_PENALTY * activeSetRepeatCount(playing, roundIdx);
     if (score < bestScore) {
       bestScore = score;
       best = { matches, playing };
@@ -6966,11 +6962,11 @@ function buildTeamMexicanoMatches(roundIdx) {
     const playing = [...forced, ...pick].sort((x, y) => (rankOf[x] ?? 999) - (rankOf[y] ?? 999));
     if (playing.length < 2) continue;
     const matches = buildTeamMatches(playing);
-    // v0.72.49: ACTIVE_SET_REPEAT_PENALTY dicabut -- sama alasan kayak
-    // buildMexicanoMatches (~6838). Team Mexicano tetap format Mexicano,
-    // fairness rank-based (kriteria #4), bukan cohort-variety (#5).
+    // v0.73.31: ACTIVE_SET_REPEAT_PENALTY hidup lagi (kohort break, sama
+    // individual mexicano). Ranking pair tetap dipakai untuk matchup.
     let score = DOUBLE_REST_PENALTY * doubleRestCount(sit, r1)
-      + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast);
+      + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast)
+      + ACTIVE_SET_REPEAT_PENALTY * activeSetRepeatCount(playing, roundIdx);
     matches.forEach(m => { score += hist.opponent[m.teamA[0]][m.teamB[0]]; });
     if (score < bestScore) {
       bestScore = score;
@@ -7569,15 +7565,12 @@ function buildMixicanoRound(roundIdx) {
     const rk = (id) => rankOf[id] ?? 999;
     const sm = [...pM.active].sort((x, y) => rk(x) - rk(y));
     const sf = [...pF.active].sort((x, y) => rk(x) - rk(y));
-    // v0.72.49: ACTIVE_SET_REPEAT_PENALTY dicabut. Mixicano didefinisikan
-    // di CLAUDE.md sebagai "true Mexicano-style: rank-based pairing" (beda
-    // dari mix_americano yang "Americano-style: round-robin fairness") --
-    // jadi ikut prinsip Mexicano yang sama kayak buildMexicanoMatches/
-    // buildTeamMexicanoMatches: fairness dari klasemen live (kriteria #4),
-    // bukan variasi kohort (#5). mix_americano SENGAJA gak disentuh --
-    // dia beneran Americano-family, tetap butuh kriteria #5.
+    // v0.73.31: ACTIVE_SET_REPEAT_PENALTY hidup lagi di Mixicano (kohort
+    // break). Pairing in-court tetap rank-based cross-gender.
+    const combinedPlaying = [...pM.active, ...pF.active];
     let score = DOUBLE_REST_PENALTY * doubleRestCount([...pM.sit, ...pF.sit], lrSet)
-      + CONSEC_PLAY_PENALTY * consecPlayCount([...pM.active, ...pF.active].filter(id => !mustRest.has(id)), playedLast);
+      + CONSEC_PLAY_PENALTY * consecPlayCount(combinedPlaying.filter(id => !mustRest.has(id)), playedLast)
+      + ACTIVE_SET_REPEAT_PENALTY * activeSetRepeatCount(combinedPlaying, roundIdx);
     for (let c = 0; c < state.courts; c++) {
       const mG = sm.slice(c * 2, c * 2 + 2), fG = sf.slice(c * 2, c * 2 + 2);
       if (mG.length < 2 || fG.length < 2) break;
