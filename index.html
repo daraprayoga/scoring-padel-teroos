@@ -4135,7 +4135,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.11</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.12</div>
     </div>
   </div>
 
@@ -19941,6 +19941,67 @@ html.dark .icon-btn,
 html:not(.dark) .ghost-btn,
 html.dark .ghost-btn{
   border-radius: 16px !important;
+}
+</style>
+
+
+<style id="codex-revision-v07312-css">
+/* ============================================================
+   v0.73.12 -- court header alignment + icon.
+
+   [1] "COURT 1" kiri-nya harus rata dengan nama pemain.
+       Akar: .sb-court-card pad 14px, .sb-match-body pad-x 0
+       (pemain di 14px), tapi .sb-court-header masih pad-x 8–14px
+       → teks COURT lebih ke kanan. Fix: header pad-x = 0.
+   [2] Icon court padel sederhana di kiri nama court
+       (outline rectangle + net line di tengah).
+   ============================================================ */
+
+/* ---------- [1] Align court name left edge with player names ---------- */
+html:not(.dark) .sb-court-header,
+html.dark .sb-court-header,
+.sb-court-header{
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  padding-top: 2px !important;
+  padding-bottom: 8px !important;
+}
+/* multi-court dense overrides that re-added horizontal pad */
+.sb-courts.courts-count-3 .sb-court-header,
+.sb-courts.courts-count-4 .sb-court-header{
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* ---------- [2] Padel court icon (simple) ----------
+   Rectangle = lapangan, garis vertikal tengah = net.
+   Mask pakai currentColor biar ikut warna .sb-court-name. */
+.sb-court-name{
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+.sb-court-name::before{
+  content: '' !important;
+  display: inline-block !important;
+  width: 13px !important;
+  height: 13px !important;
+  flex-shrink: 0 !important;
+  background: currentColor !important;
+  opacity: 0.72 !important;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='1.5'/%3E%3Cline x1='12' y1='4' x2='12' y2='20'/%3E%3Cline x1='3' y1='12' x2='9' y2='12'/%3E%3Cline x1='15' y1='12' x2='21' y2='12'/%3E%3C/svg%3E") !important;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='1.5'/%3E%3Cline x1='12' y1='4' x2='12' y2='20'/%3E%3Cline x1='3' y1='12' x2='9' y2='12'/%3E%3Cline x1='15' y1='12' x2='21' y2='12'/%3E%3C/svg%3E") !important;
+  -webkit-mask-size: contain !important;
+  mask-size: contain !important;
+  -webkit-mask-repeat: no-repeat !important;
+  mask-repeat: no-repeat !important;
+  -webkit-mask-position: center !important;
+  mask-position: center !important;
+}
+/* edit pencil tetap ada, sedikit dikurangi opacity default */
+.sb-edit-icon{
+  opacity: 0.45 !important;
+  font-size: 11px !important;
 }
 </style>
 
