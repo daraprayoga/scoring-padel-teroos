@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.46</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.47</div>
     </div>
   </div>
 
@@ -21974,7 +21974,19 @@ if (document.readyState === 'loading') {
     margin: 8px 8px 0 !important;
     width: calc(100% - 16px) !important;
     max-width: calc(100vw - 16px) !important;
-    border-radius: 8px !important;
+    /* v0.73.47: KOREKSI ARAH -- v0.73.42-46 kemarin salah total: sb-topbar
+       ("ROUND X of Y") itu SUDAH kapsul (radius 28px dari sistem v73
+       acuan, `--v73-r-xl`), dan header yang harusnya DINAIKKAN ngikutin
+       KAPSUL itu, bukan sebaliknya. v0.73.46 malah NURUNIN sb-topbar ke
+       8px (radius header lama) -- user konfirmasi eksplisit itu salah
+       arah: "justru harusnya capsule header pas viewer mode landscape".
+       999px dipakai (bukan angka pas/28px) karena border-radius di CSS
+       OTOMATIS di-clamp ke maksimal setengah dimensi elemen kalau
+       angkanya lebih besar dari itu -- jadi 999px SELALU menghasilkan
+       pill sempurna TERLEPAS height header berapa pun, gak perlu tau
+       height persis / gak perlu diutak-atik lagi kalau height berubah
+       di revisi berikutnya. */
+    border-radius: 999px !important;
     border: none !important;
     /* v0.73.45: opacity background DITURUNKAN di sini -- fix v0.73.44
        naikin blur+saturate tapi GAK nyentuh opacity, dan opacity
@@ -22003,17 +22015,17 @@ if (document.readyState === 'loading') {
       0 6px 24px rgba(0,0,0,0.35) !important;
   }
 
-  /* v0.73.46: samain shape .sb-topbar ("ROUND X of Y" + Next Round) dan
-     .round-pill (button R1/R2/dst di strip round-nav) ke radius yang
-     SAMA PERSIS kayak header+court card (8px) -- user minta 3 elemen
-     ini "senada" secara visual. .sb-topbar full-bleed (position:relative,
-     no margin samping) di viewer-landscape -- radius-nya GAK KELIATAN
-     tanpa margin dari tepi, sama kasusnya kayak header sebelum v0.73.42.
-     .round-pill sebelumnya 10px (beda dikit dari 8px), diseragamkan. */
+  /* v0.73.47: sb-topbar DIKEMBALIKAN ke kapsul (bukan lagi 8px seperti
+     v0.73.46 yang salah arah). Radius di-declare EXPLICIT 999px di sini
+     (bukan cuma dibiarkan balik ke rule v73 acuan yang 28px) supaya
+     PASTI konsisten sama header (yang juga 999px) dan gak bergantung ke
+     rule lain yang posisinya bisa berubah di revisi mendatang. Material
+     lain (background/blur/shadow) TETAP DIPERTAHANKAN dari v0.73.44/45
+     -- itu bagian yang gak dikomplain, cuma radius yang dikoreksi. */
   body.viewer-mode .sb-topbar{
     margin: 8px 8px 10px !important;
     width: calc(100% - 16px) !important;
-    border-radius: 8px !important;
+    border-radius: 999px !important;
     border: none !important;
     background: rgba(252,249,242,0.58) !important;
     -webkit-backdrop-filter: blur(26px) saturate(1.4) !important;
@@ -22028,8 +22040,12 @@ if (document.readyState === 'loading') {
       inset 0 1px 0 rgba(255,255,255,0.08),
       0 6px 24px rgba(0,0,0,0.35) !important;
   }
+  /* round-pill: KOTAK 44x44 (width=height) -- radius 999px pada elemen
+     sama-sisi otomatis jadi LINGKARAN PENUH, bukan pill horizontal.
+     Itu tetap konsisten sama semangat "kapsul" (lingkaran = kasus
+     khusus pill kalau width=height), jadi TETAP 999px, bukan 8px. */
   body.viewer-mode .round-pill{
-    border-radius: 8px !important;
+    border-radius: 999px !important;
   }
 }
 </style>
