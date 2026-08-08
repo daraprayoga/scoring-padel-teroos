@@ -4138,7 +4138,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.36</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.37</div>
     </div>
   </div>
 
@@ -21388,6 +21388,41 @@ html.dark body.header-scrolled header{
   display: block !important;
   flex: 1 1 auto !important;
   min-width: 0 !important;
+}
+</style>
+
+<style id="codex-revision-v07337-css">
+/* v0.73.37 -- onboarding framing fix.
+   IMPORTANT: the sharp artwork must live on #onboardingScreen itself.
+   .onboarding-content previously still had the same photo with `cover`,
+   which was the layer actually causing the bottom crop.
+
+   Framing: zoom the artwork slightly (104% height), anchor it at the bottom
+   so both walkers' shoes remain intact, and shift the artwork a little to
+   the right. The top-only crop is intentional and harmless because it is
+   sky/background; the people at the bottom are never cropped.
+   The blurred ::before remains a full-bleed ambient fill for the sides.
+*/
+#onboardingScreen {
+  background-image: var(--onboarding-photo) !important;
+  background-repeat: no-repeat !important;
+  background-size: auto 104% !important;
+  background-position: 42% bottom !important;
+  background-color: #ebe4d4 !important;
+}
+
+#onboardingScreen .onboarding-content {
+  background-image: none !important;
+  background-color: transparent !important;
+}
+
+#onboardingScreen::before {
+  background-image: var(--onboarding-photo) !important;
+  background-size: cover !important;
+  background-position: center center !important;
+  filter: blur(24px) saturate(0.82) !important;
+  opacity: 0.38 !important;
+  transform: scale(1.06) !important;
 }
 </style>
 
