@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.44</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.45</div>
     </div>
   </div>
 
@@ -21976,6 +21976,20 @@ if (document.readyState === 'loading') {
     max-width: calc(100vw - 16px) !important;
     border-radius: 8px !important;
     border: none !important;
+    /* v0.73.45: opacity background DITURUNKAN di sini -- fix v0.73.44
+       naikin blur+saturate tapi GAK nyentuh opacity, dan opacity
+       warisan (rgba(...,0.82) light / 0.90 dark, dari rule lain di luar
+       block ini) itu TERLALU OPAQUE buat efek blur kelihatan. Backdrop-
+       filter blur pada background yang udah 82-90% solid itu SECARA
+       VISUAL nyaris gak ada bedanya dari solid biasa -- gak ada cukup
+       "tembusan" ke konten di belakang buat di-blur, jadi biarpun
+       teknis backdrop-filter aktif, mata gak nangkep sebagai "glass".
+       Ini penyebab sebenarnya kenapa v0.73.44 belum kerasa glassmorphic
+       walau blur/specular/shadow-nya udah bener. Diturunin ke 0.58 --
+       cukup rendah biar konten di belakang (court card dst) jelas
+       "nembus" lewat blur, cukup tinggi biar teks/icon header tetap
+       kebaca kontras. */
+    background: rgba(252,249,242,0.58) !important;
     -webkit-backdrop-filter: blur(26px) saturate(1.4) !important;
     backdrop-filter: blur(26px) saturate(1.4) !important;
     box-shadow:
@@ -21983,6 +21997,7 @@ if (document.readyState === 'loading') {
       0 6px 24px rgba(0,0,0,0.10) !important;
   }
   html.dark body.viewer-mode header{
+    background: rgba(18,22,9,0.62) !important;
     box-shadow:
       inset 0 1px 0 rgba(255,255,255,0.08),
       0 6px 24px rgba(0,0,0,0.35) !important;
