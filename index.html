@@ -4138,7 +4138,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.37</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.38</div>
     </div>
   </div>
 
@@ -21474,6 +21474,108 @@ html.dark body.header-scrolled header{
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arm, { once:true });
   else arm();
+})();
+</script>
+
+
+<style id="codex-revision-v07338-css">
+/* ============================================================
+   v0.73.38 -- VIEWER MODE: long player names must NEVER wrap.
+
+   The viewer had later CSS rules that changed .sb-player back to
+   white-space: normal / overflow-wrap:anywhere. That allowed long names
+   to become two lines even though the scoreboard fit helper was present.
+
+   Viewer rule:
+   - one line only
+   - no ellipsis / no clipping
+   - automatically reduce font-size until the rendered name fits
+   - keep the original viewer font size when space becomes available again
+   ============================================================ */
+body.viewer-mode .sb-court-card .sb-player,
+body.viewer-mode .sb-court-card .sb-player.has-badge .sb-player-name {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+  text-overflow: clip !important;
+  min-width: 0 !important;
+}
+
+body.viewer-mode .sb-court-card .sb-player.has-badge .sb-player-name {
+  display: block !important;
+  flex: 1 1 auto !important;
+}
+</style>
+
+<script id="codex-revision-v07338-js">
+/* v0.73.38 -- viewer-mode scoreboard names: shrink to one line. */
+(function(){
+  const MIN_FONT_PX = 8;
+  const STEP_PX = 0.5;
+
+  function fitViewerNames(root){
+    if (!document.body.classList.contains('viewer-mode')) return;
+    const scope = root || document;
+
+    scope.querySelectorAll('.sb-court-card .sb-player').forEach(function(el){
+      // Clear the previous helper's inline font-size so viewer CSS is the
+      // source of truth for the base size. Use a separate data key so the
+      // admin scoreboard helper cannot lock viewer mode to its old base.
+      el.style.removeProperty('font-size');
+
+      const computed = getComputedStyle(el);
+      const base = parseFloat(computed.fontSize);
+      if (!Number.isFinite(base)) return;
+
+      const target = el.querySelector('.sb-player-name') || el;
+      let size = base;
+      el.style.setProperty('font-size', size + 'px', 'important');
+      void target.offsetWidth;
+
+      // The target is the actual text column. For a badge row this excludes
+      // the badge; for a normal row it is the player element itself.
+      while (size > MIN_FONT_PX && target.scrollWidth > target.clientWidth + 0.5) {
+        size = Math.max(MIN_FONT_PX, size - STEP_PX);
+        el.style.setProperty('font-size', size + 'px', 'important');
+        void target.offsetWidth;
+      }
+    });
+  }
+
+  function schedule(root){
+    requestAnimationFrame(function(){ fitViewerNames(root || document); });
+  }
+
+  function arm(){
+    const observer = new MutationObserver(function(){ schedule(document); });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(function(){ schedule(document); });
+      ro.observe(document.body);
+    }
+
+    window.addEventListener('resize', function(){ schedule(document); }, {passive:true});
+    window.addEventListener('orientationchange', function(){ schedule(document); }, {passive:true});
+    window.addEventListener('stateRendered', function(){ schedule(document); });
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function(){ schedule(document); });
+    }
+    schedule(document);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', arm, {once:true});
+  } else {
+    arm();
+  }
 })();
 </script>
 
