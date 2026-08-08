@@ -4138,7 +4138,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.39</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.40</div>
     </div>
   </div>
 
@@ -10592,8 +10592,14 @@ function drawQR(text) {
     parent.insertBefore(img, canvas);
     canvas.style.display = 'none';
   }
-  // Use goqr.me API — reliable, no CORS
-  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&bgcolor=f5f0e6&color=2d6b4e&margin=8&data=${encodeURIComponent(text)}`;
+  // v0.73.40: QR green MUST match the scoreboard green token.
+  // Light scoreboard: --green-bright = #526627. Dark scoreboard: #83a33e.
+  // Read the active CSS token at render time instead of hard-coding a different green.
+  const qrGreenRaw = getComputedStyle(document.documentElement).getPropertyValue('--green-bright').trim();
+  const qrGreen = /^#[0-9a-f]{6}$/i.test(qrGreenRaw) ? qrGreenRaw.slice(1) : '526627';
+  const qrBorder = qrGreenRaw || '#526627';
+  img.style.border = `2px solid ${qrBorder}33`;
+  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&bgcolor=f5f0e6&color=${qrGreen}&margin=8&data=${encodeURIComponent(text)}`;
   img.alt = text;
   img.onerror = () => {
     // Ultimate fallback: show the URL
@@ -14938,6 +14944,11 @@ function podiumRankNotes(entries, labelOf) {
   });
 }
 </script>
+<style id="codex-revision-v07340-qr-css">
+/* v0.73.40 -- viewer QR code uses the exact active scoreboard green token. */
+#rpQrImg { border-color: rgba(82,102,39,0.20); }
+html.dark #rpQrImg { border-color: rgba(131,163,62,0.20); }
+</style>
 <style id="darklab-v1-css">
 /* ============ DARK LAB v1 — full dark mode (eksperimen) ============
    Aktif via html.dark (toggle di header, persist localStorage ptDarkMode).
