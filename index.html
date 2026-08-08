@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.43</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.44</div>
     </div>
   </div>
 
@@ -21935,6 +21935,24 @@ if (document.readyState === 'loading') {
    topbar (itu keputusan lain, sudah diributkan & settled di histori
    -- ini TIDAK menyentuh itu). Scoped KETAT ke viewer-mode+landscape,
    mode admin/portrait yang sudah stabil TIDAK disentuh sama sekali.
+
+   REVISI v0.73.44 (koreksi terhadap versi asli di atas): user minta
+   glassmorphic subtle, TANPA edge tegas. Ditelusuri ulang -- base
+   header viewer-mode SEBENARNYA sudah punya pondasi glass yang bagus:
+   `background:rgba(...,0.82-0.9); backdrop-filter:blur(18px)
+   saturate(1.24); border:none` (light+dark mode base, di luar block
+   ini). Dark mode-nya BAHKAN sudah pakai specular highlight tepi atas
+   (`inset 0 1px 0 rgba(255,255,255,0.07)`) -- PERSIS resep "Liquid
+   Glass" design system project ini (specular 1px tepi atas, BUKAN
+   hairline solid di semua sisi). Border solid 4-sisi yang saya
+   tambahin di v0.73.42 (di bawah) JUSTRU MENIMPA pondasi glass yang
+   udah bagus itu -- itu sumber "berasa ada edge" yang dikeluhkan user.
+   Border 4-sisi solid dicabut, diganti: specular tepi atas doang
+   (bukan 4 sisi), box-shadow soft buat depth (bukan garis tegas), dan
+   blur+saturate dinaikkan (18px->26px, saturate 1.24->1.4, mendekati
+   resep "podium card: blur 28px saturate 140%" di design system) biar
+   makin "melebur" ke konten di belakangnya -- sesuai konteks layar TV
+   yang besar, subtle-nya perlu lebih terasa.
    ============================================================ */
 @media (orientation: landscape) and (min-width: 600px) {
   body.viewer-mode #viewerLiveBtn{
@@ -21957,10 +21975,17 @@ if (document.readyState === 'loading') {
     width: calc(100% - 16px) !important;
     max-width: calc(100vw - 16px) !important;
     border-radius: 8px !important;
-    border-bottom: 1px solid rgba(82,102,39,0.15) !important;
-    border-top: 1px solid rgba(82,102,39,0.15) !important;
-    border-left: 1px solid rgba(82,102,39,0.15) !important;
-    border-right: 1px solid rgba(82,102,39,0.15) !important;
+    border: none !important;
+    -webkit-backdrop-filter: blur(26px) saturate(1.4) !important;
+    backdrop-filter: blur(26px) saturate(1.4) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.35),
+      0 6px 24px rgba(0,0,0,0.10) !important;
+  }
+  html.dark body.viewer-mode header{
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.08),
+      0 6px 24px rgba(0,0,0,0.35) !important;
   }
 }
 </style>
