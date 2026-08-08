@@ -8330,6 +8330,10 @@ function renderOverview() {
     courts.appendChild(card);
   });
 
+  // v0.73.34: long player names auto-fit inside each scoreboard court.
+  // Run after all cards exist so the browser has real widths to measure.
+  requestAnimationFrame(() => fitScoreboardPlayerNames(courts));
+
   // Wire score inputs
   courts.querySelectorAll('.sb-score-input').forEach(inp => {
     inp.addEventListener('focus', e => e.target.select());
@@ -21217,6 +21221,124 @@ html.dark body.header-scrolled header{
     padding-top: max(12px, env(safe-area-inset-top, 0px)) !important;
     padding-bottom: 10px !important;
   }
+}
+</style>
+
+
+
+<style id="codex-revision-v07334-css">
+/* ============================================================
+   v0.73.34 -- scoreboard player names: shrink-to-fit, don't wrap.
+
+   Long names on a court card should stay on one line. Instead of
+   ellipsis/wrapping, JS measures the rendered text and reduces the
+   font-size until the name fits the available court width.
+   ============================================================ */
+.sb-court-card .sb-player{
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: clip !important;
+  min-width: 0 !important;
+}
+.sb-court-card .sb-player.has-badge .sb-player-name{
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+</style>
+
+<script id="codex-revision-v07334-js">
+/* v0.73.34 -- fit long player names to the actual court-card width. */
+(function(){
+  const MIN_FONT_PX = 9;
+  const STEP_PX = 0.5;
+
+  window.fitScoreboardPlayerNames = function(root){
+    root = root || document;
+    root.querySelectorAll('.sb-court-card .sb-player').forEach(function(el){
+      // Reset to the original CSS-computed size before every measurement so
+      // resize/orientation changes can grow the name back when space returns.
+      let base = parseFloat(el.dataset.fitBaseFontSize || '');
+      if (!Number.isFinite(base)) {
+        base = parseFloat(getComputedStyle(el).fontSize);
+        if (!Number.isFinite(base)) return;
+        el.dataset.fitBaseFontSize = String(base);
+      }
+      el.style.setProperty('font-size', base + 'px', 'important');
+
+      const target = el.querySelector('.sb-player-name') || el;
+      let size = base;
+      const available = function(){ return target.clientWidth; };
+      const overflowing = function(){
+        const w = available();
+        return w > 0 && target.scrollWidth > w + 0.5;
+      };
+
+      // The normal case is already a fit; only shrink when the actual text
+      // exceeds the space available beside the score/winner indicator.
+      while (size > MIN_FONT_PX && overflowing()) {
+        size = Math.max(MIN_FONT_PX, size - STEP_PX);
+        el.style.setProperty('font-size', size + 'px', 'important');
+      }
+    });
+  };
+
+  function schedule(root){
+    requestAnimationFrame(function(){
+      window.fitScoreboardPlayerNames(root || document);
+    });
+  }
+
+  function arm(){
+    const courts = document.getElementById('sbCourts');
+    if (courts) {
+      const observer = new MutationObserver(function(){ schedule(courts); });
+      observer.observe(courts, { childList: true, subtree: true });
+      schedule(courts);
+    }
+    window.addEventListener('resize', function(){ schedule(document); }, { passive: true });
+    window.addEventListener('orientationchange', function(){ schedule(document); }, { passive: true });
+    window.addEventListener('stateRendered', function(){ schedule(document); });
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function(){ schedule(document); });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', arm, { once: true });
+  } else {
+    arm();
+  }
+})();
+</script>
+
+<style id="codex-revision-v07335-css">
+/* ============================================================
+   v0.73.35 -- onboarding artwork: preserve the complete supplied
+   image, with a blurred ambient fill behind the letterboxed image.
+
+   The artwork itself uses contain, never cover. This guarantees no
+   person/head/foot can be cropped when the viewport ratio differs
+   from the artwork ratio.
+   ============================================================ */
+#onboardingScreen{
+  background: #ebe4d4 !important;
+}
+#onboardingScreen::before{
+  inset: -40px !important;
+  background-size: cover !important;
+  background-position: center !important;
+  filter: blur(24px) saturate(0.82) !important;
+  opacity: 0.42 !important;
+  transform: scale(1.06) !important;
+}
+#onboardingScreen .onboarding-content{
+  background-size: contain !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
 }
 </style>
 
