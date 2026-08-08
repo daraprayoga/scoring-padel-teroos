@@ -4138,7 +4138,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.33</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.36</div>
     </div>
   </div>
 
@@ -21341,6 +21341,106 @@ html.dark body.header-scrolled header{
   box-shadow: none !important;
 }
 </style>
+
+
+<style id="codex-revision-v07336-css">
+/* ============================================================
+   v0.73.36 -- onboarding artwork: FIX THE ACTUAL IMAGE LAYER.
+
+   v0.73.35 targeted .onboarding-content, but the supplied artwork is
+   actually mounted on #onboardingScreen::before via --onboarding-photo.
+   Therefore that change could not affect the artwork itself.
+
+   Correct approach:
+   - #onboardingScreen carries the REAL artwork with contain/center/no-repeat.
+   - ::before becomes ambient-only (cover + blur), so it may crop safely.
+   - No transform/zoom is applied to the real artwork layer.
+   ============================================================ */
+#onboardingScreen{
+  background-color: #ebe4d4 !important;
+  background-image: var(--onboarding-photo) !important;
+  background-size: contain !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+}
+
+#onboardingScreen::before{
+  inset: -40px !important;
+  background-image: var(--onboarding-photo) !important;
+  background-size: cover !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  filter: blur(24px) saturate(0.82) !important;
+  opacity: 0.38 !important;
+  transform: scale(1.06) !important;
+}
+
+/* Keep the cream/scrim treatment, but never introduce another image layer. */
+#onboardingScreen::after{
+  background:
+    linear-gradient(180deg, rgba(255, 250, 242, 0.18) 0%, rgba(255, 250, 242, 0) 37%, rgba(41,51,20,0.24) 100%),
+    radial-gradient(circle at 17% 8%, rgba(255, 255, 255, 0.56), transparent 30%) !important;
+}
+
+/* Long court names: the badge/name flex item must expose its real width to
+   the shrink-to-fit measurement helper. */
+.sb-court-card .sb-player.has-badge .sb-player-name{
+  display: block !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+</style>
+
+<script id="codex-revision-v07336-js">
+/* v0.73.36 -- make the court-name fit helper robust for badge + no-badge rows. */
+(function(){
+  const MIN_FONT_PX = 9;
+  const STEP_PX = 0.5;
+
+  function fit(root){
+    (root || document).querySelectorAll('.sb-court-card .sb-player').forEach(function(el){
+      const target = el.querySelector('.sb-player-name') || el;
+      const computed = getComputedStyle(el);
+      const base = parseFloat(el.dataset.fitBaseFontSize || computed.fontSize);
+      if (!Number.isFinite(base)) return;
+      if (!el.dataset.fitBaseFontSize) el.dataset.fitBaseFontSize = String(base);
+
+      el.style.setProperty('font-size', base + 'px', 'important');
+      let size = base;
+
+      // Force a fresh layout before measuring, especially after render/font load.
+      void target.offsetWidth;
+      while (size > MIN_FONT_PX && target.scrollWidth > target.clientWidth + 0.5) {
+        size = Math.max(MIN_FONT_PX, size - STEP_PX);
+        el.style.setProperty('font-size', size + 'px', 'important');
+        void target.offsetWidth;
+      }
+    });
+  }
+
+  window.fitScoreboardPlayerNames = fit;
+
+  function schedule(root){
+    requestAnimationFrame(function(){ fit(root || document); });
+  }
+
+  function arm(){
+    const courts = document.getElementById('sbCourts');
+    if (courts) {
+      const observer = new MutationObserver(function(){ schedule(courts); });
+      observer.observe(courts, { childList:true, subtree:true, characterData:true });
+      schedule(courts);
+    }
+    window.addEventListener('resize', function(){ schedule(document); }, { passive:true });
+    window.addEventListener('orientationchange', function(){ schedule(document); }, { passive:true });
+    window.addEventListener('stateRendered', function(){ schedule(document); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ schedule(document); });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arm, { once:true });
+  else arm();
+})();
+</script>
 
 </body>
 </html>
