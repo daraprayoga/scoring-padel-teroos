@@ -3875,7 +3875,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
     <button class="icon-btn" id="saveBtn" title="Save" style="display:none;"><svg class="icn" width="18" height="18"><use href="#i-save"/></svg></button>
     <label class="icon-btn" id="loadBtnLabel" title="Load" style="cursor:pointer;"><svg class="icn" width="18" height="18"><use href="#i-folder"/></svg><input type="file" id="loadFileInput" accept=".json" style="display:none;"></label>
     <button class="icon-btn" id="fullscreenBtn" title="Fullscreen"><svg class="icn" width="18" height="18"><use href="#i-expand"/></svg></button>
-    <button class="icon-btn danger" id="resetBtn" title="Reset" style="display:none;"><svg class="icn" width="18" height="18"><use href="#i-reset"/></svg></button>
+    <button class="icon-btn danger" id="resetBtn" title="Reset" style="display:none;"><svg class="icn" width="18" height="18"><use href="#i-reset"/></svg><span class="reset-btn-label" style="display:none;">Reset Session (hapus semua rounds &amp; skor)</span></button>
   </div>
 </header>
 <div class="bottom-nav" id="bottomNav" style="display:none;">
@@ -4138,7 +4138,16 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.40</div>
+      <!-- v0.73.41: slot buat resetBtn yang DIPINDAHIN dari header-actions
+           lewat JS (moveResetBtnToSetup(), lihat script akhir file).
+           JANGAN taruh tombol reset baru di sini -- elemen aslinya
+           (id="resetBtn", listener & conditional display sudah ada)
+           yang dipindah ke sini, biar behavior-nya persis sama, cuma
+           posisinya beda. -->
+      <div class="card" id="resetBtnSetupSlot" style="display:none;">
+        <div class="card-title">Zona Bahaya</div>
+      </div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.43</div>
     </div>
   </div>
 
@@ -8332,7 +8341,25 @@ function renderOverview() {
 
   // v0.73.34: long player names auto-fit inside each scoreboard court.
   // Run after all cards exist so the browser has real widths to measure.
-  requestAnimationFrame(() => fitScoreboardPlayerNames(courts));
+  // v0.73.43: guard `typeof === 'function'` ditambah -- fungsi ini
+  // didefinisikan di script block v0.73.34 yang posisinya JAUH di akhir
+  // file (append-only), sementara renderCourts (fungsi ini) posisinya
+  // jauh lebih awal. Pada flow restore-session (ada state tersimpan,
+  // renderCourts kepanggil sangat awal saat load), requestAnimationFrame
+  // callback di sini kadang fire SEBELUM browser sempat parsing sampai
+  // ke definisi function-nya -- ReferenceError: fitScoreboardPlayerNames
+  // is not defined, dikonfirmasi user lewat screenshot device asli
+  // (gak selalu kereproduksi di jsdom, timing event-loop-nya beda dari
+  // browser asli, tapi errornya nyata). Guard ini nutup crash-nya tanpa
+  // efek samping: kalau function belum ke-define pas race terjadi,
+  // shrink-to-fit di render PERTAMA itu skip dengan aman -- font tetap
+  // ukuran normal (bukan crash), dan render/refit BERIKUTNYA (dipicu
+  // MutationObserver yang sudah ada di kode v0.73.34, atau renderCourts
+  // panggilan selanjutnya) tetap jalan normal begitu function-nya udah
+  // ke-define.
+  requestAnimationFrame(() => {
+    if (typeof fitScoreboardPlayerNames === 'function') fitScoreboardPlayerNames(courts);
+  });
 
   // Wire score inputs
   courts.querySelectorAll('.sb-score-input').forEach(inp => {
@@ -8964,6 +8991,14 @@ document.getElementById('sortSelector').addEventListener('change', e => {
 });
 
 document.getElementById('confirmDeleteRound').addEventListener('click', () => {
+  // v0.73.41: simpan snapshot SEBELUM pop, biar bisa di-undo. Deep-clone
+  // via JSON round-trip (aman, isi round cuma data serializable: matches,
+  // resting, dst -- gak ada function/DOM reference).
+  const deletedRoundIdx = state.rounds.length - 1;
+  const deletedRound = JSON.parse(JSON.stringify(state.rounds[deletedRoundIdx]));
+  const wasEnded = state.ended;
+  const wasEndedAt = state.endedAt;
+
   state.rounds.pop();
   state.currentRoundIdx = state.rounds.length - 1;
   // If tournament was ended, un-end it since we deleted a round
@@ -8973,6 +9008,14 @@ document.getElementById('confirmDeleteRound').addEventListener('click', () => {
   }
   document.getElementById('deleteRoundModal').classList.remove('show');
   renderAll();
+
+  showUndoToast(`Ronde ${deletedRoundIdx + 1} dihapus`, () => {
+    state.rounds[deletedRoundIdx] = deletedRound;
+    state.currentRoundIdx = deletedRoundIdx;
+    state.ended = wasEnded;
+    state.endedAt = wasEndedAt;
+    renderAll();
+  });
 });
 
 document.getElementById('resetBtn').addEventListener('click', () => document.getElementById('resetModal').classList.add('show'));
@@ -9815,6 +9858,58 @@ function showToast(msg) {
     t.style.animation = 'toastOut 0.3s ease both';
     setTimeout(() => t.remove(), 300);
   }, 3000);
+}
+
+// v0.73.41: toast KHUSUS buat aksi yang bisa di-undo (dipakai Delete Round).
+// Reuse styling visual showToast() (posisi, warna, blur, animasi) TAPI beda
+// struktur -- perlu nampung tombol interaktif di dalamnya, jadi fungsi
+// terpisah, bukan modifikasi showToast() yang dipakai banyak tempat lain
+// buat pesan text-only. Durasi 8 detik (lebih lama dari showToast's 3
+// detik) -- konteks pakai app ini di pinggir lapangan, orang sering gak
+// langsung liat layar begitu toast muncul.
+function showUndoToast(msg, onUndo) {
+  const existing = document.getElementById('appToast');
+  if (existing) existing.remove();
+  const existingUndo = document.getElementById('appUndoToast');
+  if (existingUndo) existingUndo.remove();
+  const t = document.createElement('div');
+  t.id = 'appUndoToast';
+  t.style.cssText = `
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: rgba(245,240,230,0.97); border: 1px solid rgba(82,102,39,0.3);
+    color: #526627; padding: 10px 10px 10px 18px; border-radius: 12px;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.3px;
+    backdrop-filter: blur(20px); z-index: 500;
+    max-width: calc(100vw - 40px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    animation: toastIn 0.2s ease both;
+    display: flex; align-items: center; gap: 10px;
+  `;
+  const label = document.createElement('span');
+  label.textContent = msg;
+  const btn = document.createElement('button');
+  btn.textContent = 'Urungkan';
+  btn.style.cssText = `
+    background: #526627; color: #f5f0e6; border: none; border-radius: 8px;
+    padding: 7px 12px; font-size: 12px; font-weight: 800;
+    letter-spacing: 0.3px; white-space: nowrap; flex-shrink: 0;
+  `;
+  let dismissed = false;
+  const dismiss = () => {
+    if (dismissed) return;
+    dismissed = true;
+    t.style.animation = 'toastOut 0.3s ease both';
+    setTimeout(() => t.remove(), 300);
+  };
+  btn.addEventListener('click', () => {
+    if (dismissed) return;
+    onUndo();
+    dismiss();
+  });
+  t.appendChild(label);
+  t.appendChild(btn);
+  document.body.appendChild(t);
+  setTimeout(dismiss, 8000);
 }
 
 function escapeHtml(str) {
@@ -21719,6 +21814,155 @@ body.viewer-mode .sb-court-card .sb-player.has-badge .sb-player-name {
 })();
 </script>
 
+<style id="codex-revision-v07341-css">
+/* ============================================================
+   v0.73.41 -- TOUCH TARGET: perluas area sentuh icon-btn header
+   ============================================================
+   Konteks: icon-btn header (moon/share/download/folder/fullscreen/
+   reset) ukurannya 36px (base), turun ke 32px dan 30px di breakpoint
+   sempit -- semuanya DI BAWAH 44px, standar minimum touch target yang
+   nyaman (WCAG 2.5.5 / Apple HIG). Di lapangan (tangan keringat, buru-
+   buru, sambil jalan) ini bikin gampang salah pencet -- dan salah
+   pencetnya BISA FATAL karena Reset ada di deretan yang sama.
+
+   FIX: perluas AREA SENTUH doang lewat pseudo-element invisible,
+   ukuran VISUAL icon-btn TETAP SAMA (gak ada perubahan tampilan sama
+   sekali, cuma toleransi sentuh nambah).
+
+   KENAPA CUMA -3px (bukan -6px yang lebih ideal ke 44px): gap antar
+   icon-btn di header cuma 6px (`.header-actions { gap: 6px }`). Extend
+   -6px di tiap sisi bikin area sentuh DUA TOMBOL BERSEBELAHAN OVERLAP
+   -- yang justru menciptakan risiko salah-pencet BARU, bertentangan
+   sama tujuan fix ini. -3px per sisi = 6px total per tombol, PAS pas
+   di batas gap (gak overlap sama sekali), base 36px jadi 42px (+17%,
+   signifikan lebih baik walau belum 44px sempurna). Trade-off sengaja:
+   safety (gak nabrak tetangga) diprioritaskan di atas angka target. */
+.icon-btn{ position: relative; }
+.icon-btn::before{
+  content: '';
+  position: absolute;
+  inset: -3px;
+  /* transparent -- murni extend hit-area, gak ada visual apa pun */
+}
+
+/* v0.73.41: RESET BUTTON RELOCATION -- tombol Reset (hapus semua data
+   sesi) tadinya sebaris sama tombol harian (Save/Load/Fullscreen) di
+   header, ukuran & posisinya SAMA PERSIS kayak tombol yang jarang
+   berisiko -- cuma dibedain modal konfirmasi. Kalau lagi sibuk di
+   lapangan, itu gampang kesenggol gak sengaja.
+
+   Elemen aslinya (id="resetBtn") DIPINDAH lewat JS (moveResetBtnToSetup,
+   di script akhir file) dari .header-actions ke #resetBtnSetupSlot di
+   Setup page -- BUKAN diduplikat, jadi listener & conditional
+   `.style.display` yang udah ada dari sebelumnya TETAP jalan tanpa
+   disentuh. Class `.reset-btn-relocated` ditambahin pas proses pindah,
+   dipakai buat override tampilan icon-only jadi full-width button
+   dengan label -- biar jelas fungsinya di konteks Setup, bukan lagi
+   1 dari 5 icon yang mirip semua. */
+#resetBtn.reset-btn-relocated{
+  position: static !important;
+  width: 100% !important;
+  height: auto !important;
+  border-radius: 10px !important;
+  padding: 12px 16px !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+#resetBtn.reset-btn-relocated::before{ display: none; } /* gak perlu extend hit-area, udah full-width */
+#resetBtn.reset-btn-relocated .icn{ width: 16px; height: 16px; flex-shrink: 0; }
+#resetBtn.reset-btn-relocated .reset-btn-label{ display: inline !important; font-size: 13px; }
+</style>
+<script id="codex-revision-v07341-js">
+// v0.73.41: pindahin elemen resetBtn (bukan duplikat) dari header-actions
+// ke #resetBtnSetupSlot di Setup page. appendChild pada elemen yang
+// sudah ada di DOM MEMINDAHKAN node itu (bukan clone) -- semua listener
+// yang sudah attached (klik buka resetModal) dan conditional
+// `.style.display` toggle logic yang sudah ada TETAP jalan persis sama,
+// cuma parent/posisinya beda. Dijalankan sekali di awal load, sebelum
+// interaksi apa pun -- jadi resetBtn TIDAK PERNAH sempat kelihatan di
+// header row sama sekali, bukan "pindah belakangan setelah kelihatan
+// sebentar di tempat lama".
+function moveResetBtnToSetup() {
+  const btn = document.getElementById('resetBtn');
+  const slot = document.getElementById('resetBtnSetupSlot');
+  if (!btn || !slot) return;
+  btn.classList.add('reset-btn-relocated');
+  slot.appendChild(btn);
+  slot.style.display = ''; // biarkan CSS .card default yang nentuin display, bukan paksa 'block'
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', moveResetBtnToSetup, { once: true });
+} else {
+  moveResetBtnToSetup();
+}
+</script>
+
+<style id="codex-revision-v07342-css">
+/* ============================================================
+   v0.73.42 -- VIEWER MODE LANDSCAPE (cast ke TV): 2 fix
+   ============================================================
+   Konteks: di viewer-mode + landscape (breakpoint sama kayak split
+   layout yang udah ada, `orientation:landscape and min-width:600px`),
+   layout kebagi .sb-left-panel (57%, isinya sb-court-card) dan
+   .sb-right-panel (40%, sudah dikasih padding-bottom:80px -- developer
+   sebelumnya udah reserve ruang buat tombol ini DI right-panel).
+
+   FIX 1 -- "Back to Live" nabrak court card:
+   Tombol ini position:fixed dengan `left:50%` -- itu TENGAH SELURUH
+   LAYAR, bukan tengah salah satu panel. Karena left-panel lebarnya 57%
+   dari kiri, titik 50% layar JATUH DI DALAM left-panel (57% > 50%) --
+   jadi tombol nutupin court card, PERSIS keluhan user, dikonfirmasi
+   dari geometri CSS-nya, bukan asumsi visual. right-panel yang udah
+   dikasih padding reserve, court card di left-panel enggak.
+   Fix: dipindah ke pojok kanan-bawah (natural jatuh di area
+   right-panel yang emang udah reserve ruang), diperkecil sesuai
+   permintaan user ("atau bikin lebih kecil"). Elemen dibuat lewat JS
+   dengan inline style cssText -- override di sini WAJIB !important
+   buat menang lawan inline style itu.
+
+   FIX 2 -- header sticky kotak vs sb-court-card rounded (8px), berasa
+   inconsistent pas dilihat di layar TV yang besar:
+   <header> full-bleed (nempel tepi, radius 0) itu SENGAJA di konteks
+   HP biasa -- radius gak akan pernah kelihatan kalau nempel fisik ke
+   tepi device, jadi percuma dikasih. TAPI di TV cast, "tepi" itu bukan
+   tepi device lagi, dan ukuran besar bikin sudut tajam vs card rounded
+   di bawahnya jadi jauh lebih notable. Fix SPESIFIK scoped viewer-mode
+   + landscape: kasih margin dari tepi kiri-kanan-atas + border-radius
+   8px (SAMA PERSIS radius sb-court-card di breakpoint ini) -- header
+   jadi floating rounded bar yang senada, bukan diubah jadi card ala
+   topbar (itu keputusan lain, sudah diributkan & settled di histori
+   -- ini TIDAK menyentuh itu). Scoped KETAT ke viewer-mode+landscape,
+   mode admin/portrait yang sudah stabil TIDAK disentuh sama sekali.
+   ============================================================ */
+@media (orientation: landscape) and (min-width: 600px) {
+  body.viewer-mode #viewerLiveBtn{
+    left: auto !important;
+    right: 14px !important;
+    bottom: 14px !important;
+    transform: none !important;
+    padding: 6px 14px !important;
+    font-size: 10px !important;
+    letter-spacing: 1px !important;
+    box-shadow: 0 3px 12px rgba(201,169,97,0.35) !important;
+  }
+  body.viewer-mode #viewerLiveBtn .icn{
+    width: 11px !important;
+    height: 11px !important;
+  }
+
+  body.viewer-mode header{
+    margin: 8px 8px 0 !important;
+    width: calc(100% - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    border-radius: 8px !important;
+    border-bottom: 1px solid rgba(82,102,39,0.15) !important;
+    border-top: 1px solid rgba(82,102,39,0.15) !important;
+    border-left: 1px solid rgba(82,102,39,0.15) !important;
+    border-right: 1px solid rgba(82,102,39,0.15) !important;
+  }
+}
+</style>
 </body>
 </html>
-
