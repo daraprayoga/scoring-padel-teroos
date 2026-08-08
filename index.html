@@ -4138,7 +4138,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
         <button class="ghost-btn" id="resetNamesBtn">Clear All Names</button>
         <button class="primary-btn" id="startBtn">Start</button>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.38</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.39</div>
     </div>
   </div>
 
@@ -21569,6 +21569,135 @@ body.viewer-mode .sb-court-card .sb-player.has-badge .sb-player-name {
       document.fonts.ready.then(function(){ schedule(document); });
     }
     schedule(document);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', arm, {once:true});
+  } else {
+    arm();
+  }
+})();
+</script>
+
+
+<style id="codex-revision-v07339-css">
+/* ============================================================
+   v0.73.39 -- VIEWER MODE: player names must fit INSIDE their team
+   column so they can never collide with the score boxes.
+
+   v0.73.38 forced one-line names, but the viewer's later max-width rules
+   could leave the .sb-player wider than the actual grid track. That made
+   a long name visually run into the score. The player element now owns
+   exactly its team-column width; the shrink helper then measures that real
+   width and reduces the font until the complete name fits.
+   ============================================================ */
+.sb-court-card .sb-team {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+.sb-court-card .sb-player {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+  text-overflow: clip !important;
+}
+
+body.viewer-mode .sb-court-card .sb-player {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+
+body.viewer-mode .sb-court-card .sb-player.has-badge {
+  display: flex !important;
+  align-items: center !important;
+  min-width: 0 !important;
+}
+
+body.viewer-mode .sb-court-card .sb-player.has-badge .sb-player-name {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  flex: 1 1 auto !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: clip !important;
+}
+</style>
+
+<script id="codex-revision-v07339-js">
+/* v0.73.39 -- viewer/admin scoreboard name fitting.
+   Measure the actual team-column width, not the text's intrinsic width. */
+(function(){
+  const MIN_FONT_PX = 8;
+  const STEP_PX = 0.25;
+
+  function fitNames(root){
+    const scope = root || document;
+    scope.querySelectorAll('.sb-court-card .sb-player').forEach(function(el){
+      if (document.body.classList.contains('viewer-mode')) {
+        // Viewer CSS is the source of truth for the base size.
+        el.style.removeProperty('font-size');
+      }
+
+      const computed = getComputedStyle(el);
+      const base = parseFloat(computed.fontSize);
+      if (!Number.isFinite(base)) return;
+
+      const target = el.querySelector('.sb-player-name') || el;
+      let size = base;
+      el.style.setProperty('font-size', size + 'px', 'important');
+      void el.offsetWidth;
+
+      // Because .sb-player is now width:100%, clientWidth is the real
+      // space available before the score column. Never let the text itself
+      // determine the measurement width.
+      while (size > MIN_FONT_PX && target.scrollWidth > target.clientWidth + 0.5) {
+        size = Math.max(MIN_FONT_PX, size - STEP_PX);
+        el.style.setProperty('font-size', size + 'px', 'important');
+        void el.offsetWidth;
+      }
+    });
+  }
+
+  function schedule(root){
+    requestAnimationFrame(function(){ fitNames(root || document); });
+  }
+
+  function arm(){
+    const courts = document.getElementById('sbCourts');
+    if (courts) {
+      const observer = new MutationObserver(function(){ schedule(courts); });
+      observer.observe(courts, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ['class']
+      });
+
+      if (window.ResizeObserver) {
+        const ro = new ResizeObserver(function(){ schedule(courts); });
+        ro.observe(courts);
+      }
+      schedule(courts);
+    }
+
+    window.addEventListener('resize', function(){ schedule(document); }, {passive:true});
+    window.addEventListener('orientationchange', function(){ schedule(document); }, {passive:true});
+    window.addEventListener('stateRendered', function(){ schedule(document); });
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function(){ schedule(document); });
+    }
   }
 
   if (document.readyState === 'loading') {
