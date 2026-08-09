@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.65</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.68</div>
     </div>
   </div>
 
@@ -4197,7 +4197,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
               <button class="ghost-btn sb-action-sm" id="openScheduleBtn" style="display:none;"><svg class="icn" width="13" height="13" style="vertical-align:-1.5px;margin-right:4px;"><use href="#i-cal"/></svg>Schedule</button>
               <button class="ghost-btn sb-action-sm" id="openStatusBtn" style="display:none;"><svg class="icn" width="13" height="13" style="vertical-align:-1.5px;margin-right:4px;"><use href="#i-users"/></svg>Status</button>
               <button class="end-game-btn sb-action-sm" data-action="end"><svg class="icn" width="13" height="13" style="vertical-align:-1.5px;margin-right:4px;"><use href="#i-trophy"/></svg>End</button>
-              <button class="end-game-btn podium-btn sb-action-sm" data-action="podium" style="display:none;"><svg class="icn pdm-icn" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;" aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H5.2A2.2 2.2 0 0 0 3 8.2c0 2.3 1.7 3.8 4 4.3"/><path d="M17 6h1.8A2.2 2.2 0 0 1 21 8.2c0 2.3-1.7 3.8-4 4.3"/><path d="M9 11.5c.8.8 1.8 1.2 3 1.2s2.2-.4 3-1.2"/><circle cx="12" cy="8.2" r="1.1" fill="currentColor" stroke="none"/></svg>Podium</button>
+              <button class="end-game-btn podium-btn sb-action-sm" data-action="podium" style="display:none;"><svg class="icn pdm-icn" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;" aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H5.2A2.2 2.2 0 0 0 3 8.2c0 2.3 1.7 3.8 4 4.3"/><path d="M17 6h1.8A2.2 2.2 0 0 1 21 8.2c0 2.3-1.7 3.8-4 4.3"/><path d="M9 11.5c.8.8 1.8 1.2 3 1.2s2.2-.4 3-1.2"/><circle cx="12" cy="8.2" r="1.1" fill="currentColor" stroke="none"/></svg><span class="pdm-lbl">Podium</span></button>
             </div>
           </div>
           <div class="sb-right-panel" id="sbRightPanel">
@@ -10946,11 +10946,15 @@ saveState = window.saveState;
           btn.style.pointerEvents = 'auto';
           btn.style.cursor = 'pointer';
           btn.style.opacity = '1';
-          btn.style.background = 'linear-gradient(135deg, #c9a961, #8b6914)';
-          btn.style.border = '1px solid rgba(201,169,97,0.8)';
-          btn.style.boxShadow = '0 0 20px rgba(201,169,97,0.5), 0 0 40px rgba(201,169,97,0.2)';
-          btn.style.color = '#000';
-          btn.style.animation = 'podiumPulse 2s ease-in-out infinite';
+          /* v0.73.66: jangan set background/border/animation inline —
+             CSS running-glow rim yang ngatur (kalahin cascade). */
+          btn.style.background = '';
+          btn.style.backgroundImage = '';
+          btn.style.border = '';
+          btn.style.boxShadow = '';
+          btn.style.color = '';
+          btn.style.animation = 'none';
+          btn.style.filter = '';
         });
 
         const _scoreTab2 = document.getElementById('tabScore');
@@ -11000,10 +11004,13 @@ saveState = window.saveState;
             podiumBtn.style.pointerEvents = 'auto';
             podiumBtn.style.cursor = 'pointer';
             podiumBtn.style.filter = '';
-            podiumBtn.style.background = 'linear-gradient(135deg, #c9a961, #8b6914)';
-            podiumBtn.style.border = '1px solid rgba(201,169,97,0.8)';
-            podiumBtn.style.boxShadow = '0 0 20px rgba(201,169,97,0.5)';
-            podiumBtn.style.color = '#000';
+            /* v0.73.66: clear inline biar CSS glow yang menang */
+            podiumBtn.style.background = '';
+            podiumBtn.style.backgroundImage = '';
+            podiumBtn.style.border = '';
+            podiumBtn.style.boxShadow = '';
+            podiumBtn.style.color = '';
+            podiumBtn.style.animation = 'none';
           } else {
             podiumBtn.style.opacity = '0.35';
             podiumBtn.style.pointerEvents = 'none';
@@ -24035,6 +24042,515 @@ html.dark body.viewer-mode [data-action="podium"].pdm-live {
         rgba(255, 255, 255, 0.16) 40%,
         transparent 70%
       ) !important;
+  }
+}
+</style>
+
+
+<style id="codex-revision-v07366-css">
+/* ============================================================
+   v0.73.66 -- FIX BENAR untuk 3 poin user.
+
+   AKAR GLOW MATI:
+   - applyViewerUI set inline background/border/animation
+   - revisi 61–65 `content:none` pada ::before/::after MEMBUNUH
+     teknik v0.71.9 yang SUDAH PERNAH jalan (conic square + inset fill)
+
+   Teknik restore (proven v0.71.9), light+dark, specificity tinggi:
+   - button background transparent + overflow hidden
+   - ::before = square conic besar, ROTATE (running light)
+   - ::after = inset gold fill (rim ketebalan rata ~2.5px)
+   - > * (svg + .pdm-lbl) z-index 2 di atas fill
+   ============================================================ */
+
+/* ---------- [1] Running glow rim (light + dark) ---------- */
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live,
+html.dark body.viewer-mode [data-action="podium"].pdm-live,
+body.viewer-mode [data-action="podium"].pdm-live {
+  position: relative !important;
+  overflow: hidden !important;
+  isolation: isolate !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 10px 18px !important;
+  min-height: 40px !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.3px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  border-radius: 999px !important;
+  border: none !important;
+  background: transparent !important;
+  background-image: none !important;
+  color: #1a1408 !important;
+  -webkit-text-fill-color: #1a1408 !important;
+  animation: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  box-shadow:
+    0 0 18px rgba(201, 169, 97, 0.55),
+    0 2px 8px rgba(0, 0, 0, 0.20) !important;
+}
+
+/* Rotating conic — INI running glow-nya */
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live::before,
+html.dark body.viewer-mode [data-action="podium"].pdm-live::before,
+body.viewer-mode [data-action="podium"].pdm-live::before {
+  content: '' !important;
+  display: block !important;
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  width: 280px !important;
+  height: 280px !important;
+  margin: -140px 0 0 -140px !important;
+  inset: auto !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  background: conic-gradient(
+    from 0deg,
+    #4a3508 0deg,
+    #4a3508 20deg,
+    #c9a961 45deg,
+    #ffe9a0 58deg,
+    #ffffff 68deg,
+    #ffe9a0 78deg,
+    #c9a961 95deg,
+    #4a3508 130deg,
+    #1a1204 170deg,
+    #4a3508 200deg,
+    #e0be74 225deg,
+    #ffffff 238deg,
+    #ffe9a0 250deg,
+    #4a3508 285deg,
+    #1a1204 330deg,
+    #4a3508 360deg
+  ) !important;
+  -webkit-mask: none !important;
+  mask: none !important;
+  -webkit-animation: pdmSheenSpin 2.0s linear infinite !important;
+  animation: pdmSheenSpin 2.0s linear infinite !important;
+  will-change: transform !important;
+}
+
+/* Gold fill — sisakan rim ~2.5px */
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live::after,
+html.dark body.viewer-mode [data-action="podium"].pdm-live::after,
+body.viewer-mode [data-action="podium"].pdm-live::after {
+  content: '' !important;
+  display: block !important;
+  position: absolute !important;
+  inset: 2.5px !important;
+  left: 2.5px !important;
+  top: 2.5px !important;
+  right: 2.5px !important;
+  bottom: 2.5px !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  border-radius: 999px !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+  background:
+    linear-gradient(150deg, rgba(255,255,255,0.40) 0%, rgba(255,255,255,0) 42%),
+    linear-gradient(135deg, #f0d48a 0%, #e0be74 45%, #c9a961 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.45) !important;
+  -webkit-animation: none !important;
+  animation: none !important;
+  -webkit-mask: none !important;
+  mask: none !important;
+}
+
+/* Teks + ikon di ATAS fill */
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live > *,
+html.dark body.viewer-mode [data-action="podium"].pdm-live > *,
+body.viewer-mode [data-action="podium"].pdm-live > * {
+  position: relative !important;
+  z-index: 2 !important;
+  color: #1a1408 !important;
+  -webkit-text-fill-color: #1a1408 !important;
+  fill: #1a1408 !important;
+  stroke: #1a1408 !important;
+}
+body.viewer-mode [data-action="podium"].pdm-live .pdm-lbl {
+  color: #1a1408 !important;
+  -webkit-text-fill-color: #1a1408 !important;
+  font-weight: 800 !important;
+}
+body.viewer-mode [data-action="podium"].pdm-live .pdm-icn,
+body.viewer-mode [data-action="podium"].pdm-live .pdm-icn * {
+  color: #1a1408 !important;
+  stroke: #1a1408 !important;
+  fill: #1a1408 !important;
+}
+
+@keyframes pdmSheenSpin {
+  from { transform: translate3d(0,0,0) rotate(0deg); }
+  to   { transform: translate3d(0,0,0) rotate(360deg); }
+}
+@-webkit-keyframes pdmSheenSpin {
+  from { -webkit-transform: translate3d(0,0,0) rotate(0deg); }
+  to   { -webkit-transform: translate3d(0,0,0) rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.viewer-mode [data-action="podium"].pdm-live::before {
+    -webkit-animation: none !important;
+    animation: none !important;
+  }
+}
+
+/* ---------- [3] Onboarding haze: FULL cover merata di landscape ----------
+   Overlay putih/cream kuat di SELURUH area (termasuk kiri-kanan foto). */
+@media (min-width: 600px) {
+  #onboardingScreen::after {
+    content: '' !important;
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 0 !important;
+    pointer-events: none !important;
+    background:
+      rgba(255, 250, 242, 0.28),
+      linear-gradient(
+        90deg,
+        rgba(255, 250, 242, 0.55) 0%,
+        rgba(255, 250, 242, 0.22) 14%,
+        rgba(255, 250, 242, 0.12) 28%,
+        rgba(255, 250, 242, 0.12) 72%,
+        rgba(255, 250, 242, 0.22) 86%,
+        rgba(255, 250, 242, 0.55) 100%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(255, 250, 242, 0.42) 0%,
+        rgba(255, 250, 242, 0.20) 30%,
+        rgba(255, 250, 242, 0.12) 55%,
+        rgba(41, 51, 20, 0.18) 100%
+      ) !important;
+  }
+  /* Pastikan content di atas haze */
+  #onboardingScreen .onboarding-content {
+    position: relative !important;
+    z-index: 1 !important;
+  }
+}
+</style>
+
+
+<style id="codex-revision-v07367-css">
+/* ============================================================
+   v0.73.67 -- 2 revisi:
+   [1] Onboarding haze: ATAS+sisi lembut, BAWAH hampir transparan
+       (foto orang/court jangan ditutup)
+   [2] Podium: running light CIRCULAR di OUTLINE (bukan cuma glow
+       statis). Teknik: border transparent + dual background-clip
+       + @property --pdm-angle pada conic border-box. Fill gold di
+       padding-box. Pseudo lama dimatikan biar gak dobel.
+   ============================================================ */
+
+@property --pdm-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* ---------- [1] Onboarding haze: bottom clear ---------- */
+@media (min-width: 600px) {
+  #onboardingScreen::after {
+    content: '' !important;
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 0 !important;
+    pointer-events: none !important;
+    background:
+      /* sisi kiri/kanan lembut, hilang di tengah-bawah */
+      linear-gradient(
+        90deg,
+        rgba(255, 250, 242, 0.40) 0%,
+        rgba(255, 250, 242, 0.14) 12%,
+        rgba(255, 250, 242, 0.00) 28%,
+        rgba(255, 250, 242, 0.00) 72%,
+        rgba(255, 250, 242, 0.14) 88%,
+        rgba(255, 250, 242, 0.40) 100%
+      ),
+      /* vertikal: atas ada haze, bawah ~transparan total */
+      linear-gradient(
+        180deg,
+        rgba(255, 250, 242, 0.50) 0%,
+        rgba(255, 250, 242, 0.28) 18%,
+        rgba(255, 250, 242, 0.10) 38%,
+        rgba(255, 250, 242, 0.03) 55%,
+        rgba(255, 250, 242, 0.00) 70%,
+        rgba(255, 250, 242, 0.00) 100%
+      ),
+      /* highlight atas saja */
+      radial-gradient(
+        ellipse 90% 42% at 50% 6%,
+        rgba(255, 255, 255, 0.42) 0%,
+        rgba(255, 255, 255, 0.12) 45%,
+        transparent 70%
+      ) !important;
+  }
+  #onboardingScreen .onboarding-content {
+    position: relative !important;
+    z-index: 1 !important;
+  }
+}
+
+/* ---------- [2] Podium running-light OUTLINE ---------- */
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live,
+html.dark body.viewer-mode [data-action="podium"].pdm-live,
+body.viewer-mode [data-action="podium"].pdm-live {
+  position: relative !important;
+  overflow: visible !important;
+  isolation: isolate !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 10px 18px !important;
+  min-height: 40px !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.3px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  border-radius: 999px !important;
+  /* 3px = ketebalan outline running light */
+  border: 3px solid transparent !important;
+  color: #1a1408 !important;
+  -webkit-text-fill-color: #1a1408 !important;
+  filter: none !important;
+  opacity: 1 !important;
+  /* Fill di padding-box; running conic di border-box = OUTLINE */
+  background:
+    linear-gradient(135deg, #f0d48a 0%, #e0be74 45%, #c9a961 100%) padding-box,
+    conic-gradient(
+      from var(--pdm-angle, 0deg),
+      #3d2c08 0deg,
+      #3d2c08 18deg,
+      #a88430 40deg,
+      #ffe9a0 55deg,
+      #ffffff 65deg,
+      #ffffff 72deg,
+      #ffe9a0 82deg,
+      #a88430 100deg,
+      #3d2c08 140deg,
+      #1a1204 175deg,
+      #3d2c08 200deg,
+      #c9a961 225deg,
+      #ffffff 238deg,
+      #ffffff 248deg,
+      #ffe9a0 258deg,
+      #3d2c08 290deg,
+      #1a1204 330deg,
+      #3d2c08 360deg
+    ) border-box !important;
+  background-origin: padding-box, border-box !important;
+  -webkit-background-clip: padding-box, border-box !important;
+  background-clip: padding-box, border-box !important;
+  box-shadow:
+    0 0 14px rgba(201, 169, 97, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.16) !important;
+  /* Sudut conic yang muter = running light di outline */
+  -webkit-animation: pdmAngleSpin 1.8s linear infinite !important;
+  animation: pdmAngleSpin 1.8s linear infinite !important;
+}
+
+/* Matikan pseudo square lama — teknik outline pakai border-box */
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live::before,
+html.dark body.viewer-mode [data-action="podium"].pdm-live::before,
+body.viewer-mode [data-action="podium"].pdm-live::before,
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live::after,
+html.dark body.viewer-mode [data-action="podium"].pdm-live::after,
+body.viewer-mode [data-action="podium"].pdm-live::after {
+  content: none !important;
+  display: none !important;
+  -webkit-animation: none !important;
+  animation: none !important;
+  background: none !important;
+}
+
+body.viewer-mode [data-action="podium"].pdm-live > *,
+body.viewer-mode [data-action="podium"].pdm-live .pdm-lbl,
+body.viewer-mode [data-action="podium"].pdm-live .pdm-icn,
+body.viewer-mode [data-action="podium"].pdm-live .pdm-icn * {
+  position: relative !important;
+  z-index: 2 !important;
+  color: #1a1408 !important;
+  -webkit-text-fill-color: #1a1408 !important;
+  fill: #1a1408 !important;
+  stroke: #1a1408 !important;
+}
+
+@keyframes pdmAngleSpin {
+  from { --pdm-angle: 0deg; }
+  to   { --pdm-angle: 360deg; }
+}
+@-webkit-keyframes pdmAngleSpin {
+  from { --pdm-angle: 0deg; }
+  to   { --pdm-angle: 360deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.viewer-mode [data-action="podium"].pdm-live {
+    -webkit-animation: none !important;
+    animation: none !important;
+  }
+}
+</style>
+
+
+<script id="codex-revision-v07367-js">
+/* v0.73.67: rAF fallback --pdm-angle (TANPA MutationObserver).
+   Hanya setProperty pada .pdm-live yang visible. Start/stop via
+   interval ringan 2s — gak freeze UI. */
+(function () {
+  try {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  } catch (e) {}
+
+  var angle = 0;
+  var raf = 0;
+  var last = 0;
+  var SPEED = 360 / 1800; // deg/ms → 1.8s/rot
+
+  function hasLive() {
+    var nodes = document.querySelectorAll('body.viewer-mode [data-action="podium"].pdm-live');
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].offsetParent !== null || nodes[i].style.display !== 'none') return nodes;
+    }
+    return null;
+  }
+
+  function tick(ts) {
+    if (!last) last = ts;
+    var dt = ts - last;
+    last = ts;
+    angle = (angle + dt * SPEED) % 360;
+    var nodes = document.querySelectorAll('body.viewer-mode [data-action="podium"].pdm-live');
+    var any = false;
+    for (var i = 0; i < nodes.length; i++) {
+      var n = nodes[i];
+      if (n.offsetParent === null && n.style.display === 'none') continue;
+      any = true;
+      n.style.setProperty('--pdm-angle', angle.toFixed(1) + 'deg');
+    }
+    if (!any) { raf = 0; last = 0; return; }
+    raf = requestAnimationFrame(tick);
+  }
+
+  function ensure() {
+    if (raf) return;
+    if (!hasLive()) return;
+    last = 0;
+    raf = requestAnimationFrame(tick);
+  }
+
+  setInterval(ensure, 2000);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { setTimeout(ensure, 100); });
+  } else {
+    setTimeout(ensure, 100);
+  }
+})();
+</script>
+
+
+<style id="codex-revision-v07368-css">
+/* ============================================================
+   v0.73.68 -- Onboarding landscape: hilangkan "kolom HP" / seam
+   kiri-kanan foto tajam vs blur letterbox.
+
+   Masalah di screenshot: foto portrait tajam di tengah, kiri-kanan
+   viewport = blur crop BEDA → garis vertikal jelas, keliatan aneh.
+
+   Fix (min-width 600px):
+   1) Soft-fade kiri+kanan foto tajam ke cream letterbox (#ebe4d4)
+      via layer gradient di atas background-image
+   2) ::before ambient: samakan size/posisi foto (auto 104%, center
+      bottom), scale lebih besar + blur lebih + opacity naik supaya
+      sisi menyatu, bukan crop beda
+   3) Haze ::after tetap: atas lembut, bawah transparan (v0.73.67)
+   ============================================================ */
+
+@media (min-width: 600px) {
+  #onboardingScreen {
+    background-color: #ebe4d4 !important;
+    background-image:
+      /* feather kiri-kanan foto → cream, hilangkan hard edge */
+      linear-gradient(
+        90deg,
+        #ebe4d4 0%,
+        rgba(235, 228, 212, 0.92) 6%,
+        rgba(235, 228, 212, 0.45) 14%,
+        rgba(235, 228, 212, 0.00) 24%,
+        rgba(235, 228, 212, 0.00) 76%,
+        rgba(235, 228, 212, 0.45) 86%,
+        rgba(235, 228, 212, 0.92) 94%,
+        #ebe4d4 100%
+      ),
+      var(--onboarding-photo) !important;
+    background-size:
+      100% 100%,
+      auto 104% !important;
+    background-position:
+      center center,
+      center bottom !important;
+    background-repeat: no-repeat !important;
+  }
+
+  #onboardingScreen::before {
+    content: '' !important;
+    display: block !important;
+    position: absolute !important;
+    inset: -8% !important;
+    z-index: -2 !important;
+    background-image: var(--onboarding-photo) !important;
+    background-size: auto 104% !important;
+    background-position: center bottom !important;
+    background-repeat: no-repeat !important;
+    filter: blur(32px) saturate(0.88) !important;
+    opacity: 0.62 !important;
+    transform: scale(1.28) !important;
+    pointer-events: none !important;
+  }
+
+  /* Haze: atas saja, bawah clean — pertahankan intent v0.73.67 */
+  #onboardingScreen::after {
+    content: '' !important;
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 0 !important;
+    pointer-events: none !important;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(255, 250, 242, 0.46) 0%,
+        rgba(255, 250, 242, 0.22) 16%,
+        rgba(255, 250, 242, 0.08) 32%,
+        rgba(255, 250, 242, 0.00) 48%,
+        rgba(255, 250, 242, 0.00) 100%
+      ),
+      radial-gradient(
+        ellipse 90% 40% at 50% 5%,
+        rgba(255, 255, 255, 0.40) 0%,
+        rgba(255, 255, 255, 0.10) 42%,
+        transparent 68%
+      ) !important;
+  }
+
+  #onboardingScreen .onboarding-content {
+    position: relative !important;
+    z-index: 1 !important;
   }
 }
 </style>
