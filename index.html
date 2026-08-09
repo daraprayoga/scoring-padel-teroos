@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.47</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.48</div>
     </div>
   </div>
 
@@ -22046,6 +22046,64 @@ if (document.readyState === 'loading') {
      khusus pill kalau width=height), jadi TETAP 999px, bukan 8px. */
   body.viewer-mode .round-pill{
     border-radius: 999px !important;
+  }
+}
+</style>
+
+<style id="codex-revision-v07348-css">
+/* ============================================================
+   v0.73.48 -- ONBOARDING IMAGE kegeser kiri di viewport LEBAR
+   (desktop/laptop browser), sementara .onboarding-content (teks +
+   "Let's Play") tetap center. Dilaporkan user via screenshot browser
+   laptop asli.
+   ============================================================
+   Akar masalah: `#onboardingScreen` (block v0.73.37, global/unscoped,
+   TIDAK ada media query pembatas) pakai:
+     background-size: auto 104%;       -- lebar gambar PROPORSIONAL
+                                           dari height container (rasio
+                                           asli gambar ~941:1672, SANGAT
+                                           portrait/sempit)
+     background-position: 42% bottom;  -- digeser dari center, awalnya
+                                           buat jaga2 gambar gak nyender
+                                           kepotong horizontal SAAT dia
+                                           lebih LEBAR dari container
+                                           (kasus viewport SEMPIT/mobile)
+
+   Di viewport SEMPIT (mobile), height container biasanya dominan --
+   gambar (width proporsional dari height) bisa jadi LEBIH LEBAR dari
+   container, sehingga PERLU crop horizontal, dan 42% itu strateginya.
+
+   Di viewport LEBAR (desktop/laptop) height ABSOLUT gak berubah banyak
+   (viewport height desktop gak jauh beda dari mobile), TAPI WIDTH
+   container jadi JAUH LEBIH LEBAR -- gambar (width tetap proporsional
+   dari height, jadi SAMA ukurannya secara absolut) jadi JAUH LEBIH
+   SEMPIT dari container. TIDAK ADA RISIKO CROP sama sekali di kondisi
+   ini -- tapi posisi 42% (bukan center 50%) tetap dipakai, sehingga
+   gambar yang sudah sempit itu "nyender" ke kiri, jauh dari titik
+   tengah tempat .onboarding-content (constraint max-width 1280px,
+   margin:0 auto -- SELALU center relatif ke viewport) berada. Dua
+   elemen ini jadi TIDAK SINKRON secara visual -- persis yang
+   dilaporkan user.
+
+   Diverifikasi dulu pakai simulasi (bukan asumsi): breakpoint ~500px
+   itu titik gambar mulai LEBIH SEMPIT dari container (given height
+   viewport wajar ~850px, rendered image width konstan ~498px
+   terlepas container width). Dipakai 600px (bukan 500px) buat kasih
+   buffer aman + KONSISTEN sama breakpoint viewer-mode landscape yang
+   sudah dipakai di app ini (v0.73.42 dst, juga min-width:600px).
+
+   Fix: KHUSUS min-width:600px, override balik ke posisi CENTER --
+   di lebar segini, sudah dikonfirmasi TIDAK ADA risiko crop, jadi
+   center itu murni aman & lebih rapi secara visual. background-size
+   TIDAK disentuh (auto 104% tetap dipertahankan -- itu bagian yang
+   bekerja benar, cuma posisi horizontalnya yang perlu diselaraskan).
+   Mobile/viewport sempit (<600px) TIDAK disentuh sama sekali, tetap
+   42% seperti sebelumnya -- itu memang perlu buat jaga gak crop di
+   kondisi gambar lebih lebar dari container.
+   ============================================================ */
+@media (min-width: 600px) {
+  #onboardingScreen {
+    background-position: center bottom !important;
   }
 }
 </style>
