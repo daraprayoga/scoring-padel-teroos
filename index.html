@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.57</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.59</div>
     </div>
   </div>
 
@@ -23125,6 +23125,215 @@ html.dark body.viewer-mode [data-action="podium"].pdm-live::after {
   body.viewer-mode [data-action="podium"].pdm-live::before {
     animation: none !important;
   }
+}
+</style>
+
+
+<style id="codex-revision-v07358-css">
+/* ============================================================
+   v0.73.58 -- Podium button ENDED = LIGHT GOLD (bukan hitam).
+
+   User eksplisit: "tombol podium harusnya light gold kalau udah
+   ended" + kontras/readability wajib bagus.
+
+   - Fill: gradient emas terang (#e8c878 → #c9a961)
+   - Teks/ikon: HITAM pekat (kontras tinggi di atas emas terang)
+   - Rim: running metal gold lebih terang dari fill, muter di tepi
+   - Teknik: overflow hidden + conic square + inset fill (proven)
+   ============================================================ */
+
+body.viewer-mode [data-action="podium"].pdm-live {
+  position: relative !important;
+  overflow: hidden !important;
+  isolation: isolate !important;
+  background: linear-gradient(135deg, #e8c878 0%, #c9a961 55%, #b8923a 100%) !important;
+  background-image: linear-gradient(135deg, #e8c878 0%, #c9a961 55%, #b8923a 100%) !important;
+  border: none !important;
+  border-radius: 999px !important;
+  color: #1a1408 !important;
+  animation: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  box-shadow:
+    0 0 0 1px rgba(184, 140, 40, 0.55),
+    0 2px 10px rgba(122, 89, 14, 0.28),
+    0 0 20px rgba(201, 169, 97, 0.40) !important;
+}
+
+/* Running rim — hotspot lebih terang dari fill biar kebaca "glow jalan" */
+body.viewer-mode [data-action="podium"].pdm-live::before {
+  content: '' !important;
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  width: 280px !important;
+  height: 280px !important;
+  margin: -140px 0 0 -140px !important;
+  inset: auto !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  background: conic-gradient(
+    from 0deg,
+    #8a6a20 0deg,
+    #8a6a20 22deg,
+    #e0be74 48deg,
+    #fff6d0 56deg,
+    #ffffff 60deg,
+    #ffe9a0 66deg,
+    #c9a961 78deg,
+    #8a6a20 110deg,
+    #5a4210 155deg,
+    #8a6a20 185deg,
+    #d4b26a 210deg,
+    #fff6d0 220deg,
+    #ffe9a0 228deg,
+    #8a6a20 250deg,
+    #5a4210 300deg,
+    #8a6a20 360deg
+  ) !important;
+  -webkit-mask: none !important;
+  mask: none !important;
+  animation: pdmSheenSpin 2.6s linear infinite !important;
+}
+
+/* Fill light-gold menutup tengah, sisakan rim ~2px */
+body.viewer-mode [data-action="podium"].pdm-live::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: 2px !important;
+  left: 2px !important;
+  top: 2px !important;
+  right: 2px !important;
+  bottom: 2px !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  border-radius: 999px !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+  background: linear-gradient(150deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 42%),
+              linear-gradient(135deg, #e8c878 0%, #c9a961 55%, #b8923a 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+  -webkit-mask: none !important;
+  mask: none !important;
+  animation: none !important;
+}
+
+/* Teks + ikon HITAM — kontras di atas emas terang */
+body.viewer-mode [data-action="podium"].pdm-live,
+body.viewer-mode [data-action="podium"].pdm-live * {
+  color: #1a1408 !important;
+  -webkit-text-fill-color: #1a1408 !important;
+  fill: #1a1408 !important;
+}
+body.viewer-mode [data-action="podium"].pdm-live svg,
+body.viewer-mode [data-action="podium"].pdm-live svg * {
+  color: #1a1408 !important;
+  stroke: #1a1408 !important;
+  fill: #1a1408 !important;
+}
+body.viewer-mode [data-action="podium"].pdm-live > * {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live,
+html.dark body.viewer-mode [data-action="podium"].pdm-live {
+  background: linear-gradient(135deg, #e8c878 0%, #c9a961 55%, #b8923a 100%) !important;
+  color: #1a1408 !important;
+  border: none !important;
+  animation: none !important;
+}
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live::after,
+html.dark body.viewer-mode [data-action="podium"].pdm-live::after {
+  background: linear-gradient(150deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 42%),
+              linear-gradient(135deg, #e8c878 0%, #c9a961 55%, #b8923a 100%) !important;
+  inset: 2px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.viewer-mode [data-action="podium"].pdm-live::before {
+    animation: none !important;
+  }
+}
+</style>
+
+
+<style id="codex-revision-v07359-css">
+/* ============================================================
+   v0.73.59 -- Round-nav pills: Ticket Stub NORMAL di SEMUA mode,
+   termasuk viewer + landscape. Bukan lingkaran.
+
+   Akar: base `.round-pill { width:44px; height:44px }` (kotak) +
+   rule landscape viewer `border-radius:999px` → lingkaran penuh.
+   Ticket Stub (v0.73.50/51) set radius 14px + row layout, TAPI
+   TIDAK override `width:44px`, jadi tetap kotak/circle.
+
+   Fix: width AUTO (ikut konten R+angka), radius 14px, paksa di
+   admin + viewer + landscape dengan specificity >= rule circle.
+   ============================================================ */
+
+/* Universal Ticket Stub shape — menang atas width:44px & radius 999px */
+html:not(.dark) body:not(.viewer-mode) .round-pill,
+html.dark body:not(.viewer-mode) .round-pill,
+html:not(.dark) body.viewer-mode .round-pill,
+html.dark body.viewer-mode .round-pill,
+body:not(.viewer-mode) .round-pill,
+body.viewer-mode .round-pill {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  border-radius: 14px !important;
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+/* Landscape viewer (ex-circle override v0.73.47/51) — BALIK ke Ticket Stub */
+@media (orientation: landscape) and (min-width: 600px) {
+  html:not(.dark) body.viewer-mode .round-pill,
+  html.dark body.viewer-mode .round-pill,
+  body.viewer-mode .round-pill,
+  html:not(.dark) body:not(.viewer-mode) .round-pill,
+  html.dark body:not(.viewer-mode) .round-pill,
+  body:not(.viewer-mode) .round-pill {
+    width: auto !important;
+    border-radius: 14px !important;
+    height: 44px !important;
+  }
+}
+
+/* Pastikan kompartemen label/angka layout row (bukan stack vertikal
+   dari base flex-direction:column) */
+html:not(.dark) body:not(.viewer-mode) .round-pill .pill-label,
+html.dark body:not(.viewer-mode) .round-pill .pill-label,
+html:not(.dark) body.viewer-mode .round-pill .pill-label,
+html.dark body.viewer-mode .round-pill .pill-label {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 20px !important;
+  flex: 0 0 20px !important;
+}
+html:not(.dark) body:not(.viewer-mode) .round-pill .pill-num,
+html.dark body:not(.viewer-mode) .round-pill .pill-num,
+html:not(.dark) body.viewer-mode .round-pill .pill-num,
+html.dark body.viewer-mode .round-pill .pill-num {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 26px !important;
+  padding: 0 12px !important;
 }
 </style>
 
