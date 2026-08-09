@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.77</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.78</div>
     </div>
   </div>
 
@@ -25108,5 +25108,165 @@ body.viewer-mode [data-action="podium"].pdm-live .trophy-pdm-icn {
   }
 }
 </style>
+<style id="codex-revision-v07378-css">
+/* ============================================================
+   v0.73.78 -- DUA REVISI
+
+   [1] JUDUL MABAR GELAP DI VIEWER DARK LANDSCAPE (kontras)
+   #rpTournamentName warnanya #2e3916 (forest gelap) HARDCODED, gak
+   ada varian dark mode sama sekali. Background .rp-section di dark
+   mode jadi #1d2412 (flat, dari block v0.72-an, menang karena posisi
+   source lebih akhir daripada block glass v0.71). Diukur pakai
+   formula WCAG relative luminance: kontras teks-lama vs bg gelap itu
+   cuma 1.3:1 -- di bawah AA (4.5:1) jauh, praktis nyaris gak
+   kebaca, sama seperti yang dilaporkan. Fix: override eksplisit
+   html.dark, pakai warna yang UDAH ada di palet dark mode project
+   ini (bukan warna baru) -- #ece7da buat judul (sama kayak
+   .card-title/.setup-title dark mode, kontras 12.95:1), #94b946
+   buat meta (sama kayak .setup-subtitle dark mode, kontras 7.07:1).
+
+   [2] JUDUL MABAR DI VIEWER PORTRAIT FULLSCREEN
+   Ditelusuri: di portrait, .sb-right-panel (rumah #rpTournamentName)
+   base-nya `display:none` -- cuma dimunculin di breakpoint landscape
+   split layout. Jadi di portrait, judul mabar SAMA SEKALI GAK ADA DI
+   MANAPUN di layar. .sb-topbar cuma nampilin "ROUND X", gak ada nama
+   sesi.
+
+   Tempat naronya: <header>. Alasan -- itu SATU-SATUNYA elemen yang
+   sticky/selalu kelihatan tanpa scroll (.sb-topbar sendiri sekarang
+   position:relative biasa sejak v0.73.24, dia scroll bareng konten).
+   Kalau ditaro di topbar/sb-round-info, bakal ilang begitu di-scroll
+   -- padahal ini display buat penonton yang notabene bakal discroll
+   liat court lain.
+
+   Implementasi: header viewer-mode+portrait jadi 2 baris (masthead):
+   baris 1 = logo + action buttons (SAMA PERSIS kayak sekarang, TIDAK
+   diubah geometrinya), baris 2 = nama mabar (Cormorant Garamond
+   italic, font yang sama dipakai #rpTournamentName di landscape --
+   biar identitas tipografi konsisten across layout) + meta kecil
+   (format + round, caps, gaya sama kayak sb-round-label yang sudah
+   ada). Kalau tournamentName kosong, baris 2 disembunyikan otomatis
+   (elemen tetap ada di DOM, JS yang toggle display -- lihat script
+   di bawah), header balik ke 1 baris seperti semula.
+
+   Populate via listener ke event 'stateRendered' (hook yang sudah
+   dipakai project ini di banyak tempat -- lihat syncHeaderH,
+   syncBottomNav, dst) -- BUKAN edit fungsi lama, append-only murni.
+   ============================================================ */
+
+/* ---------- [1] Kontras dark mode ---------- */
+html.dark #rpTournamentName {
+  color: #ece7da !important;
+}
+html.dark #rpTournamentMeta {
+  color: #94b946 !important;
+}
+
+/* ---------- [2] Masthead judul mabar, viewer + portrait ---------- */
+@media (orientation: portrait) {
+  body.viewer-mode header {
+    flex-wrap: wrap !important;
+    row-gap: 2px !important;
+  }
+  body.viewer-mode header .brand,
+  body.viewer-mode header .header-actions {
+    flex: 0 0 auto !important;
+  }
+  #viewerMastheadTitle {
+    display: none; /* JS nyalain via .has-title */
+    flex: 1 1 100%;
+    order: 3;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 15px;
+    line-height: 1.2;
+    color: #2e3916;
+    margin: 0;
+    padding: 0 2px;
+    word-break: break-word;
+  }
+  #viewerMastheadTitle .vm-meta {
+    display: block;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-style: normal;
+    font-weight: 800;
+    font-size: 8.5px;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: #8a9e4a;
+    margin-top: 1px;
+  }
+  #viewerMastheadTitle.has-title {
+    display: block;
+  }
+  html.dark #viewerMastheadTitle {
+    color: #ece7da;
+  }
+  html.dark #viewerMastheadTitle .vm-meta {
+    color: #94b946;
+  }
+}
+/* Landscape: right panel udah nampilin judul, masthead gak perlu */
+@media (orientation: landscape) {
+  #viewerMastheadTitle { display: none !important; }
+}
+</style>
+
+<script id="codex-revision-v07378-js">
+/* v0.73.78: masthead judul mabar (viewer + portrait). Elemen dibuat
+   sekali, diisi tiap 'stateRendered'. Append-only -- gak nyentuh
+   fungsi render lama sama sekali. */
+(function () {
+  function ensureEl() {
+    var header = document.querySelector('body.viewer-mode header');
+    if (!header) return null;
+    var el = document.getElementById('viewerMastheadTitle');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'viewerMastheadTitle';
+      var name = document.createElement('span');
+      name.className = 'vm-name';
+      var meta = document.createElement('span');
+      meta.className = 'vm-meta';
+      el.appendChild(name);
+      el.appendChild(meta);
+      header.appendChild(el);
+    }
+    return el;
+  }
+
+  function update() {
+    if (!document.body.classList.contains('viewer-mode')) return;
+    var el = ensureEl();
+    if (!el) return;
+    var name = (typeof state !== 'undefined' && state.tournamentName) ? state.tournamentName : '';
+    var nameSpan = el.querySelector('.vm-name');
+    var metaSpan = el.querySelector('.vm-meta');
+    if (!name) {
+      el.classList.remove('has-title');
+      return;
+    }
+    if (nameSpan) nameSpan.textContent = name;
+    if (metaSpan) {
+      try {
+        var fmt = formatLabel(state.format);
+        var round = (state.rounds && state.rounds.length) ? state.rounds.length : 1;
+        metaSpan.textContent = fmt + ' \u00b7 Round ' + round;
+      } catch (e) {
+        metaSpan.textContent = '';
+      }
+    }
+    el.classList.add('has-title');
+  }
+
+  window.addEventListener('stateRendered', update);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { setTimeout(update, 50); });
+  } else {
+    setTimeout(update, 50);
+  }
+})();
+</script>
 </body>
 </html>
