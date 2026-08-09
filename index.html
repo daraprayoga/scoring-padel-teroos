@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.55</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.56</div>
     </div>
   </div>
 
@@ -22798,6 +22798,136 @@ body.viewer-mode [data-action="podium"].pdm-live > * {
   position: relative !important;
   z-index: 1 !important;
 }
+@media (prefers-reduced-motion: reduce) {
+  body.viewer-mode [data-action="podium"].pdm-live::before {
+    animation: none !important;
+  }
+}
+</style>
+
+
+<style id="codex-revision-v07356-css">
+/* ============================================================
+   v0.73.56 -- Podium button running-glow diselaraskan ke referensi
+   user (buttons.mp4): fill gelap + rim emas metalik TIPIS rata,
+   highlight specular yang "jalan" di perimeter. BUKAN soft bloom
+   besar di luar tombol.
+
+   Referensi visual:
+   - Body hitam pekat (bukan emas penuh)
+   - Outline gold chrome ~1.5–2px, ketebalan IDENTIK di semua sisi
+   - Satu/dua hotspot terang (near-white gold) yang muter
+   - Soft outer glow minimal, cuma biar rim kebaca di dark UI
+   ============================================================ */
+
+/* Base: hitam, overflow visible biar rim luar gak ke-clip tajam */
+body.viewer-mode [data-action="podium"].pdm-live {
+  position: relative !important;
+  overflow: visible !important;
+  isolation: isolate !important;
+  background: #0a0a0a !important;
+  border: none !important;
+  border-radius: 999px !important;
+  animation: none !important;
+  color: #fff !important;
+  /* glow luar sangat halus — referensi hampir gak punya bloom besar */
+  box-shadow:
+    0 0 0 1px rgba(201,169,97,0.25),
+    0 2px 10px rgba(0,0,0,0.35),
+    0 0 18px rgba(201,169,97,0.18) !important;
+  z-index: 1;
+}
+
+/* Running metal ring — padding = ketebalan rata di seluruh pill */
+body.viewer-mode [data-action="podium"].pdm-live::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: -2px !important;
+  left: auto !important;
+  top: auto !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  border-radius: inherit !important;
+  padding: 2px !important; /* ketebalan rim RATA */
+  box-sizing: border-box !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  /* Chrome gold: base gelap + hotspot terang sempit (kayak referensi) */
+  background: conic-gradient(
+    from 0deg,
+    #5a4210 0deg,
+    #5a4210 20deg,
+    #c9a961 48deg,
+    #fff3c4 58deg,
+    #e0be74 68deg,
+    #5a4210 95deg,
+    #3d2c08 140deg,
+    #5a4210 180deg,
+    #a8872e 210deg,
+    #ffe9a0 222deg,
+    #c9a961 235deg,
+    #5a4210 270deg,
+    #3d2c08 320deg,
+    #5a4210 360deg
+  ) !important;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0) !important;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0) !important;
+  -webkit-mask-composite: xor !important;
+  mask-composite: exclude !important;
+  animation: pdmSheenSpin 2.8s linear infinite !important;
+}
+
+/* Fill hitam di atas ring (nutup tengah, rim tetap kelihatan) */
+body.viewer-mode [data-action="podium"].pdm-live::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: inherit !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  background: #0a0a0a !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08) !important;
+}
+
+/* Teks/ikon di atas fill */
+body.viewer-mode [data-action="podium"].pdm-live > * {
+  position: relative !important;
+  z-index: 2 !important;
+  color: inherit !important;
+}
+
+/* Light mode: tetap hitam + gold rim (sama referensi), biar kontras
+   di cream page juga kuat — bukan emas penuh yang blur di light. */
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live {
+  background: #0a0a0a !important;
+  color: #fff !important;
+  box-shadow:
+    0 0 0 1px rgba(184,140,40,0.35),
+    0 2px 12px rgba(0,0,0,0.20),
+    0 0 16px rgba(201,169,97,0.22) !important;
+}
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live::after {
+  background: #0a0a0a !important;
+}
+
+/* Dark mode: identik, glow sedikit lebih kencang di kanvas gelap */
+html.dark body.viewer-mode [data-action="podium"].pdm-live {
+  background: #0a0a0a !important;
+  color: #fff !important;
+  box-shadow:
+    0 0 0 1px rgba(201,169,97,0.40),
+    0 2px 12px rgba(0,0,0,0.55),
+    0 0 20px rgba(201,169,97,0.28) !important;
+}
+html.dark body.viewer-mode [data-action="podium"].pdm-live::after {
+  background: #0a0a0a !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   body.viewer-mode [data-action="podium"].pdm-live::before {
     animation: none !important;
