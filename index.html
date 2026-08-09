@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.54</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.55</div>
     </div>
   </div>
 
@@ -22623,5 +22623,187 @@ html:not(.dark) .format-card.selected{
   }
 }
 </style>
+
+<style id="codex-revision-v07355-css">
+/* ============================================================
+   v0.73.55 -- 3 revisi:
+   [1] Background viewer-mode disamakan dengan admin (gak lebih cream/cokelat).
+   [2] PTS standings dark mode warna sama GP/Win/dll (#709224), bukan cream putih.
+   [3] Tombol Podium viewer (saat end game) outline running-light tebal rata + glow.
+   ============================================================ */
+
+/* ---------- [1] BACKGROUND VIEWER = ADMIN ----------
+   Admin light: html gradient hijau olive (#eef3e2 → #f2f5e9 + radial lime).
+   Admin dark: html #141a0c / #121609 + body::before radial dark-green.
+   Beberapa path viewer (body.viewer-mode / .viewer-url) sempat "bocor"
+   ke base cream lama (--rc-forest #f5f0e6 / #fbf7f0) karena body
+   transparent + pseudo ::before sticky glue cuma scoped
+   body:not(.viewer-mode). Force html+body viewer pakai token page
+   yang SAMA persis dengan admin. */
+html:not(.dark) body.viewer-mode,
+html:not(.dark) body.viewer-url,
+html:not(.dark).viewer-url body {
+  background: transparent !important;
+}
+html:not(.dark) body.viewer-mode,
+html:not(.dark) body.viewer-url {
+  /* pastikan gak ada solid cream di layer body */
+  background-color: transparent !important;
+}
+/* html gradient sudah di-set v0.73.x untuk semua mode; pastikan viewer
+   gak kena override cream dari rule lama -- re-assert di sini (source
+   order menang). */
+html:not(.dark) {
+  background:
+    radial-gradient(78% 40% at 82% 0%, rgba(112,146,36,0.30) 0%, transparent 62%),
+    radial-gradient(60% 32% at 5% 12%, rgba(112,146,36,0.14) 0%, transparent 60%),
+    linear-gradient(180deg, #eef3e2 0%, #f2f5e9 100%) !important;
+  background-attachment: fixed !important;
+  background-color: #f2f5e9 !important; /* fallback solid = page token, BUKAN cream #f5f0e6 */
+}
+html.dark {
+  background: #141a0c !important;
+  background-color: #141a0c !important;
+}
+/* Viewer dark: body::before sering gak kepasang (content cuma di
+   body:not(.viewer-mode) sticky-glue). Kasih surface gelap yang sama
+   biar gak jatuh ke tone coklat/krem sisa token lama. */
+html.dark body.viewer-mode,
+html.dark body.viewer-url,
+html.dark.viewer-url body {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+/* Panel/page di viewer ikut token page, bukan cream */
+html:not(.dark) body.viewer-mode main,
+html:not(.dark) body.viewer-mode .view,
+html:not(.dark) body.viewer-mode .sb-page {
+  background: transparent !important;
+}
+html.dark body.viewer-mode main,
+html.dark body.viewer-mode .view,
+html.dark body.viewer-mode .sb-page {
+  background: transparent !important;
+}
+
+/* ---------- [2] PTS DARK = GP / WIN / NUM ----------
+   Rule lama:
+     html.dark .standing-table .num  → #709224
+     html.dark .points-cell         → #ece7da (cream, "putih sendiri")
+   Samakan points-cell ke #709224. Specificity dinaikkin biar menang
+   atas rule v0.73.x yang sudah !important. */
+html.dark .standing-table .points-cell,
+html.dark #standingBody .points-cell,
+html.dark .standing-table td.num.points-cell,
+html.dark #standingBody td.num.points-cell {
+  color: #709224 !important;
+}
+
+/* ---------- [3] PODIUM BTN — running-light outline tebal RATA + glow
+   Teknik lama (conic square 220px di-center + overflow:hidden) bikin
+   ketebalan rim GAK RATA di kapsul non-square: sudut kotak rotasi
+   ketabrak clip mask beda di sumbu X vs Y.
+
+   Fix: mask-composite / xor pada ::before dengan padding tetap
+   (2px) = ketebalan rim IDENTIK di seluruh perimeter pill, terlepas
+   dari aspect ratio tombol. Conic tetap di-spin. Tambah soft outer
+   glow supaya "glowing motion" kebaca, bukan cuma bezel metal doang. */
+body.viewer-mode [data-action="podium"].pdm-live {
+  position: relative !important;
+  overflow: visible !important; /* biar outer glow gak ke-clip */
+  isolation: isolate;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 999px !important;
+  animation: none !important;
+  /* soft ambient glow (pulse pelan) */
+  box-shadow:
+    0 0 0 1px rgba(201,169,97,0.35),
+    0 0 14px rgba(201,169,97,0.45),
+    0 0 28px rgba(201,169,97,0.22) !important;
+  z-index: 1;
+}
+/* Running-light ring — tebal RATA via padding + mask-composite */
+body.viewer-mode [data-action="podium"].pdm-live::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: -2px !important;          /* ring di luar tepi tombol sedikit */
+  left: auto !important; top: auto !important;
+  width: auto !important; height: auto !important;
+  margin: 0 !important;
+  border-radius: inherit !important;
+  padding: 2px !important;         /* = ketebalan rim, RATA di semua sisi */
+  box-sizing: border-box !important;
+  z-index: -2 !important;
+  pointer-events: none !important;
+  background: conic-gradient(from var(--pdm-angle, 0deg),
+      #6b4e12 0deg,
+      #ffe9a8 40deg,
+      #c9a961 70deg,
+      #6b4e12 120deg,
+      #4a350c 180deg,
+      #fff6d0 220deg,
+      #c9a961 260deg,
+      #6b4e12 320deg,
+      #6b4e12 360deg) !important;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0) !important;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0) !important;
+  -webkit-mask-composite: xor !important;
+  mask-composite: exclude !important;
+  animation: pdmSheenSpin 2.4s linear infinite !important;
+}
+/* Fill body tombol (di atas ring) */
+body.viewer-mode [data-action="podium"].pdm-live::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: inherit !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
+}
+/* --- light fill --- */
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live {
+  color: #241a05 !important;
+  box-shadow:
+    0 0 0 1px rgba(184,140,40,0.40),
+    0 0 16px rgba(201,169,97,0.50),
+    0 0 32px rgba(201,169,97,0.28),
+    0 4px 14px rgba(122,89,14,0.30) !important;
+}
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live::after {
+  background:
+    linear-gradient(150deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0) 45%),
+    linear-gradient(135deg, #e8c878 0%, #b18a28 100%) !important;
+}
+/* --- dark fill --- */
+html.dark body.viewer-mode [data-action="podium"].pdm-live {
+  color: #f4e6c2 !important;
+  box-shadow:
+    0 0 0 1px rgba(201,169,97,0.45),
+    0 0 18px rgba(201,169,97,0.40),
+    0 0 36px rgba(201,169,97,0.22),
+    0 4px 16px rgba(0,0,0,0.55) !important;
+}
+html.dark body.viewer-mode [data-action="podium"].pdm-live::after {
+  background:
+    linear-gradient(150deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 42%),
+    linear-gradient(135deg, #2a2419 0%, #1a1710 100%) !important;
+}
+/* Pastikan konten tombol (ikon + teks) di atas fill */
+body.viewer-mode [data-action="podium"].pdm-live > * {
+  position: relative !important;
+  z-index: 1 !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  body.viewer-mode [data-action="podium"].pdm-live::before {
+    animation: none !important;
+  }
+}
+</style>
+
 </body>
 </html>
