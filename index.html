@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.59</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.60</div>
     </div>
   </div>
 
@@ -23334,6 +23334,93 @@ html.dark body.viewer-mode .round-pill .pill-num {
   justify-content: center !important;
   min-width: 26px !important;
   padding: 0 12px !important;
+}
+</style>
+
+
+<style id="codex-revision-v07360-css">
+/* ============================================================
+   v0.73.60 -- 2 fix:
+   [1] Onboarding haze landscape: white/cream overlay RATA di seluruh
+       area gambar (bukan cuma radial top yang cepat hilang → bagian
+       tengah/bawah "gak ketutup haze").
+   [2] Podium ended: fill light-gold + teks/ikon HITAM solid di light
+       DAN dark (emas terang → hitam = kontras tinggi; putih di atas
+       emas gagal AA). Paksa wariskan ke SVG/use juga.
+   ============================================================ */
+
+/* ---------- [1] Haze onboarding lebih rata (desktop/landscape) ----------
+   Radial lama: circle at 50% 8%, transparent 30% → cuma nutupin
+   ujung atas, tengah foto "bersih" tanpa haze → keluhan user.
+   Ganti: linear full-height cream scrim yang turun pelan + radial
+   ellipse LEBIH LEBAR biar highlight atas tetap ada tanpa bikin
+   patch terpisah. */
+@media (min-width: 600px) {
+  #onboardingScreen::after {
+    background:
+      /* scrim cream merata top→bottom (opacity gak drop ke 0 di 37%) */
+      linear-gradient(
+        180deg,
+        rgba(255, 250, 242, 0.46) 0%,
+        rgba(255, 250, 242, 0.28) 22%,
+        rgba(255, 250, 242, 0.16) 48%,
+        rgba(255, 250, 242, 0.10) 68%,
+        rgba(41, 51, 20, 0.22) 100%
+      ),
+      /* highlight atas lembut, ellipse lebar biar gak jadi bercak */
+      radial-gradient(
+        ellipse 90% 55% at 50% 12%,
+        rgba(255, 255, 255, 0.50) 0%,
+        rgba(255, 255, 255, 0.18) 42%,
+        transparent 72%
+      ) !important;
+  }
+}
+
+/* ---------- [2] Podium button: light gold + BLACK text/icon ----------
+   Fill emas terang di light & dark. Teks/ikon HITAM di kedua mode
+   (bukan putih — putih di atas #e8c878 kontras jelek). */
+body.viewer-mode [data-action="podium"].pdm-live {
+  background: linear-gradient(135deg, #e8c878 0%, #c9a961 55%, #b8923a 100%) !important;
+  background-image: linear-gradient(135deg, #e8c878 0%, #c9a961 55%, #b8923a 100%) !important;
+  color: #1a1408 !important;
+  -webkit-text-fill-color: #1a1408 !important;
+  border: none !important;
+  animation: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+}
+body.viewer-mode [data-action="podium"].pdm-live::after {
+  background:
+    linear-gradient(150deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0) 42%),
+    linear-gradient(135deg, #e8c878 0%, #c9a961 55%, #b8923a 100%) !important;
+  inset: 2px !important;
+}
+
+/* Paksa SEMUA turunan (teks, svg, use, path) hitam */
+body.viewer-mode [data-action="podium"].pdm-live,
+body.viewer-mode [data-action="podium"].pdm-live *,
+body.viewer-mode [data-action="podium"].pdm-live svg,
+body.viewer-mode [data-action="podium"].pdm-live svg *,
+body.viewer-mode [data-action="podium"].pdm-live use {
+  color: #1a1408 !important;
+  -webkit-text-fill-color: #1a1408 !important;
+  fill: #1a1408 !important;
+  stroke: #1a1408 !important;
+}
+
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live,
+html.dark body.viewer-mode [data-action="podium"].pdm-live {
+  background: linear-gradient(135deg, #e8c878 0%, #c9a961 55%, #b8923a 100%) !important;
+  color: #1a1408 !important;
+  -webkit-text-fill-color: #1a1408 !important;
+}
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live *,
+html.dark body.viewer-mode [data-action="podium"].pdm-live * {
+  color: #1a1408 !important;
+  -webkit-text-fill-color: #1a1408 !important;
+  fill: #1a1408 !important;
+  stroke: #1a1408 !important;
 }
 </style>
 
