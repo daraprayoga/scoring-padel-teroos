@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.68</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.69</div>
     </div>
   </div>
 
@@ -23816,8 +23816,8 @@ body.viewer-mode [data-action="podium"].pdm-live {
     0 0 14px rgba(201, 169, 97, 0.50),
     0 2px 8px rgba(0, 0, 0, 0.18) !important;
   /* Animate the angle — this IS the running glow */
-  -webkit-animation: pdmAngleSpin 2.2s linear infinite !important;
-  animation: pdmAngleSpin 2.2s linear infinite !important;
+  -webkit-animation: pdmAngleSpin 4.5s linear infinite !important;
+  animation: pdmAngleSpin 4.5s linear infinite !important;
 }
 
 /* Matikan pseudo lama total — gak dipakai teknik ini */
@@ -23844,8 +23844,8 @@ body.viewer-mode [data-action="podium"].pdm-live * {
 
 html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live,
 html.dark body.viewer-mode [data-action="podium"].pdm-live {
-  -webkit-animation: pdmAngleSpin 2.2s linear infinite !important;
-  animation: pdmAngleSpin 2.2s linear infinite !important;
+  -webkit-animation: pdmAngleSpin 4.5s linear infinite !important;
+  animation: pdmAngleSpin 4.5s linear infinite !important;
   color: #1a1408 !important;
 }
 
@@ -23950,8 +23950,8 @@ body.viewer-mode [data-action="podium"].pdm-live {
     0 0 0 1px rgba(184, 140, 40, 0.35),
     0 0 16px rgba(201, 169, 97, 0.55),
     0 2px 8px rgba(0, 0, 0, 0.16) !important;
-  -webkit-animation: pdmAngleSpin 2.0s linear infinite !important;
-  animation: pdmAngleSpin 2.0s linear infinite !important;
+  -webkit-animation: pdmAngleSpin 4.5s linear infinite !important;
+  animation: pdmAngleSpin 4.5s linear infinite !important;
 }
 
 /* Kill old ::before/::after so they don't cover rim or text */
@@ -23986,8 +23986,8 @@ body.viewer-mode [data-action="podium"].pdm-live .pdm-icn {
 
 html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live,
 html.dark body.viewer-mode [data-action="podium"].pdm-live {
-  -webkit-animation: pdmAngleSpin 2.0s linear infinite !important;
-  animation: pdmAngleSpin 2.0s linear infinite !important;
+  -webkit-animation: pdmAngleSpin 4.5s linear infinite !important;
+  animation: pdmAngleSpin 4.5s linear infinite !important;
   color: #1a1408 !important;
   border: 3px solid transparent !important;
 }
@@ -24360,8 +24360,8 @@ body.viewer-mode [data-action="podium"].pdm-live {
     0 0 14px rgba(201, 169, 97, 0.45),
     0 2px 8px rgba(0, 0, 0, 0.16) !important;
   /* Sudut conic yang muter = running light di outline */
-  -webkit-animation: pdmAngleSpin 1.8s linear infinite !important;
-  animation: pdmAngleSpin 1.8s linear infinite !important;
+  -webkit-animation: pdmAngleSpin 4.5s linear infinite !important;
+  animation: pdmAngleSpin 4.5s linear infinite !important;
 }
 
 /* Matikan pseudo square lama — teknik outline pakai border-box */
@@ -24420,7 +24420,7 @@ body.viewer-mode [data-action="podium"].pdm-live .pdm-icn * {
   var angle = 0;
   var raf = 0;
   var last = 0;
-  var SPEED = 360 / 1800; // deg/ms → 1.8s/rot
+  var SPEED = 360 / 4500; // deg/ms → 1.8s/rot
 
   function hasLive() {
     var nodes = document.querySelectorAll('body.viewer-mode [data-action="podium"].pdm-live');
@@ -24551,6 +24551,75 @@ body.viewer-mode [data-action="podium"].pdm-live .pdm-icn * {
   #onboardingScreen .onboarding-content {
     position: relative !important;
     z-index: 1 !important;
+  }
+}
+</style>
+
+
+<style id="codex-revision-v07369-css">
+/* ============================================================
+   v0.73.69
+   [1] Viewer landscape bisa dibuka: pastikan layout split + panel
+       tidak ketimpa rule onboarding; onboarding play tetap klikable
+   [2] Podium running glow LEBIH LAMBAT (4.5s/rotasi)
+   ============================================================ */
+
+/* --- Podium glow: lambat --- */
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live,
+html.dark body.viewer-mode [data-action="podium"].pdm-live,
+body.viewer-mode [data-action="podium"].pdm-live {
+  -webkit-animation: pdmAngleSpin 4.5s linear infinite !important;
+  animation: pdmAngleSpin 4.5s linear infinite !important;
+}
+
+/* --- Onboarding: pastikan tombol Let's Play selalu bisa diklik --- */
+#onboardingScreen #onboardingPlay {
+  position: relative !important;
+  z-index: 5 !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+#onboardingScreen .onboarding-content {
+  position: relative !important;
+  z-index: 2 !important;
+  pointer-events: auto !important;
+}
+#onboardingScreen::before,
+#onboardingScreen::after {
+  pointer-events: none !important;
+}
+#onboardingScreen.is-leaving {
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+/* --- Viewer landscape layout: re-assert (jaga jangan ketimpa) --- */
+@media (orientation: landscape) and (min-width: 600px) {
+  body.viewer-mode .sb-landscape-wrapper {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+  body.viewer-mode .sb-left-panel {
+    display: block !important;
+    flex: 0 0 57% !important;
+    min-width: 0 !important;
+    width: auto !important;
+  }
+  body.viewer-mode .sb-right-panel {
+    display: flex !important;
+    flex: 1 1 40% !important;
+    min-width: 0 !important;
+    flex-direction: column !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  /* Scoreboard root harus kelihatan di viewer landscape */
+  body.viewer-mode #scoreboard,
+  body.viewer-mode .sb-page,
+  body.viewer-mode #view-score {
+    visibility: visible !important;
   }
 }
 </style>
