@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.48</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.49</div>
     </div>
   </div>
 
@@ -22104,6 +22104,28 @@ if (document.readyState === 'loading') {
 @media (min-width: 600px) {
   #onboardingScreen {
     background-position: center bottom !important;
+  }
+  /* v0.73.49: haze/gradient putih (#onboardingScreen::after, radial-
+     gradient "circle at 17% 8%") itu dihitung relatif ke ELEMEN PENUH
+     (yang sangat lebar di desktop), BUKAN relatif ke gambar contained
+     di dalamnya. Sebelum fix background-position di atas, gambar juga
+     condong kiri (42%) jadi posisi gradient (17% dari kiri) kurang-
+     lebih dekat sama posisi gambar -- cukup menyatu. Setelah gambar
+     di-center (fix v0.73.48), gradient TETAP di 17% (gak ikut
+     berubah) -- jatuh jauh di kiri gambar contained, "bocor" masuk
+     sebagai bercak terpisah di tengah foto alih-alih menyatu sebagai
+     highlight lembut. Dilaporkan user via screenshot browser laptop
+     asli, diverifikasi ulang pakai Playwright+Chromium (screenshot
+     sebelum/sesudah dibandingkan langsung, bukan cuma diasumsikan
+     benar dari baca kode): posisi X digeser dari 17% ke 50% (center,
+     SELARAS sama posisi gambar utama yang sekarang center) -- hasil
+     akhirnya smooth, gak ada lagi bercak terpisah. Posisi Y (8%, dari
+     atas) TIDAK diubah -- itu gak dipengaruhi fix horizontal-centering
+     sebelumnya, height container/gambar gak berubah. */
+  #onboardingScreen::after {
+    background:
+      linear-gradient(180deg, rgba(255, 250, 242, 0.18) 0%, rgba(255, 250, 242, 0) 37%, rgba(41,51,20,0.24) 100%),
+      radial-gradient(circle at 50% 8%, rgba(255, 255, 255, 0.56), transparent 30%) !important;
   }
 }
 </style>
