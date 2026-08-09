@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.49</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.50</div>
     </div>
   </div>
 
@@ -22129,5 +22129,166 @@ if (document.readyState === 'loading') {
   }
 }
 </style>
+<style id="codex-revision-v07350-css">
+/* ============================================================
+   v0.73.50 -- ROUND-NAV PILL diganti total ke "Ticket Stub" (opsi B
+   dari 4 preview yang dikirim, dipilih user: "Definitely B! Keren.").
+   Preview disetujui di scratchpad sebelum eksekusi ini (round-nav
+   pill 4 arah, light+dark side-by-side, 2 bug ketauan & dibenerin
+   sebelum kirim: opsi B labelnya sempat writing-mode vertikal bikin
+   "R" kebaca kayak huruf mirror, opsi D sempat invisible).
+
+   BENTUK: kompartemen kiri sempit ("R", tinted, redup) dipisah garis
+   putus-putus dari kompartemen kanan lebar (angka, gede, tebal).
+   Titik status nempel pojok kanan-atas kompartemen angka.
+
+   SENGAJA GAK NYENTUH viewer-mode: `body.viewer-mode .round-pill`
+   (v0.73.42, ~22047) sengaja bikin pill jadi LINGKARAN PENUH buat
+   konteks TV cast/landscape -- itu keputusan sadar terpisah, bukan
+   sisa lama. Semua selector di sini eksplisit `body:not(.viewer-mode)`
+   biar exclusion-nya PASTI (bukan lomba specificity/!important yang
+   riskan kalah kalau ada revisi lanjutan) -- viewer-mode circular
+   shape tetap gak kesenggol.
+
+   MARKUP: `<button class="round-pill [active] [scored]">
+   <span class="pill-label">R</span><span class="pill-num">N</span>
+   </button>` (~5696/10407). Ada SATU varian TANPA .pill-label (KO
+   bracket stage pill, ~5982) -- garis perforasi ditaruh di
+   `.pill-label` (border-KANAN), bukan di `.pill-num` (border-KIRI),
+   biar varian tanpa label itu OTOMATIS gak nampilin garis nyangkut
+   di kiri angka (kalau taruh di .pill-num, KO pill bakal punya garis
+   perforasi yatim tanpa kompartemen label di sebelahnya).
+   ============================================================ */
+
+html:not(.dark) body:not(.viewer-mode) .round-pill,
+html.dark body:not(.viewer-mode) .round-pill{
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 0 !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  padding: 0 !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background-image: none !important;
+  transition: background var(--v73-dur) var(--v73-ease),
+              color var(--v73-dur) var(--v73-ease),
+              box-shadow var(--v73-dur) var(--v73-ease) !important;
+}
+
+/* kompartemen "R": sempit, tint redup, garis perforasi di kanan */
+html:not(.dark) body:not(.viewer-mode) .round-pill .pill-label,
+html.dark body:not(.viewer-mode) .round-pill .pill-label{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 20px !important;
+  flex: 0 0 20px !important;
+  font-size: 10.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+  opacity: .68 !important;
+  line-height: 1 !important;
+}
+/* kompartemen angka: lebar otomatis, angka gede tebal */
+html:not(.dark) body:not(.viewer-mode) .round-pill .pill-num,
+html.dark body:not(.viewer-mode) .round-pill .pill-num{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 26px !important;
+  padding: 0 12px !important;
+  font-size: 17px !important;
+  font-weight: 800 !important;
+  letter-spacing: -.02em !important;
+  line-height: 1 !important;
+}
+/* KO stage pill (~5982) TANPA .pill-label -- angka full-width, nol
+   garis perforasi yatim (garisnya nempel di .pill-label, bukan di
+   sini -- lihat catatan markup di atas). */
+html:not(.dark) body:not(.viewer-mode) .round-pill:not(:has(.pill-label)) .pill-num,
+html.dark body:not(.viewer-mode) .round-pill:not(:has(.pill-label)) .pill-num{
+  padding: 0 16px !important;
+}
+
+/* titik status: pojok kanan-atas kompartemen angka */
+html:not(.dark) body:not(.viewer-mode) .round-pill.scored::after,
+html.dark body:not(.viewer-mode) .round-pill.scored::after{
+  top: 6px !important;
+  right: 6px !important;
+  left: auto !important;
+  width: 5px !important;
+  height: 5px !important;
+  border-radius: 50% !important;
+}
+
+/* ---------- WARNA: inactive ----------
+   Angka pill-num (info utama) WARISIN color ini langsung, nol opacity
+   tambahan -- .55 cuma 3.48:1 di atas --v73-paper-2, DI BAWAH AA (17px
+   bold masih 1.66px di bawah ambang large-text 18.66px, jadi kena
+   standar normal-text 4.5, bukan large). Dinaikin ke .68 -> 5.13:1.
+   .pill-label ("R") TETAP redam lewat opacity ELEMEN terpisah (bukan
+   nambah alpha di sini) -- dia cuma label redundant/dekoratif, kena
+   dua alpha ditumpuk (.68 warna x .68 opacity) itu SENGAJA. */
+html:not(.dark) body:not(.viewer-mode) .round-pill{
+  background: var(--v73-paper-2) !important;
+  border: none !important;
+  color: rgba(29,43,8,.68) !important;
+}
+html:not(.dark) body:not(.viewer-mode) .round-pill .pill-label{
+  background: rgba(60,93,0,.07) !important;
+  border-right: 1.5px dashed rgba(60,93,0,.3) !important;
+}
+html:not(.dark) body:not(.viewer-mode) .round-pill.scored::after{
+  background: var(--v73-lime-solid) !important;
+}
+html.dark body:not(.viewer-mode) .round-pill{
+  background: rgba(255,255,255,.06) !important;
+  border: none !important;
+  color: rgba(255,255,255,.55) !important;
+}
+html.dark body:not(.viewer-mode) .round-pill .pill-label{
+  background: rgba(255,255,255,.08) !important;
+  border-right: 1.5px dashed rgba(255,255,255,.25) !important;
+}
+html.dark body:not(.viewer-mode) .round-pill.scored::after{
+  background: #cfe0a3 !important;
+}
+
+/* ---------- WARNA: active ---------- */
+html:not(.dark) body:not(.viewer-mode) .round-pill.active,
+html:not(.dark) body:not(.viewer-mode) .round-pill.active *{
+  background: var(--v73-olive) !important;
+  color: #fff !important;
+}
+html:not(.dark) body:not(.viewer-mode) .round-pill.active .pill-label{
+  background: rgba(255,255,255,.14) !important;
+  border-right-color: rgba(255,255,255,.4) !important;
+}
+html.dark body:not(.viewer-mode) .round-pill.active,
+html.dark body:not(.viewer-mode) .round-pill.active *{
+  background: #cfe0a3 !important;
+  color: var(--v73-olive) !important;
+}
+html.dark body:not(.viewer-mode) .round-pill.active .pill-label{
+  background: rgba(60,93,0,.14) !important;
+  border-right-color: rgba(60,93,0,.35) !important;
+}
+/* aktif = udah "kepilih", titik status di dalamnya percuma (redundant
+   sama fill solid) -- disembunyiin biar gak dobel penanda. */
+html:not(.dark) body:not(.viewer-mode) .round-pill.active.scored::after,
+html.dark body:not(.viewer-mode) .round-pill.active.scored::after{
+  display: none !important;
+}
+</style>
+
 </body>
 </html>
