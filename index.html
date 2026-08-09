@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.60</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.63</div>
     </div>
   </div>
 
@@ -23423,6 +23423,544 @@ html.dark body.viewer-mode [data-action="podium"].pdm-live * {
   stroke: #1a1408 !important;
 }
 </style>
+
+
+<style id="codex-revision-v07361-css">
+/* ============================================================
+   v0.73.61 -- Podium button: TEKS "Podium" kembali + motion mobile
+
+   [1] TEKS HILANG — root cause:
+       Markup: <button><svg/>Podium</button>
+       "Podium" = TEXT NODE (bukan element). Rule `> * { z-index:2 }`
+       cuma nge-angkat SVG. ::after (fill gold, position:absolute,
+       z-index:1) ke-paint DI ATAS in-flow text → teks ketutup
+       solid gold, cuma ikon yang kelihatan.
+
+       Fix: ::before/::after z-index NEGATIF di dalam isolation:isolate
+       → rim+fill di BELAKANG teks & svg, teks kembali kebaca.
+
+   [2] Motion gak muter di mobile:
+       - Paksa -webkit-animation (Safari iOS)
+       - transform3d biar compositor layer
+       - will-change: transform
+       - Saat display:none→visible, animasi kadang "beku"; JS kecil
+         re-trigger class setelah tombol tampil.
+   ============================================================ */
+
+body.viewer-mode [data-action="podium"].pdm-live {
+  position: relative !important;
+  overflow: hidden !important;
+  isolation: isolate !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 10px 18px !important;
+  min-height: 40px !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.3px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  background: linear-gradient(135deg, #e8c878 0%, #c9a961 55%, #b8923a 100%) !important;
+  background-image: linear-gradient(135deg, #e8c878 0%, #c9a961 55%, #b8923a 100%) !important;
+  border: none !important;
+  border-radius: 999px !important;
+  color: #1a1408 !important;
+  -webkit-text-fill-color: #1a1408 !important;
+  animation: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  box-shadow:
+    0 0 0 1px rgba(184, 140, 40, 0.55),
+    0 2px 10px rgba(122, 89, 14, 0.28),
+    0 0 20px rgba(201, 169, 97, 0.40) !important;
+}
+
+/* Ring di BELAKANG konten (z-index negatif + isolation) */
+body.viewer-mode [data-action="podium"].pdm-live::before {
+  content: '' !important;
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  width: 280px !important;
+  height: 280px !important;
+  margin: -140px 0 0 -140px !important;
+  inset: auto !important;
+  z-index: -2 !important;
+  pointer-events: none !important;
+  border-radius: 0 !important;
+  background: conic-gradient(
+    from 0deg,
+    #8a6a20 0deg,
+    #8a6a20 22deg,
+    #e0be74 48deg,
+    #fff6d0 56deg,
+    #ffffff 60deg,
+    #ffe9a0 66deg,
+    #c9a961 78deg,
+    #8a6a20 110deg,
+    #5a4210 155deg,
+    #8a6a20 185deg,
+    #d4b26a 210deg,
+    #fff6d0 220deg,
+    #ffe9a0 228deg,
+    #8a6a20 250deg,
+    #5a4210 300deg,
+    #8a6a20 360deg
+  ) !important;
+  -webkit-mask: none !important;
+  mask: none !important;
+  /* Safari iOS: webkit prefix + 3d transform = compositor, autoplay */
+  -webkit-animation: pdmSheenSpin 2.6s linear infinite !important;
+  animation: pdmSheenSpin 2.6s linear infinite !important;
+  will-change: transform !important;
+  -webkit-transform: translateZ(0) !important;
+  transform: translateZ(0) !important;
+}
+
+/* Fill di BELAKANG teks (z-index -1), rim 2px kelihatan di tepi */
+body.viewer-mode [data-action="podium"].pdm-live::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: 2px !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
+  border-radius: 999px !important;
+  background:
+    linear-gradient(150deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0) 42%),
+    linear-gradient(135deg, #e8c878 0%, #c9a961 55%, #b8923a 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+  -webkit-animation: none !important;
+  animation: none !important;
+}
+
+/* Teks + ikon hitam, JANGAN naikkan z-index elemen (biar text node
+   ikut layer in-flow yang sekarang di atas pseudo negatif) */
+body.viewer-mode [data-action="podium"].pdm-live,
+body.viewer-mode [data-action="podium"].pdm-live * {
+  color: #1a1408 !important;
+  -webkit-text-fill-color: #1a1408 !important;
+  fill: #1a1408 !important;
+  stroke: #1a1408 !important;
+  position: relative !important; /* di atas negative z pseudo tanpa z-index angka */
+  z-index: auto !important;
+}
+
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live,
+html.dark body.viewer-mode [data-action="podium"].pdm-live {
+  background: linear-gradient(135deg, #e8c878 0%, #c9a961 55%, #b8923a 100%) !important;
+  color: #1a1408 !important;
+  -webkit-text-fill-color: #1a1408 !important;
+}
+
+/* Keyframes: translateZ biar iOS gak drop animasi */
+@keyframes pdmSheenSpin {
+  from { transform: translateZ(0) rotate(0deg); }
+  to   { transform: translateZ(0) rotate(360deg); }
+}
+@-webkit-keyframes pdmSheenSpin {
+  from { -webkit-transform: translateZ(0) rotate(0deg); }
+  to   { -webkit-transform: translateZ(0) rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.viewer-mode [data-action="podium"].pdm-live::before {
+    -webkit-animation: none !important;
+    animation: none !important;
+  }
+}
+</style>
+
+
+<script id="codex-revision-v07361-js">
+/* v0.73.61: re-trigger running-glow animasi saat podium btn jadi visible.
+   iOS Safari sering "bekuin" CSS animation pada elemen yang tadinya
+   display:none; ganti class doang gak cukup — perlu reflow + restart. */
+(function () {
+  function restartPdmGlow(btn) {
+    if (!btn || !btn.classList.contains('pdm-live')) return;
+    // Force restart ::before animation via brief class toggle + reflow
+    btn.classList.remove('pdm-live');
+    void btn.offsetWidth;
+    btn.classList.add('pdm-live');
+  }
+
+  function hook() {
+    const btns = document.querySelectorAll('[data-action="podium"]');
+    btns.forEach((btn) => {
+      if (btn.dataset.pdmHooked) return;
+      btn.dataset.pdmHooked = '1';
+      // When display flips to visible after end game
+      const mo = new MutationObserver(() => {
+        if (btn.classList.contains('pdm-live') && btn.offsetParent !== null) {
+          restartPdmGlow(btn);
+        }
+      });
+      mo.observe(btn, { attributes: true, attributeFilter: ['style', 'class'] });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', hook);
+  } else {
+    hook();
+  }
+  // Also after applyViewerUI patterns — periodic light check on ended
+  document.addEventListener('click', function (e) {
+    const t = e.target && e.target.closest && e.target.closest('[data-action="end"], #confirmEndGame');
+    if (!t) return;
+    setTimeout(() => {
+      document.querySelectorAll('[data-action="podium"].pdm-live').forEach(restartPdmGlow);
+    }, 120);
+  }, true);
+})();
+</script>
+
+
+<style id="codex-revision-v07362-css">
+/* ============================================================
+   v0.73.62 -- Running glow rim yang BENAR-BENAR kelihatan + muter.
+
+   Masalah v0.73.61: ::before conic full-square di z-index -2 di
+   belakang fill; rim 2px terlalu tipis/sama-warna dengan fill →
+   motion praktis invisible. Atau animasi kalah cascade.
+
+   Teknik baru (sama referensi buttons.mp4):
+   - Fill = background tombol sendiri (light gold)
+   - ::before = HANYA rim (mask-composite xor), conic muter
+   - ::after = DIMATIKAN (display:none) biar gak nutup apa pun
+   - Teks/SVG in-flow, gak ketutup pseudo
+   ============================================================ */
+
+body.viewer-mode [data-action="podium"].pdm-live {
+  position: relative !important;
+  overflow: visible !important;
+  isolation: isolate !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 10px 18px !important;
+  min-height: 40px !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.3px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  border-radius: 999px !important;
+  border: none !important;
+  /* Fill light gold di BUTTON — bukan di ::after */
+  background: linear-gradient(135deg, #e8c878 0%, #c9a961 55%, #b8923a 100%) !important;
+  background-image: linear-gradient(135deg, #e8c878 0%, #c9a961 55%, #b8923a 100%) !important;
+  color: #1a1408 !important;
+  -webkit-text-fill-color: #1a1408 !important;
+  animation: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  box-shadow:
+    0 0 12px rgba(201, 169, 97, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.18) !important;
+}
+
+/* Matikan ::after dari revisi lama — sumber nutupin teks/rim */
+body.viewer-mode [data-action="podium"].pdm-live::after {
+  content: none !important;
+  display: none !important;
+  animation: none !important;
+  -webkit-animation: none !important;
+  background: none !important;
+}
+
+/* RIM ONLY — mask xor biar tengah bolong, teks aman */
+body.viewer-mode [data-action="podium"].pdm-live::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: -3px !important;
+  left: -3px !important;
+  top: -3px !important;
+  right: -3px !important;
+  bottom: -3px !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 3px !important; /* ketebalan rim */
+  border-radius: 999px !important;
+  box-sizing: border-box !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  /* Hotspot putih tajam biar motion KEBANget */
+  background: conic-gradient(
+    from 0deg,
+    #6b4e12 0deg,
+    #6b4e12 30deg,
+    #c9a961 55deg,
+    #ffe9a0 70deg,
+    #ffffff 78deg,
+    #ffe9a0 86deg,
+    #c9a961 100deg,
+    #6b4e12 140deg,
+    #3d2c08 180deg,
+    #6b4e12 210deg,
+    #e0be74 235deg,
+    #ffffff 248deg,
+    #ffe9a0 258deg,
+    #6b4e12 290deg,
+    #3d2c08 330deg,
+    #6b4e12 360deg
+  ) !important;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0) !important;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0) !important;
+  -webkit-mask-composite: xor !important;
+  mask-composite: exclude !important;
+  /* FORCE animation — kalahkan semua animation:none sebelumnya */
+  -webkit-animation: pdmSheenSpin 2.2s linear infinite !important;
+  animation: pdmSheenSpin 2.2s linear infinite !important;
+  will-change: transform !important;
+  -webkit-transform: translate3d(0,0,0) !important;
+  transform: translate3d(0,0,0) !important;
+}
+
+body.viewer-mode [data-action="podium"].pdm-live,
+body.viewer-mode [data-action="podium"].pdm-live * {
+  color: #1a1408 !important;
+  -webkit-text-fill-color: #1a1408 !important;
+  fill: #1a1408 !important;
+  stroke: #1a1408 !important;
+}
+
+/* Konten di atas rim */
+body.viewer-mode [data-action="podium"].pdm-live > * {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live,
+html.dark body.viewer-mode [data-action="podium"].pdm-live {
+  background: linear-gradient(135deg, #e8c878 0%, #c9a961 55%, #b8923a 100%) !important;
+  color: #1a1408 !important;
+}
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live::after,
+html.dark body.viewer-mode [data-action="podium"].pdm-live::after {
+  content: none !important;
+  display: none !important;
+}
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live::before,
+html.dark body.viewer-mode [data-action="podium"].pdm-live::before {
+  -webkit-animation: pdmSheenSpin 2.2s linear infinite !important;
+  animation: pdmSheenSpin 2.2s linear infinite !important;
+}
+
+@keyframes pdmSheenSpin {
+  0%   { transform: translate3d(0,0,0) rotate(0deg); }
+  100% { transform: translate3d(0,0,0) rotate(360deg); }
+}
+@-webkit-keyframes pdmSheenSpin {
+  0%   { -webkit-transform: translate3d(0,0,0) rotate(0deg); }
+  100% { -webkit-transform: translate3d(0,0,0) rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.viewer-mode [data-action="podium"].pdm-live::before {
+    -webkit-animation: none !important;
+    animation: none !important;
+  }
+}
+</style>
+
+
+<style id="codex-revision-v07363-css">
+/* ============================================================
+   v0.73.63 -- Running glow via animated conic ANGLE (bukan rotate
+   elemen). Teks aman, rim muter, shape pill tetap.
+
+   Teknik: dual background + background-clip
+     - padding-box: fill light-gold (teks duduk di sini)
+     - border-box: conic-gradient yang --pdm-angle-nya dianimasi
+   Border transparent 3px = "jendela" buat conic rim.
+   @property --pdm-angle: Chrome/Safari 15.4+/Firefox.
+
+   Fallback JS (rAF) di bawah buat browser yang @property-nya
+   gak animatable — tetap muter via setProperty.
+   ============================================================ */
+
+@property --pdm-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+body.viewer-mode [data-action="podium"].pdm-live {
+  position: relative !important;
+  overflow: visible !important;
+  isolation: isolate !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 10px 18px !important;
+  min-height: 40px !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.3px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  border-radius: 999px !important;
+  /* 3px transparent border = ketebalan rim */
+  border: 3px solid transparent !important;
+  color: #1a1408 !important;
+  -webkit-text-fill-color: #1a1408 !important;
+  filter: none !important;
+  opacity: 1 !important;
+  /* Fill di padding-box, running conic di border-box */
+  background:
+    linear-gradient(135deg, #e8c878 0%, #c9a961 55%, #b8923a 100%) padding-box,
+    conic-gradient(
+      from var(--pdm-angle, 0deg),
+      #5a4210 0deg,
+      #5a4210 28deg,
+      #c9a961 52deg,
+      #ffe9a0 68deg,
+      #ffffff 76deg,
+      #ffe9a0 84deg,
+      #c9a961 100deg,
+      #5a4210 140deg,
+      #2a1e06 180deg,
+      #5a4210 210deg,
+      #e0be74 232deg,
+      #ffffff 246deg,
+      #ffe9a0 256deg,
+      #5a4210 290deg,
+      #2a1e06 330deg,
+      #5a4210 360deg
+    ) border-box !important;
+  background-origin: padding-box, border-box !important;
+  -webkit-background-clip: padding-box, border-box !important;
+  background-clip: padding-box, border-box !important;
+  box-shadow:
+    0 0 14px rgba(201, 169, 97, 0.50),
+    0 2px 8px rgba(0, 0, 0, 0.18) !important;
+  /* Animate the angle — this IS the running glow */
+  -webkit-animation: pdmAngleSpin 2.2s linear infinite !important;
+  animation: pdmAngleSpin 2.2s linear infinite !important;
+}
+
+/* Matikan pseudo lama total — gak dipakai teknik ini */
+body.viewer-mode [data-action="podium"].pdm-live::before,
+body.viewer-mode [data-action="podium"].pdm-live::after,
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live::before,
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live::after,
+html.dark body.viewer-mode [data-action="podium"].pdm-live::before,
+html.dark body.viewer-mode [data-action="podium"].pdm-live::after {
+  content: none !important;
+  display: none !important;
+  -webkit-animation: none !important;
+  animation: none !important;
+  background: none !important;
+}
+
+body.viewer-mode [data-action="podium"].pdm-live,
+body.viewer-mode [data-action="podium"].pdm-live * {
+  color: #1a1408 !important;
+  -webkit-text-fill-color: #1a1408 !important;
+  fill: #1a1408 !important;
+  stroke: #1a1408 !important;
+}
+
+html:not(.dark) body.viewer-mode [data-action="podium"].pdm-live,
+html.dark body.viewer-mode [data-action="podium"].pdm-live {
+  -webkit-animation: pdmAngleSpin 2.2s linear infinite !important;
+  animation: pdmAngleSpin 2.2s linear infinite !important;
+  color: #1a1408 !important;
+}
+
+@keyframes pdmAngleSpin {
+  from { --pdm-angle: 0deg; }
+  to   { --pdm-angle: 360deg; }
+}
+@-webkit-keyframes pdmAngleSpin {
+  from { --pdm-angle: 0deg; }
+  to   { --pdm-angle: 360deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.viewer-mode [data-action="podium"].pdm-live {
+    -webkit-animation: none !important;
+    animation: none !important;
+  }
+}
+</style>
+
+
+<script id="codex-revision-v07363-js">
+/* v0.73.63: fallback running-glow kalau @property angle gak ke-animasi
+   (beberapa WebKit). rAF muter --pdm-angle manual di .pdm-live. */
+(function () {
+  var reduced = false;
+  try {
+    reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch (e) {}
+  if (reduced) return;
+
+  var angle = 0;
+  var raf = 0;
+  var last = 0;
+  var SPEED = 360 / 2200; // deg per ms (~2.2s/rotation)
+
+  function tick(ts) {
+    if (!last) last = ts;
+    var dt = ts - last;
+    last = ts;
+    angle = (angle + dt * SPEED) % 360;
+    var nodes = document.querySelectorAll('body.viewer-mode [data-action="podium"].pdm-live');
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].style.setProperty('--pdm-angle', angle.toFixed(1) + 'deg');
+    }
+    raf = requestAnimationFrame(tick);
+  }
+
+  function start() {
+    if (raf) return;
+    last = 0;
+    raf = requestAnimationFrame(tick);
+  }
+
+  function stop() {
+    if (raf) cancelAnimationFrame(raf);
+    raf = 0;
+  }
+
+  function ensure() {
+    var live = document.querySelector('body.viewer-mode [data-action="podium"].pdm-live');
+    if (live && live.offsetParent !== null) start();
+    else stop();
+  }
+
+  // Kick on load + when class/style changes on podium btns
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ensure);
+  } else {
+    ensure();
+  }
+  document.addEventListener('click', function () {
+    setTimeout(ensure, 80);
+    setTimeout(ensure, 300);
+  }, true);
+
+  // Observe body class viewer-mode / ended-related attribute flips
+  try {
+    var mo = new MutationObserver(function () { ensure(); });
+    mo.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['class', 'style'] });
+  } catch (e) {}
+
+  // Always keep rAF alive lightly when viewer — cheap
+  setInterval(ensure, 1500);
+})();
+</script>
 
 </body>
 </html>
