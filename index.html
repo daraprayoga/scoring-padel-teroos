@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.69</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.74</div>
     </div>
   </div>
 
@@ -24784,6 +24784,123 @@ body.viewer-mode [data-action="podium"].pdm-live .trophy-pdm-icn {
 @media (max-width: 640px) {
   #onboardingScreen::after {
     display: block !important;
+  }
+}
+</style>
+<style id="codex-revision-v07374-css">
+/* ============================================================
+   v0.73.74 -- ONBOARDING LANDSCAPE: SPLIT PANEL (buang blur-bleed)
+
+   ROOT CAUSE yang dibenerin di sini (dibaca dari source, bukan asumsi):
+
+   [1] #onboardingScreen punya `isolation: isolate` (base v0.71.20)
+       -> bikin stacking context. Di dalam stacking context, child
+       ber-z-index NEGATIF dicat DI ATAS background element induknya
+       (CSS 2.1 App. E: background induk -> child z<0 -> in-flow).
+       Artwork tajam mounted di background-image #onboardingScreen
+       sendiri (v0.73.37), sementara ::before punya z-index:-2 +
+       blur(32px) saturate(0.88) opacity(0.62) (v0.73.68). Jadi copy
+       blur itu NIMPA gambar tajamnya, bukan di belakangnya. Itu
+       sumber kabut + desaturasi di laptop.
+       Mobile lolos karena base v0.71.14 masih display:none-in
+       ::before di <=640px; v0.73.73 cuma re-enable ::after.
+
+   [2] Feather kiri-kanan v0.73.68 nembak angin. Gradient 90deg-nya
+       background-size 100% 100% = relatif VIEWPORT, transparan di
+       24%-76%. Artwork `auto 104%` di viewport ~2489px cuma selebar
+       ~800px, tepi kiri/kanannya jatuh di ~34% dan ~66% viewport =
+       DI DALAM zona transparan. Yang di-feather cream ke cream.
+       Tepi gambar tetap hard edge -> "kolom HP" tetap keliatan.
+
+   [3] Veil ::after v0.73.73 (0.56 di atas) numpuk di atas dua
+       masalah itu.
+
+   SOLUSI: berhenti maksa artwork portrait (941x1672, rasio 0.5628)
+   ngisi frame landscape. Landscape >=900px dijadiin SPLIT:
+     - kiri  = panel cream polos, tempat headline + Let's Play
+     - kanan = artwork `cover` di panel ~54% lebar (rasio mendekati
+               1:1) -> gambar tetap tajam, orang gak kepotong,
+               upscale cuma ~1.45x (vs 2.65x kalau full-bleed cover)
+   Konsekuensi: veil TIDAK diperlukan lagi (teks di atas cream
+   solid), blur ambient TIDAK diperlukan lagi, seam TIDAK ada lagi.
+
+   Mobile + portrait TIDAK disentuh sama sekali.
+   ============================================================ */
+
+@media (min-width: 900px) and (orientation: landscape) {
+
+  /* Root jadi cream polos. Artwork pindah ke panel kanan. */
+  #onboardingScreen {
+    background-image: none !important;
+    background-color: #f5eee1 !important;
+  }
+
+  /* ::before dialihfungsikan: panel artwork kanan, TAJAM.
+     Semua sisa hack blur/scale/opacity dari v0.73.36/37/54/68
+     dinetralin eksplisit di sini. */
+  #onboardingScreen::before {
+    content: '' !important;
+    display: block !important;
+    position: absolute !important;
+    inset: 0 0 0 calc(100% - min(54%, 900px)) !important;
+    z-index: -1 !important;
+    background-color: #f5eee1 !important;
+    background-image: var(--onboarding-photo) !important;
+    background-size: cover !important;
+    background-position: center 76% !important;
+    background-repeat: no-repeat !important;
+    filter: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    pointer-events: none !important;
+    /* tepi kiri panel larut ke cream, biar gak ada garis vertikal keras */
+    -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 10%) !important;
+            mask-image: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 10%) !important;
+  }
+
+  /* Veil dimatikan: headline sekarang duduk di cream solid, gak butuh
+     wash. Ini yang selama ini bikin ilustrasi keliatan pudar. */
+  #onboardingScreen::after {
+    content: '' !important;
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 0 !important;
+    background: none !important;
+    pointer-events: none !important;
+  }
+
+  /* Konten dikunci ke kolom kiri. */
+  #onboardingScreen .onboarding-content {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding-left: clamp(40px, 5.2vw, 104px) !important;
+    padding-right: calc(min(54%, 900px) + 40px) !important;
+    align-items: flex-start !important;
+    position: relative !important;
+    z-index: 2 !important;
+  }
+
+  #onboardingScreen .onboarding-copy {
+    max-width: none !important;
+    text-shadow: none !important;
+  }
+
+  #onboardingScreen #onboardingPlay {
+    width: 100% !important;
+    max-width: 460px !important;
+  }
+}
+
+/* ------------------------------------------------------------
+   Portrait lebar (tablet / window sempit-tinggi >=600px):
+   full-bleed gak mungkin juga, tapi minimal jangan difog.
+   ::before blur dimatikan -> artwork contained tajam di atas cream.
+   ------------------------------------------------------------ */
+@media (min-width: 600px) and (orientation: portrait) {
+  #onboardingScreen::before {
+    opacity: 0 !important;
   }
 }
 </style>
