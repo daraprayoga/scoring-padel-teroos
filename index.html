@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.80</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.81</div>
     </div>
   </div>
 
@@ -25357,5 +25357,70 @@ html.dark body.viewer-mode .round-pill.active * {
   color: #fff !important;
 }
 </style>
+<script id="codex-revision-v07381-js">
+/* ============================================================
+   v0.73.81 -- SAMAIN TIPE ICON TOMBOL PODIUM (ended vs belum)
+
+   SEBELUMNYA (v0.73.72): syncPodiumIcon() nuker icon jadi trophy PNG
+   raster kalau body.viewer-mode + btn.pdm-live (game udah selesai),
+   dan balikin ke SVG monoline original di kondisi lain. Efeknya
+   icon beda BENTUK antara sebelum/sesudah game selesai, meski
+   user cuma minta warna yg dibedain (dan warna itu emang udah benar
+   -- gold di pdm-live, ijo di kondisi biasa, lihat v0.73.80).
+
+   Fix di sini TIDAK edit fungsi lama (append-only) -- nambahin
+   listener KEDUA di 'stateRendered' yang jalan SETELAH listener
+   lama (event listener jalan sesuai urutan registrasi; script tag
+   ini posisinya SETELAH script v0.73.72 di source, jadi listener-nya
+   ke-daftar belakangan → otomatis jalan belakangan juga di tick yang
+   sama). Kalau fungsi lama sempat nuker ke <img class="trophy-...">,
+   listener ini langsung balikin ke SVG monoline original persis
+   (markup di-hardcode dari markup asli tombol, satu-satunya
+   `[data-action="podium"]` yang ada di file -- dicek cuma ADA SATU
+   instance, jadi aman di-hardcode, gak perlu deteksi dinamis).
+
+   Karena dua replaceChild ini (SVG→IMG lalu IMG→SVG lagi) kejadian
+   dalam SATU tick JS yang sama sebelum browser sempet paint, gak ada
+   flicker/flash trophy yang keliatan user. Berlaku otomatis di admin
+   + viewer, light + dark (gak ada dependency ke theme/mode -- fix-nya
+   generik di level DOM, bukan CSS per-kombinasi).
+
+   Warna TIDAK disentuh sama sekali di sini -- background gold pdm-live
+   dan hijau podium biasa (v0.73.80) tetap seperti semula.
+   ============================================================ */
+(function () {
+  var CANONICAL_PODIUM_SVG =
+    '<svg class="icn pdm-icn" width="15" height="15" viewBox="0 0 24 24" ' +
+    'fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" ' +
+    'stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;" ' +
+    'aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/>' +
+    '<path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/>' +
+    '<path d="M7 6H5.2A2.2 2.2 0 0 0 3 8.2c0 2.3 1.7 3.8 4 4.3"/>' +
+    '<path d="M17 6h1.8A2.2 2.2 0 0 1 21 8.2c0 2.3-1.7 3.8-4 4.3"/>' +
+    '<path d="M9 11.5c.8.8 1.8 1.2 3 1.2s2.2-.4 3-1.2"/>' +
+    '<circle cx="12" cy="8.2" r="1.1" fill="currentColor" stroke="none"/></svg>';
+
+  function unifyPodiumIcon() {
+    var buttons = document.querySelectorAll('button[data-action="podium"]');
+    for (var i = 0; i < buttons.length; i++) {
+      var btn = buttons[i];
+      var icon = btn.querySelector('.pdm-icn');
+      if (!icon) continue;
+      if (icon.tagName === 'IMG') {
+        var wrap = document.createElement('span');
+        wrap.innerHTML = CANONICAL_PODIUM_SVG;
+        icon.parentNode.replaceChild(wrap.firstElementChild, icon);
+      }
+    }
+  }
+
+  window.addEventListener('stateRendered', unifyPodiumIcon);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', unifyPodiumIcon, { once: true });
+  } else {
+    unifyPodiumIcon();
+  }
+})();
+</script>
 </body>
 </html>
