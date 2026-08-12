@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.82</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.85</div>
     </div>
   </div>
 
@@ -25435,5 +25435,507 @@ html.dark body.viewer-mode .round-pill.active * {
   }
 })();
 </script>
+<style id="codex-revision-v07383-css">
+/* ============================================================
+   v0.73.83 -- ROUND PILL: TAB STRIP, VERSI DIREDAM (bukan skeumorfik)
+
+   Referensi user: strip tab nomor beneran (rounded-top, flat-bottom,
+   nempel rapat, aksen warna di garis atas tab aktif). Itu style
+   skeumorfik penuh -- gradient plastik, bevel tebal, drop shadow
+   berlapis. Diadaptasi, BUKAN ditiru mentah:
+
+   DIAMBIL dari referensi:
+   - Rounded cuma di 2 sudut ATAS (flat di bawah) -- kesan "tab
+     nempel ke konten", bukan pill lepas.
+   - Gap antar tab dirapetin (6px -> 3px) biar kebaca sebagai SATU
+     strip, bukan tombol-tombol terpisah.
+   - Aksen kecil (dash horizontal) di tepi atas tiap tab, redup di
+     tab non-aktif, terang di tab aktif -- signifier "ini yang
+     kepilih" yang lebih jelas dari sekadar beda warna fill.
+
+   DIBUANG (biar gak skeumorfik, sesuai constitution desain project
+   ini -- lihat CLAUDE.md "no visual maximalism", larangan
+   box-shadow:inset buat accent bar, larangan gradient plastik):
+   - Gradient permukaan (referensi pakai linear-gradient abu ke
+     putih tiap tab) -- diganti flat fill token yang UDAH ada
+     (--v73-paper-2 light / rgba(255,255,255,.06) dark), TIDAK
+     nambah gradient baru.
+   - Bevel tebal multi-layer -- diganti SATU specular hairline tepi
+     atas (`inset 0 1px 0 rgba(255,255,255,~)`), ini resep Liquid
+     Glass yang emang udah dipakai di permukaan lain app ini, bukan
+     efek baru.
+   - Warna aksen MERAH dari referensi -- gak dipake. Merah di app
+     ini direservasi buat status/error (`--red:#A03838`). Aksen
+     dash pakai putih/cream translucent di atas fill hijau aktif
+     (`#5d7c1c`, warna yang UDAH disepakati sesi lalu buat semua
+     elemen aktif) -- bukan warna baru, cuma highlight di atas
+     warna yang udah ada.
+
+   Konten (label "R" + nomor + dashed divider + dot "scored") TIDAK
+   diubah -- cuma chrome/shape kontainer + nambah aksen dash.
+   `::after` tetap punya, dot scored (pojok kanan-atas); aksen dash
+   baru pakai `::before` (tengah-atas), gak numpuk.
+
+   4 kombinasi admin/viewer x light/dark ditulis eksplisit, posisi
+   final -- override total shape lama (radius 14px semua sudut dari
+   v0.73.59) yang sekarang jadi dead code tapi TETAP ADA di file
+   (append-only, gak dihapus).
+   ============================================================ */
+
+/* ---------- [1] Rapetin gap, strip berasa nyambung ---------- */
+#roundPillNav,
+body.viewer-mode #roundPillNav,
+body:not(.viewer-mode) #roundPillNav {
+  gap: 3px !important;
+}
+
+/* ---------- [2] Shape: rounded cuma atas, flat bawah ---------- */
+html:not(.dark) body:not(.viewer-mode) .round-pill,
+html.dark body:not(.viewer-mode) .round-pill,
+html:not(.dark) body.viewer-mode .round-pill,
+html.dark body.viewer-mode .round-pill {
+  border-radius: 12px 12px 3px 3px !important;
+  position: relative !important;
+}
+
+/* ---------- [3] Permukaan flat + hairline specular (BUKAN gradient) ---------- */
+html:not(.dark) body:not(.viewer-mode) .round-pill,
+html:not(.dark) body.viewer-mode .round-pill {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.75),
+    inset 0 0 0 1px rgba(60,93,0,0.06) !important;
+}
+html.dark body:not(.viewer-mode) .round-pill,
+html.dark body.viewer-mode .round-pill {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    inset 0 0 0 1px rgba(255,255,255,0.05) !important;
+}
+/* Aktif: tetap fill hijau yang udah disepakati (v0.73.80/82) --
+   cuma nambahin specular tipis biar shape barunya konsisten,
+   TIDAK ubah warna fill/box-shadow drop yang udah ada. */
+html:not(.dark) body:not(.viewer-mode) .round-pill.active,
+html.dark body:not(.viewer-mode) .round-pill.active,
+html:not(.dark) body.viewer-mode .round-pill.active,
+html.dark body.viewer-mode .round-pill.active {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.30),
+    0 2px 10px rgba(93,124,28,0.35) !important;
+}
+
+/* ---------- [4] Aksen dash di tepi atas (::before, gak numpuk sama dot scored) ---------- */
+html:not(.dark) body:not(.viewer-mode) .round-pill::before,
+html.dark body:not(.viewer-mode) .round-pill::before,
+html:not(.dark) body.viewer-mode .round-pill::before,
+html.dark body.viewer-mode .round-pill::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 5px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: 16px !important;
+  height: 3px !important;
+  border-radius: 999px !important;
+  pointer-events: none !important;
+  transition: background 0.15s ease, opacity 0.15s ease !important;
+}
+/* Non-aktif: redup, warna beda tipis per mode */
+html:not(.dark) body:not(.viewer-mode) .round-pill:not(.active)::before,
+html:not(.dark) body.viewer-mode .round-pill:not(.active)::before {
+  background: rgba(60,93,0,0.16) !important;
+}
+html.dark body:not(.viewer-mode) .round-pill:not(.active)::before,
+html.dark body.viewer-mode .round-pill:not(.active)::before {
+  background: rgba(255,255,255,0.14) !important;
+}
+/* Aktif: terang, cream translucent di atas fill hijau -- sama di
+   kedua mode karena fill hijaunya udah disamain juga */
+html:not(.dark) body:not(.viewer-mode) .round-pill.active::before,
+html.dark body:not(.viewer-mode) .round-pill.active::before,
+html:not(.dark) body.viewer-mode .round-pill.active::before,
+html.dark body.viewer-mode .round-pill.active::before {
+  background: rgba(255,250,240,0.9) !important;
+  width: 20px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not(.dark) body:not(.viewer-mode) .round-pill::before,
+  html.dark body:not(.viewer-mode) .round-pill::before,
+  html:not(.dark) body.viewer-mode .round-pill::before,
+  html.dark body.viewer-mode .round-pill::before {
+    transition: none !important;
+  }
+}
+</style>
+<style id="codex-revision-v07384-css">
+/* ============================================================
+   v0.73.84 -- SCRAP TOTAL BENTUK TIKET, GANTI PIANO-KEY/SWITCH
+
+   Diralat total dari v0.73.83. Bentuk "tiket" (kompartemen label
+   R terpisah + dashed divider + gap antar pill) DIBUANG SELURUHNYA,
+   bukan diperhalus lagi. Ganti ke strip key yang NEMPEL (gap 0),
+   rounded cuma di atas, dipisahin garis seam beneran (bukan gap),
+   persis referensi user (piano key / saklar deret).
+
+   SOAL "JADI PUTIH": diaudit dulu sebelum nulis apa-apa (lihat
+   balasan chat) -- #nextRoundBtn (ID selector, gak terkalahkan)
+   dan .sb-tab-pill (block terpisah, gak pernah kesentuh kode sesi
+   ini) TERKONFIRMASI tetap hijau/rim seperti biasa, jadi TIDAK ada
+   perubahan di sini buat dua elemen itu. Yang genuinely putih itu
+   round-pill sendiri: `background: var(--v73-paper-2)` (#f5f7ee,
+   nyaris gak beda dari bar di belakangnya) + border:none + (sejak
+   v0.73.83) box-shadow cuma hairline tipis -- nol definisi visual,
+   kebaca blank. Diganti pakai token `--surface` (#eae4d6 light /
+   #1c230d dark) yang UDAH ada di palet global app dari awal (BUKAN
+   warna baru), kontras jelas dari background bar.
+
+   Warna hijau aktif (#5d7c1c) TETAP SAMA PERSIS, gak disentuh --
+   itu keputusan sesi sebelumnya, masih berlaku.
+   ============================================================ */
+
+/* ---------- [1] Gap 0, keys nempel kayak piano ---------- */
+#roundPillNav,
+body.viewer-mode #roundPillNav,
+body:not(.viewer-mode) #roundPillNav {
+  gap: 0 !important;
+}
+
+/* ---------- [2] Buang label "R" + dashed divider, angka isi penuh ---------- */
+html:not(.dark) body:not(.viewer-mode) .round-pill .pill-label,
+html.dark body:not(.viewer-mode) .round-pill .pill-label,
+html:not(.dark) body.viewer-mode .round-pill .pill-label,
+html.dark body.viewer-mode .round-pill .pill-label {
+  display: none !important;
+  width: 0 !important;
+  flex: 0 0 0 !important;
+  border-right: none !important;
+}
+html:not(.dark) body:not(.viewer-mode) .round-pill .pill-num,
+html.dark body:not(.viewer-mode) .round-pill .pill-num,
+html:not(.dark) body.viewer-mode .round-pill .pill-num,
+html.dark body.viewer-mode .round-pill .pill-num {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  padding: 0 !important;
+  min-width: 40px !important;
+}
+
+/* ---------- [3] Shape: key persegi, rounded cuma atas, nempel via seam ---------- */
+html:not(.dark) body:not(.viewer-mode) .round-pill,
+html.dark body:not(.viewer-mode) .round-pill,
+html:not(.dark) body.viewer-mode .round-pill,
+html.dark body.viewer-mode .round-pill {
+  border-radius: 9px 9px 0 0 !important;
+  position: relative !important;
+  min-width: 40px !important;
+}
+/* Seam = border beneran antar key (gap udah 0), bukan gap/shadow trick */
+html:not(.dark) body:not(.viewer-mode) .round-pill,
+html:not(.dark) body.viewer-mode .round-pill {
+  border-right: 1px solid rgba(60,93,0,0.14) !important;
+}
+html.dark body:not(.viewer-mode) .round-pill,
+html.dark body.viewer-mode .round-pill {
+  border-right: 1px solid rgba(255,255,255,0.10) !important;
+}
+html:not(.dark) body:not(.viewer-mode) .round-pill:last-child,
+html.dark body:not(.viewer-mode) .round-pill:last-child,
+html:not(.dark) body.viewer-mode .round-pill:last-child,
+html.dark body.viewer-mode .round-pill:last-child {
+  border-right: none !important;
+}
+
+/* ---------- [4] Fill: surface yang KEBACA, bukan nyaris putih ---------- */
+html:not(.dark) body:not(.viewer-mode) .round-pill:not(.active),
+html:not(.dark) body.viewer-mode .round-pill:not(.active) {
+  background: var(--surface, #eae4d6) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6) !important;
+}
+html.dark body:not(.viewer-mode) .round-pill:not(.active),
+html.dark body.viewer-mode .round-pill:not(.active) {
+  background: var(--surface, #1c230d) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06) !important;
+}
+/* Aktif: fill hijau v0.73.80/82 dipertahankan, cuma nambah highlight tepi atas */
+html:not(.dark) body:not(.viewer-mode) .round-pill.active,
+html.dark body:not(.viewer-mode) .round-pill.active,
+html:not(.dark) body.viewer-mode .round-pill.active,
+html.dark body.viewer-mode .round-pill.active {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.30),
+    0 2px 10px rgba(93,124,28,0.35) !important;
+  z-index: 2 !important;
+}
+
+/* ---------- [5] Aksen dash nempel DI GARIS TEPI ATAS (bukan floating) ---------- */
+html:not(.dark) body:not(.viewer-mode) .round-pill::before,
+html.dark body:not(.viewer-mode) .round-pill::before,
+html:not(.dark) body.viewer-mode .round-pill::before,
+html.dark body.viewer-mode .round-pill::before {
+  content: '' !important;
+  position: absolute !important;
+  top: -2px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: 18px !important;
+  height: 4px !important;
+  border-radius: 999px !important;
+  pointer-events: none !important;
+  z-index: 3 !important;
+}
+html:not(.dark) body:not(.viewer-mode) .round-pill:not(.active)::before,
+html:not(.dark) body.viewer-mode .round-pill:not(.active)::before {
+  background: rgba(60,93,0,0.22) !important;
+}
+html.dark body:not(.viewer-mode) .round-pill:not(.active)::before,
+html.dark body.viewer-mode .round-pill:not(.active)::before {
+  background: rgba(255,255,255,0.18) !important;
+}
+html:not(.dark) body:not(.viewer-mode) .round-pill.active::before,
+html.dark body:not(.viewer-mode) .round-pill.active::before,
+html:not(.dark) body.viewer-mode .round-pill.active::before,
+html.dark body.viewer-mode .round-pill.active::before {
+  background: rgba(255,250,240,0.95) !important;
+  width: 22px !important;
+  height: 4px !important;
+}
+</style>
+<style id="codex-revision-v07385-css">
+/* ============================================================
+   v0.73.85 -- ROUND PILL: PORT PIANO KEYCAP DARI BRANCH SKEUMORPHIC
+
+   Diambil APA ADANYA dari scoring_teroos_skeumorphic_v0.8, block
+   "[2] ROUND-PILL -> PAPAN KUNCI PIANO" (final, gak ada revisi
+   round-pill lagi sampai v0.9 QA -- dicek eksplisit). Branch itu
+   sendiri sempat gagal 1x (v0.4) karena override-nya kalah cascade
+   -- dibuktiin di v0.5 pakai brace-parser + hitung specificity per
+   selector, bukan baca sepintas. Versi yang di-port ini yang UDAH
+   ketauan menang di cross-product {light,dark} x {admin,viewer}.
+
+   ADAPTASI (bukan copy buta):
+   - Aksen LED aktif: merah `var(--v79-lime)` (punya branch itu,
+     token gak ada di file ini) -> ijo `#5d7c1c` literal, warna yang
+     UDAH disepakati buat semua elemen aktif di app ini (Next Round,
+     score winner, podium) sejak v0.73.80/82. Body keycap TETAP abu
+     literal (gak dikasih rona ijo) -- itu keputusan sengaja punya
+     branch sumbernya ("nol rona hijau/oranye residual", biar kebaca
+     kontrol fisik betulan, bukan tombol web dikasih efek 3D), dan
+     PERSIS cocok sama referensi gambar user (key abu/putih, LED
+     yang berwarna).
+   - Dot "scored" (indikator ronde udah keisi skor) DIHAPUS TOTAL di
+     source branch ini (`display:none`), gak ada penggantinya --
+     itu keputusan mereka sendiri, bukan bug, dicek gak ada revisi
+     susulan yang balikin. Diikutin apa adanya di sini. Kalau mau
+     indikator scored balik, bilang -- gampang ditambah LED kedua
+     yang lebih redup.
+   - Sisanya (radius 3px atas / 7px bawah, gradient abu 3-stop,
+     multi-layer inset bikin bevel, keycap 46x46 fixed, margin -1px
+     bikin seam nempel tanpa gap, active = ditekan translateY(1px)
+     + inset shadow lebih dalam, bukan translateY+scale) DIPORT
+     VERBATIM -- ini kerja yang udah lolos iterasi v0.2-v0.5 branch
+     sumbernya, gak digubris ulang.
+
+   Override total v0.73.83/84 (masih ada di file, append-only, cuma
+   sekarang ketutup -- gak ada yg dihapus).
+   ============================================================ */
+
+html:not(.dark) body:not(.viewer-mode) .round-pill,
+html:not(.dark) body.viewer-mode .round-pill,
+html.dark body:not(.viewer-mode) .round-pill,
+html.dark body.viewer-mode .round-pill,
+html:not(.dark) .round-pill,
+html.dark .round-pill{
+  border-radius: 3px 3px 7px 7px !important;
+  margin-right: -1px !important;
+  padding: 0 !important;
+  min-width: 46px !important;
+  width: 46px !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  position: relative !important;
+  overflow: visible !important;
+  border: 1px solid rgba(0,0,0,0.30) !important;
+  background: linear-gradient(180deg, #f4f4f4 0%, #e4e4e4 46%, #d2d2d2 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.95),
+    inset -1px 0 0 rgba(255,255,255,0.35),
+    inset 0 -3px 0 rgba(0,0,0,0.10) !important;
+}
+
+html:not(.dark) body:not(.viewer-mode) .round-pill:first-child,
+html:not(.dark) body.viewer-mode .round-pill:first-child,
+html.dark body:not(.viewer-mode) .round-pill:first-child,
+html.dark body.viewer-mode .round-pill:first-child,
+html:not(.dark) .round-pill:first-child,
+html.dark .round-pill:first-child{
+  border-top-left-radius: 8px !important;
+  border-bottom-left-radius: 9px !important;
+}
+html:not(.dark) body:not(.viewer-mode) .round-pill:last-child,
+html:not(.dark) body.viewer-mode .round-pill:last-child,
+html.dark body:not(.viewer-mode) .round-pill:last-child,
+html.dark body.viewer-mode .round-pill:last-child,
+html:not(.dark) .round-pill:last-child,
+html.dark .round-pill:last-child{
+  border-top-right-radius: 8px !important;
+  border-bottom-right-radius: 9px !important;
+  margin-right: 0 !important;
+}
+
+html.dark body:not(.viewer-mode) .round-pill,
+html.dark body.viewer-mode .round-pill,
+html.dark .round-pill{
+  border: 1px solid rgba(0,0,0,0.72) !important;
+  background: linear-gradient(180deg, #4a4a4a 0%, #3a3a3a 46%, #2c2c2c 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.16),
+    inset -1px 0 0 rgba(255,255,255,0.06),
+    inset 0 -3px 0 rgba(0,0,0,0.40) !important;
+}
+
+html:not(.dark) body:not(.viewer-mode) .round-pill .pill-label,
+html:not(.dark) body.viewer-mode .round-pill .pill-label,
+html.dark body:not(.viewer-mode) .round-pill .pill-label,
+html.dark body.viewer-mode .round-pill .pill-label,
+html:not(.dark) body:not(.viewer-mode) .round-pill.active .pill-label,
+html:not(.dark) body.viewer-mode .round-pill.active .pill-label,
+html.dark body:not(.viewer-mode) .round-pill.active .pill-label,
+html.dark body.viewer-mode .round-pill.active .pill-label,
+html:not(.dark) body:not(.viewer-mode) .round-pill.scored .pill-label,
+html:not(.dark) body.viewer-mode .round-pill.scored .pill-label,
+html.dark body:not(.viewer-mode) .round-pill.scored .pill-label,
+html.dark body.viewer-mode .round-pill.scored .pill-label,
+html:not(.dark) .round-pill .pill-label,
+html.dark .round-pill .pill-label{
+  display: none !important;
+}
+
+html:not(.dark) body:not(.viewer-mode) .round-pill .pill-num,
+html:not(.dark) body.viewer-mode .round-pill .pill-num,
+html.dark body:not(.viewer-mode) .round-pill .pill-num,
+html.dark body.viewer-mode .round-pill .pill-num,
+html:not(.dark) .round-pill .pill-num,
+html.dark .round-pill .pill-num{
+  background: none !important;
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  min-width: 0 !important;
+  width: auto !important;
+  flex: 0 0 auto !important;
+  font-size: 17px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  color: #262626 !important;
+}
+html.dark body:not(.viewer-mode) .round-pill .pill-num,
+html.dark body.viewer-mode .round-pill .pill-num,
+html.dark .round-pill .pill-num{ color: #e6e6e6 !important; }
+
+html:not(.dark) body:not(.viewer-mode) .round-pill.active,
+html:not(.dark) body.viewer-mode .round-pill.active,
+html.dark body:not(.viewer-mode) .round-pill.active,
+html.dark body.viewer-mode .round-pill.active,
+html:not(.dark) .round-pill.active,
+html.dark .round-pill.active{
+  background: linear-gradient(180deg, #d0d0d0 0%, #dedede 60%, #e8e8e8 100%) !important;
+  border-color: rgba(0,0,0,0.34) !important;
+  box-shadow:
+    inset 0 3px 6px rgba(0,0,0,0.26),
+    inset 0 -1px 0 rgba(255,255,255,0.45) !important;
+  transform: translateY(1px) !important;
+  z-index: 1 !important;
+}
+html.dark body:not(.viewer-mode) .round-pill.active,
+html.dark body.viewer-mode .round-pill.active,
+html.dark .round-pill.active{
+  background: linear-gradient(180deg, #242424 0%, #2e2e2e 60%, #363636 100%) !important;
+  border-color: rgba(0,0,0,0.8) !important;
+  box-shadow:
+    inset 0 3px 6px rgba(0,0,0,0.62),
+    inset 0 -1px 0 rgba(255,255,255,0.10) !important;
+}
+html:not(.dark) body:not(.viewer-mode) .round-pill.active *,
+html:not(.dark) body.viewer-mode .round-pill.active *,
+html.dark body:not(.viewer-mode) .round-pill.active *,
+html.dark body.viewer-mode .round-pill.active *,
+html:not(.dark) .round-pill.active *,
+html.dark .round-pill.active *{
+  background: none !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+}
+html:not(.dark) body:not(.viewer-mode) .round-pill.active .pill-num,
+html:not(.dark) body.viewer-mode .round-pill.active .pill-num,
+html.dark body:not(.viewer-mode) .round-pill.active .pill-num,
+html.dark body.viewer-mode .round-pill.active .pill-num,
+html:not(.dark) .round-pill.active .pill-num,
+html.dark .round-pill.active .pill-num{ color: #1a1a1a !important; }
+html.dark body:not(.viewer-mode) .round-pill.active .pill-num,
+html.dark body.viewer-mode .round-pill.active .pill-num,
+html.dark .round-pill.active .pill-num{ color: #ffffff !important; }
+
+/* LED tepi atas -- warna diadaptasi ke ijo app ini (aslinya merah
+   di branch skeumorphic, lihat catatan di atas). */
+html:not(.dark) body:not(.viewer-mode) .round-pill::before,
+html:not(.dark) body.viewer-mode .round-pill::before,
+html.dark body:not(.viewer-mode) .round-pill::before,
+html.dark body.viewer-mode .round-pill::before,
+html:not(.dark) .round-pill::before,
+html.dark .round-pill::before{
+  content: '' !important;
+  display: block !important;
+  position: absolute !important;
+  top: 4px !important; left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: 15px !important; height: 3px !important;
+  border-radius: 2px !important;
+  background: #b4b4b4 !important;
+  box-shadow: none !important;
+  z-index: 2 !important;
+}
+html.dark body:not(.viewer-mode) .round-pill::before,
+html.dark body.viewer-mode .round-pill::before,
+html.dark .round-pill::before{ background: #565656 !important; }
+html:not(.dark) body:not(.viewer-mode) .round-pill.active::before,
+html:not(.dark) body.viewer-mode .round-pill.active::before,
+html.dark body:not(.viewer-mode) .round-pill.active::before,
+html.dark body.viewer-mode .round-pill.active::before,
+html:not(.dark) .round-pill.active::before,
+html.dark .round-pill.active::before{
+  background: #5d7c1c !important;
+  box-shadow: 0 0 7px rgba(93,124,28,0.85) !important;
+}
+html:not(.dark) body:not(.viewer-mode) .round-pill.scored::after,
+html:not(.dark) body.viewer-mode .round-pill.scored::after,
+html.dark body:not(.viewer-mode) .round-pill.scored::after,
+html.dark body.viewer-mode .round-pill.scored::after,
+html:not(.dark) body:not(.viewer-mode) .round-pill.active.scored::after,
+html:not(.dark) body.viewer-mode .round-pill.active.scored::after,
+html.dark body:not(.viewer-mode) .round-pill.active.scored::after,
+html.dark body.viewer-mode .round-pill.active.scored::after,
+html:not(.dark) .round-pill.scored::after,
+html.dark .round-pill.scored::after{ display: none !important; content: none !important; }
+
+html:not(.dark) body:not(.viewer-mode) #roundPillNav,
+html.dark body:not(.viewer-mode) #roundPillNav,
+html:not(.dark) body.viewer-mode #roundPillNav,
+html.dark body.viewer-mode #roundPillNav,
+html:not(.dark) #roundPillNav,
+html.dark #roundPillNav,
+#roundPillNav{
+  gap: 0 !important;
+  padding: 9px 12px 11px !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+</style>
 </body>
 </html>
