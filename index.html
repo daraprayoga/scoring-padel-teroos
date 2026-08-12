@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.85</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.88</div>
     </div>
   </div>
 
@@ -25935,6 +25935,141 @@ html.dark #roundPillNav,
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
+}
+</style>
+<style id="codex-revision-v07386-css">
+/* ============================================================
+   v0.73.86 -- KEY AKTIF: SHADE ABU DIKASIH TINT IJO
+
+   User liat hasil render dark mode (screenshot key "11" aktif):
+   badan key abu netral/putih di tengah dasar gelap kebaca ganjil,
+   gak nyambung ke identitas warna app. Diminta dikasih shade ijo.
+
+   Cuma .active yang diubah -- key non-aktif TETAP abu literal netral
+   (keputusan sengaja dari branch skeumorphic sumbernya, v0.73.85).
+   LED di ::before TIDAK diubah, udah ijo #5d7c1c dari v0.73.85.
+
+   Angkanya gak asal comot -- di-blend matematis dari gradient abu
+   asli v0.73.85 (light: #d0d0d0/#dedede/#e8e8e8, dark: #242424/
+   #2e2e2e/#363636) ke arah ijo app (#5d7c1c) pakai linear blend:
+     light: t=0.16  -> #bec3b3 / #c9cebf / #d2d7c7
+     dark:  t=0.22  -> #313722 / #383f2a / #3f4530
+   (dark dikasih t lebih tinggi -- di area gelap, tint butuh porsi
+   lebih besar buat kebaca sama kuatnya dengan mata manusia vs area
+   terang, itu sebabnya dark biasa kelihatan "kurang tinted" kalau
+   pakai rasio blend yang sama kayak light).
+
+   Kontras teks dicek pakai formula relative luminance (bukan
+   eyeball) sebelum dipasang:
+     light #1a1a1a di atas stop tergelap #bec3b3 -> 9.65:1
+     dark  #ffffff di atas stop tergelap #313722 -> 12.35:1
+   Dua-duanya jauh di atas AA (4.5:1).
+   ============================================================ */
+
+html:not(.dark) body:not(.viewer-mode) .round-pill.active,
+html:not(.dark) body.viewer-mode .round-pill.active,
+html:not(.dark) .round-pill.active{
+  background: linear-gradient(180deg, #bec3b3 0%, #c9cebf 60%, #d2d7c7 100%) !important;
+  border-color: rgba(60,93,0,0.30) !important;
+}
+html.dark body:not(.viewer-mode) .round-pill.active,
+html.dark body.viewer-mode .round-pill.active,
+html.dark .round-pill.active{
+  background: linear-gradient(180deg, #313722 0%, #383f2a 60%, #3f4530 100%) !important;
+  border-color: rgba(93,124,28,0.45) !important;
+}
+</style>
+<style id="codex-revision-v07387-css">
+/* ============================================================
+   v0.73.87 -- FIX: KEY NON-AKTIF LIGHT MODE KECREAM-AN
+
+   ROOT CAUSE (bukan salah warna, tapi kalah specificity):
+   v0.73.84 (percobaan piano-key SEBELUM di-port dari branch
+   skeumorphic) nulis:
+     html:not(.dark) body:not(.viewer-mode) .round-pill:not(.active)
+     { background: var(--surface, #eae4d6) !important; ... }
+   Selector pakai `:not(.active)` -- itu nambah SATU unit specificity
+   class (spesifisitas :not() = spesifisitas argumennya). Jadi
+   selector itu (0,5,0)-an, LEBIH TINGGI dari selector polos
+   `html:not(.dark) body:not(.viewer-mode) .round-pill` yang dipakai
+   pas ngeport piano-key kemarin (0,4,0)-an -- padahal posisi block
+   piano-key JAUH lebih akhir di source. Specificity menang duluan
+   SEBELUM urutan source dipertimbangkan; jadi rule cream v0.73.84
+   itu tetap menang buat `background`+`box-shadow`, walau ketutup
+   buat property lain (radius, ukuran, dst) yang gak ditulis pake
+   `:not(.active)` di rule lama itu.
+
+   FIX: tulis ulang background+box-shadow key non-aktif, TAPI kali
+   ini selector-nya JUGA pakai `:not(.active)` (spesifisitas
+   disamain ke kompetitor), diposisikan paling akhir -> menang lewat
+   source-order karena specificity udah seri. Nilai gradiennya
+   PERSIS yang di-port dari branch skeumorphic (v0.73.85) -- abu
+   netral literal, bukan token cream app.
+   ============================================================ */
+
+html:not(.dark) body:not(.viewer-mode) .round-pill:not(.active),
+html:not(.dark) body.viewer-mode .round-pill:not(.active),
+html:not(.dark) .round-pill:not(.active) {
+  background: linear-gradient(180deg, #f4f4f4 0%, #e4e4e4 46%, #d2d2d2 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.95),
+    inset -1px 0 0 rgba(255,255,255,0.35),
+    inset 0 -3px 0 rgba(0,0,0,0.10) !important;
+}
+html.dark body:not(.viewer-mode) .round-pill:not(.active),
+html.dark body.viewer-mode .round-pill:not(.active),
+html.dark .round-pill:not(.active) {
+  background: linear-gradient(180deg, #4a4a4a 0%, #3a3a3a 46%, #2c2c2c 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.16),
+    inset -1px 0 0 rgba(255,255,255,0.06),
+    inset 0 -3px 0 rgba(0,0,0,0.40) !important;
+}
+</style>
+<style id="codex-revision-v07388-css">
+/* ============================================================
+   v0.73.88 -- KEY NON-AKTIF: SAMAIN KE WARNA CARD "ROUND X of Y"
+
+   User nunjuk kartu "ROUND 11 of 11 · Total of 5" (elemen
+   .sb-round-info, duduk di dalam .sb-topbar) sebagai referensi
+   warna yang benar. Ditelusuri warna ASLI .sb-topbar (final winner,
+   dicek posisi+specificity, bukan baca satu rule doang):
+     admin light -> #ffffff (solid putih)
+     admin dark  -> #1a2010 (nyaris hitam, tint forest gelap)
+   (viewer punya versi translucent beda -- rgba(252,249,242,.58)
+   light / rgba(18,22,9,.62) dark, dipakai bareng backdrop-filter
+   blur khusus buat efek glass topbar. Round-pill gak punya
+   backdrop-filter sendiri, jadi dipakein versi OPAQUE yang sama
+   kayak admin di viewer juga -- biar konsisten, gak ngandelin
+   apa yang kebetulan ada di belakangnya).
+
+   Kontras dicek: teks key #262626 di atas #ffffff -> 15.13:1,
+   teks key #e6e6e6 di atas #1a2010 -> 13.38:1. Aman jauh di atas AA.
+
+   Bevel (inset highlight tepi atas/kiri + shadow tepi bawah) TETAP
+   dipertahankan biar masih kebaca sebagai keycap fisik, cuma warna
+   fill-nya yang diganti dari gradient abu ke warna solid ini.
+   Selector tetap pakai `:not(.active)` (pelajaran dari v0.73.87 --
+   itu WAJIB biar specificity gak kalah sama rule lama).
+   ============================================================ */
+
+html:not(.dark) body:not(.viewer-mode) .round-pill:not(.active),
+html:not(.dark) body.viewer-mode .round-pill:not(.active),
+html:not(.dark) .round-pill:not(.active) {
+  background: #ffffff !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.9),
+    inset -1px 0 0 rgba(255,255,255,0.5),
+    inset 0 -2px 0 rgba(0,0,0,0.06) !important;
+}
+html.dark body:not(.viewer-mode) .round-pill:not(.active),
+html.dark body.viewer-mode .round-pill:not(.active),
+html.dark .round-pill:not(.active) {
+  background: #1a2010 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.10),
+    inset -1px 0 0 rgba(255,255,255,0.04),
+    inset 0 -2px 0 rgba(0,0,0,0.35) !important;
 }
 </style>
 </body>
