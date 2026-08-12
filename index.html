@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.88</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.89</div>
     </div>
   </div>
 
@@ -26070,6 +26070,44 @@ html.dark .round-pill:not(.active) {
     inset 0 1px 0 rgba(255,255,255,0.10),
     inset -1px 0 0 rgba(255,255,255,0.04),
     inset 0 -2px 0 rgba(0,0,0,0.35) !important;
+}
+</style>
+<style id="codex-revision-v07389-css">
+/* ============================================================
+   v0.73.89 -- KHUSUS VIEWER MODE: KEY SAMAIN KE TOPBAR VIEWER
+   (translucent, bukan solid putih dari v0.73.88)
+
+   v0.73.88 kemarin nyamain SEMUA mode (admin+viewer) ke warna
+   admin topbar (#ffffff/#1a2010, solid opaque) -- alasannya waktu
+   itu round-pill gak punya backdrop-filter sendiri jadi disamain
+   ke versi yg gak butuh blur. User sekarang minta khusus VIEWER
+   MODE disamain ke topbar VIEWER-nya sendiri, yang translucent:
+     viewer light -> rgba(252,249,242,0.58)
+     viewer dark  -> rgba(18,22,9,0.62)
+   (nilai ditarik langsung dari .sb-topbar viewer, ~L22032/22044).
+
+   PENTING -- TIDAK ditambahin backdrop-filter/blur ke key. Ini
+   ATURAN PERMANEN app ini (v0.72.29, lihat CLAUDE.md): nested blur
+   = smear bug di Chrome Android buat chip/tombol/score-box. Topbar
+   viewer boleh blur karena dia SATU elemen besar; round-pill ada
+   11-20 key individual -- kalau tiap key dikasih backdrop-filter
+   sendiri, itu bukan cuma ngelanggar aturan smear-bug, juga mahal
+   di compositing (blur x banyak elemen sekaligus, di device
+   courtside/TV cast yang belum tentu kuat). Jadi translucency-nya
+   DIAMBIL warnanya doang (rgba), efek kaca dari kombinasi rim inset
+   + translucency polos -- pola yang sama persis kayak
+   --lq-lens-btn/round-pill glass di tempat lain app ini yang juga
+   sengaja hindarin backdrop-filter.
+
+   Admin TIDAK disentuh -- tetap solid #ffffff/#1a2010 dari v0.73.88
+   (topbar admin-nya sendiri emang opaque, jadi udah pas).
+   ============================================================ */
+
+html:not(.dark) body.viewer-mode .round-pill:not(.active) {
+  background: rgba(252,249,242,0.58) !important;
+}
+html.dark body.viewer-mode .round-pill:not(.active) {
+  background: rgba(18,22,9,0.62) !important;
 }
 </style>
 </body>
