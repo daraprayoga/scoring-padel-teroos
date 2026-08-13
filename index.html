@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.89</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.90</div>
     </div>
   </div>
 
@@ -26108,6 +26108,42 @@ html:not(.dark) body.viewer-mode .round-pill:not(.active) {
 }
 html.dark body.viewer-mode .round-pill:not(.active) {
   background: rgba(18,22,9,0.62) !important;
+}
+</style>
+<style id="codex-revision-v07390-css">
+/* ============================================================
+   v0.73.90 -- SAMAIN WARNA HEADER KE SAFE-AREA DI ATASNYA
+
+   User screenshot: light mode, ada SEAM keliatan pas boundary
+   status-bar (safe-area-inset-top) ke header di bawahnya. Dark
+   mode udah nyambung mulus (dicek, gak disentuh).
+
+   ROOT CAUSE (ditelusuri, bukan ditebak): status-bar area itu
+   nunjukin warna `html` background LANGSUNG (gak ketutup apapun),
+   final winner-nya `#fbf7f0` (line ~13372). Header di baris tepat
+   di bawahnya pakai warna BEDA: `rgba(245,247,238,0.94)` buat
+   state resting (line ~20780) dan `#f3f5ec` buat state scrolled
+   (line ~20872/21132/21301). Dua-duanya independen dari `#fbf7f0`
+   -- ketauan dari histori, ditulis di sesi/patch beda, gak pernah
+   di-cross-check satu sama lain. Dark mode kebetulan aman karena
+   rgba dark header (20,26,12) numerically SAMA PERSIS sama html.dark
+   bg (#141a0c = 20,26,12) -- kebetulan, bukan sengaja disinkron.
+
+   FIX: header (light mode, resting DAN scrolled) ditarik ke warna
+   `html` yang sama (#fbf7f0), translucency-nya dipertahankan
+   (94% alpha, biar efek glass pas resting-state tetap ada) tapi
+   base RGB-nya sekarang SAMA PERSIS sama safe-area di atasnya,
+   jadi komposit-nya nyambung.
+   ============================================================ */
+
+html:not(.dark) header,
+html:not(.dark) body:not(.viewer-mode) header {
+  background: rgba(251,247,240,0.94) !important;
+}
+html:not(.dark) body.header-scrolled header,
+html:not(.dark) body:not(.viewer-mode).header-scrolled header {
+  background: #fbf7f0 !important;
+  background-image: none !important;
 }
 </style>
 </body>
