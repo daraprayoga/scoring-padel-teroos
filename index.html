@@ -4030,7 +4030,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
               <button data-step="1">+</button>
             </div>
             <div class="control-hint" id="pairsHint">Default = courts × 4</div>
-            <div id="pairsWarn" style="display:none;color:#b45309;font-size:11px;font-weight:700;margin-top:4px;">⚠️ &gt;4 pair/court (&gt;8 pemain/court): antri giliran lama. Di Mexicano, duduk bisa &gt;2 ronde. Rekomendasi: 4 pair/court.</div>
+            <div id="pairsWarn" style="display:none;color:#b45309;font-size:11px;font-weight:700;margin-top:4px;">⚠️ &gt;4 pair/court (&gt;8 pemain/court): antri giliran lama. Di Mexicano, duduk bisa &gt;2 Round. Rekomendasi: 4 pair/court.</div>
           </div>
           <div class="control">
             <label>Info</label>
@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.100</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.102</div>
     </div>
   </div>
 
@@ -26665,8 +26665,8 @@ html body .sb-round-nav .sb-nav-btn.sb-nav-prev {
 }
 html body .sb-round-nav .sb-nav-btn.sb-nav-next {
   flex: 1 1 auto !important;
-  min-height: 52px !important;
-  font-size: 15px !important;
+  min-height: 44px !important;
+  font-size: 13px !important;
   font-weight: 800 !important;
   letter-spacing: 0.2px !important;
 }
@@ -26712,34 +26712,17 @@ html body #sbActions.sb-actions > button {
 @media (max-width: 380px) {
   html body #sbActions.sb-actions > button { font-size: 12px !important; }
 }
-/* End diturunin dari solid ke ghost. Struktur shadow/border ngikut
-   .ghost-btn yang sudah ada supaya sekeluarga, bukan gaya baru. */
-html:not(.dark) body #sbActions .end-game-btn[data-action="end"] {
-  background: rgba(255, 255, 255, 0.92) !important;
-  background-image: none !important;
-  color: #3c5d00 !important;
-  border: 1px solid rgba(60, 93, 0, 0.22) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9),
-              0 1px 3px rgba(44, 68, 0, 0.07) !important;
-  text-shadow: none !important;
-}
-html.dark body #sbActions .end-game-btn[data-action="end"] {
-  background: rgba(255, 255, 255, 0.07) !important;
-  background-image: none !important;
-  color: #cfe0a3 !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
-  text-shadow: none !important;
-}
-html body #sbActions .end-game-btn[data-action="end"]:active {
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.18) !important;
-  transform: none !important;
-}
-/* Tombol PODIUM tetap seperti apa adanya -- gold-nya sah menurut
-   design system (penghormatan peringkat). Cuma tingginya disamain. */
-html body #sbActions .podium-btn[data-action="podium"] {
-  min-height: 46px !important;
-}
+/* v0.73.101: REVERT ghost-ification di atas. Salah baca sinyal user --
+   yang diminta itu Next Round diperkecil (sudah di atas), BUKAN End
+   diturunin jadi ghost. User eksplisit minta End balik hijau + trophy
+   kayak sebelumnya. End button sebenarnya SUDAH punya capsule hijau +
+   ikon trophy dari v0.71.46 (`.sb-actions .end-game-btn[data-action=
+   "end"], .sb-actions .end-game-btn[data-action="podium"]`, sama-sama
+   hijau, sama-sama ada svg trophy di markup) -- ghost override di atas
+   cuma nutupin itu pakai ID selector yang lebih spesifik. Dicabut total,
+   bukan ditimpa lagi, biar rule v0.71.46 yang lama menang balik. Podium
+   dan End disamain tingginya lewat rule lama itu juga (::min-height
+   gak perlu diulang di sini). */
 
 /* ---------- bottom nav ---------- */
 html body .bottom-nav .bottom-tab {
@@ -27115,7 +27098,7 @@ html body .standing-table td:nth-child(6) {
     fullscreenBtn: 'Layar penuh',
     resetBtn: 'Reset sesi',
     openStatusBtn: 'Status pemain',
-    openScheduleBtn: 'Jadwal ronde'
+    openScheduleBtn: 'Jadwal Round'
   };
   function labelIconButtons() {
     Object.keys(LABELS).forEach(function (id) {
@@ -27125,7 +27108,7 @@ html body .standing-table td:nth-child(6) {
       if (!el.getAttribute('title')) el.setAttribute('title', LABELS[id]);
     });
     document.querySelectorAll('[data-action="prev"]').forEach(function (b) {
-      if (!b.getAttribute('aria-label')) b.setAttribute('aria-label', 'Ronde sebelumnya');
+      if (!b.getAttribute('aria-label')) b.setAttribute('aria-label', 'Round sebelumnya');
     });
   }
 
@@ -27381,28 +27364,36 @@ html body .standing-table td:nth-child(6) {
     setIfText(tabScore, 'Skor');
     setIfText(tabStand, 'Klasemen');
 
+    /* v0.73.101: revisi dari user -- gak semua harus di-Indonesia-in.
+       "Next Round", "End", "Round", "Win", "Point" tetap Inggris.
+       "Sitting Out" diringkas ke "Rest" (bukan "Istirahat", bukan nama
+       lama). Idempotent sama seperti sebelumnya. */
     document.querySelectorAll('.sb-round-label').forEach(function (el) {
-      setIfText(el, 'RONDE');
+      setIfText(el, 'ROUND');
     });
 
-    setTextNode(document.getElementById('nextRoundBtn'), 'Ronde Berikutnya ');
-    document.querySelectorAll('[data-action="delete"]').forEach(function (b) { setTextNode(b, 'Hapus Ronde'); });
-    document.querySelectorAll('[data-action="add"]').forEach(function (b) { setTextNode(b, '+ Tambah Ronde'); });
-    document.querySelectorAll('[data-action="end"]').forEach(function (b) { setTextNode(b, 'Selesai'); });
+    setTextNode(document.getElementById('nextRoundBtn'), 'Next Round ');
+    document.querySelectorAll('[data-action="delete"]').forEach(function (b) { setTextNode(b, 'Hapus Round'); });
+    document.querySelectorAll('[data-action="add"]').forEach(function (b) { setTextNode(b, '+ Tambah Round'); });
+    document.querySelectorAll('[data-action="end"]').forEach(function (b) { setTextNode(b, 'End'); });
     setTextNode(document.getElementById('openScheduleBtn'), 'Jadwal');
 
     document.querySelectorAll('.bottom-tab[data-view="overview"] .bottom-tab-label').forEach(function (el) {
       setIfText(el, 'Skor');
     });
 
-    /* SITTING OUT -> ISTIRAHAT. Teks ini di-generate ulang tiap render
-       (renderOverview ~8476), jadi harus dicek tiap kali, bukan sekali. */
+    /* SITTING OUT -> REST. Teks ini di-generate ulang tiap render
+       (renderOverview ~8476), jadi harus dicek tiap kali, bukan sekali.
+       NEXT ROUND sengaja TIDAK diterjemahin lagi -- "Next Round" tetap
+       Inggris sesuai revisi user. */
     document.querySelectorAll('.sb-rest strong, .rp-section-title').forEach(function (el) {
       var k = (el.textContent || '').trim();
-      if (k === 'SITTING OUT:') el.textContent = 'ISTIRAHAT:';
-      else if (k === 'PAIRS SITTING OUT:') el.textContent = 'PAIR ISTIRAHAT:';
-      else if (k === 'SITTING OUT') setTextNode(el, 'ISTIRAHAT');
-      else if (k === 'NEXT ROUND') setTextNode(el, 'RONDE BERIKUTNYA');
+      if (k === 'SITTING OUT:') el.textContent = 'REST:';
+      else if (k === 'PAIRS SITTING OUT:') el.textContent = 'PAIR REST:';
+      else if (k === 'SITTING OUT') setTextNode(el, 'REST');
+      else if (k === 'ISTIRAHAT:') el.textContent = 'REST:';
+      else if (k === 'PAIR ISTIRAHAT:') el.textContent = 'PAIR REST:';
+      else if (k === 'ISTIRAHAT') setTextNode(el, 'REST');
     });
 
     /* status badge court */
@@ -27416,8 +27407,8 @@ html body .standing-table td:nth-child(6) {
     var sortSel = document.getElementById('sortSelector');
     if (sortSel) {
       [].slice.call(sortSel.options).forEach(function (o) {
-        if (o.textContent === 'Wins') o.textContent = 'Menang';
-        else if (o.textContent === 'Points') o.textContent = 'Poin';
+        if (o.textContent === 'Wins') o.textContent = 'Win';
+        else if (o.textContent === 'Points') o.textContent = 'Point';
       });
     }
 
@@ -27426,8 +27417,8 @@ html body .standing-table td:nth-child(6) {
        jaring pengaman kalau sweepStrayCss() sempat nyabut teksnya
        lagi karena sebab lain. */
     var resetLbl = document.querySelector('#resetBtn .reset-btn-label');
-    if (resetLbl && (resetLbl.textContent || '').trim() !== 'Reset Sesi \u2014 hapus semua ronde & skor') {
-      resetLbl.textContent = 'Reset Sesi \u2014 hapus semua ronde & skor';
+    if (resetLbl && (resetLbl.textContent || '').trim() !== 'Reset Sesi \u2014 hapus semua Round & skor') {
+      resetLbl.textContent = 'Reset Sesi \u2014 hapus semua Round & skor';
     }
 
     /* ---- modal-modal lain ----
@@ -27442,12 +27433,12 @@ html body .standing-table td:nth-child(6) {
       var dt = document.getElementById('deleteRoundText');
       var dc = delModal.querySelector('[data-close]');
       var dok = document.getElementById('confirmDeleteRound');
-      if (dh && dh.textContent.trim() === 'Delete round?') dh.textContent = 'Hapus ronde?';
+      if (dh && dh.textContent.trim() === 'Delete round?') dh.textContent = 'Hapus Round?';
       if (dt) {
         var dtx = dt.textContent.trim();
         var mm = dtx.match(/^Delete Round (\d+)\?/);
-        if (mm) dt.textContent = 'Hapus Ronde ' + mm[1] + '? Skor di ronde ini ikut kehapus.';
-        else if (dtx === 'Delete the last round?') dt.textContent = 'Hapus ronde terakhir?';
+        if (mm) dt.textContent = 'Hapus Round ' + mm[1] + '? Skor di Round ini ikut kehapus.';
+        else if (dtx === 'Delete the last round?') dt.textContent = 'Hapus Round terakhir?';
       }
       if (dc && dc.textContent.trim() === 'Cancel') dc.textContent = 'Batal';
       if (dok && dok.textContent.trim() === 'Delete') dok.textContent = 'Hapus';
@@ -27470,7 +27461,7 @@ html body .standing-table td:nth-child(6) {
       var ok = document.getElementById('confirmEndGame');
       if (h3 && h3.textContent.trim() === 'End tournament?') h3.textContent = 'Akhiri mabar?';
       if (p && /^This will freeze/.test(p.textContent.trim())) {
-        p.textContent = 'Semua skor dikunci dan podium final ditampilin. Ronde lama masih bisa dilihat, tapi skor gak bisa diinput lagi.';
+        p.textContent = 'Semua skor dikunci dan podium final ditampilin. Round lama masih bisa dilihat, tapi skor gak bisa diinput lagi.';
       }
       if (cancel && cancel.textContent.trim() === 'Cancel') cancel.textContent = 'Batal';
       setTextNode(ok, 'Akhiri & Tampilkan Podium');
@@ -28183,6 +28174,247 @@ html.dark body #onboardingScreen .onboarding-subhead {
   color: #c3da84 !important;
 }
 </style>
+
+<script id="codex-revision-v073101a-js">
+/* ============================================================
+   v0.73.101a -- SISA KATA "ronde" DI JALUR DINAMIS
+
+   relabel() (v0.73.97, dibenerin di atas) cuma nutup string STATIS.
+   Tiga tempat lain nulis "Ronde" via template literal tiap kali
+   dipanggil, di luar jalur relabel:
+     - showUndoToast(`Ronde ${n} dihapus`, ...)          (~9870)
+     - renderTourneyGroupPhase(): "Fase Grup · Ronde X/Y"
+       dan tombol "Simpan Skor Ronde X"                  (~5681)
+
+   Bukan diedit langsung (dua-duanya kode lama, append-only) --
+   di-wrap. showUndoToast: substitusi di parameter msg SEBELUM toast
+   dirender. Tourney: sweep kecil di host `#tourneyDrawView` SESUDAH
+   render, dibatasi cuma node yang cocok pola, bukan sweep seluruh body.
+   ============================================================ */
+(function () {
+  function rondeToRound(s) {
+    return String(s).replace(/\bRonde\b/g, 'Round').replace(/\bronde\b/g, 'Round');
+  }
+
+  if (typeof showUndoToast === 'function') {
+    var _origUndoToast = showUndoToast;
+    window.showUndoToast = function (msg, onUndo) {
+      return _origUndoToast.call(this, rondeToRound(msg), onUndo);
+    };
+    showUndoToast = window.showUndoToast;
+  }
+
+  if (typeof renderTourneyGroupPhase === 'function') {
+    var _origTGP = renderTourneyGroupPhase;
+    window.renderTourneyGroupPhase = function () {
+      var r = _origTGP.apply(this, arguments);
+      try {
+        var host = document.getElementById('tourneyDrawView');
+        if (host) {
+          host.querySelectorAll('*').forEach(function (el) {
+            if (el.children.length) return;
+            var t = el.textContent;
+            if (t && /\bronde\b/i.test(t)) el.textContent = rondeToRound(t);
+          });
+        }
+      } catch (e) {}
+      return r;
+    };
+    renderTourneyGroupPhase = window.renderTourneyGroupPhase;
+  }
+})();
+</script>
+
+<style id="codex-revision-v073101b-css">
+/* ============================================================
+   v0.73.101b -- NAMA MABAR DI DOCK: EKOR HURUF KEPOTONG
+
+   `.bottom-tab-center` itu flex column dengan `overflow: hidden`
+   (~3634). `.tournament-name` (~3649) cuma punya `font-size: 11px`
+   tanpa `line-height` eksplisit -- browser jatuh ke default UA yang
+   kadang pas-pasan sama box tinggi font. Digabung sama overflow:hidden
+   di ANCESTOR-nya, ekor bawah huruf berkaki (p, g, y, j) yang emang
+   nongol di bawah baseline ikut kepotong.
+
+   `.tournament-name` sendiri sudah punya overflow:hidden -- itu buat
+   pemotongan HORIZONTAL (nama panjang -> ellipsis), sengaja
+   dipertahanin. Yang dilonggarin cuma clip VERTIKAL di parent-nya:
+   overflow diganti visible, dan elemen dikasih line-height + sedikit
+   padding-bottom biar ekor huruf punya ruang.
+   ============================================================ */
+html body .bottom-tab-center {
+  overflow: visible !important;
+}
+html body .bottom-tab-center .tournament-name {
+  line-height: 1.5 !important;
+  padding-bottom: 1px !important;
+  display: inline-block !important;
+}
+</style>
+
+<script id="codex-revision-v073101c-js">
+/* ============================================================
+   v0.73.101c -- ONBOARDING: ARTWORK GAK MUNCUL SAMA SEKALI
+
+   Diagnosa dari sesi ini sendiri: #onboardingScreen itu
+   `position: fixed` + `isolation: isolate` + `z-index: 2147480000`,
+   dan artwork-nya duduk di `::before` (`z-index: -1`, di dalam
+   stacking context yang sama). Berkali-kali direproduksi di sesi
+   dev: teks (elemen DOM biasa) selalu kegambar normal di first paint,
+   tapi ::before-nya TETAP KOSONG sampai ada APAPUN yang maksa browser
+   ngulang style-recalc + repaint penuh (contoh yang kepake buat
+   verifikasi: `el.style.display='none'` lalu balikin lagi). Tanpa
+   trigger itu, first paint-nya diam-diam gagal -- kelihatan seperti
+   "gambar gak muncul", padahal computed style-nya selalu benar.
+
+   Onboarding itu SATU-SATUNYA layar yang HANYA pernah dilihat di
+   first paint (cold load) -- jadi kalau race ini kejadian di device
+   asli, user gak akan pernah lihat versi yang "sembuh sendiri" kayak
+   di sesi dev (yang keulang2 reload/interaksi). Ini best-effort fix
+   struktural: paksa repaint SEGERA setelah elemen-nya nempel ke DOM,
+   dan sekali lagi setelah 'load' (foto ~260-460KB base64, decode-nya
+   gak sinkron sama insersi elemen).
+
+   Diamati lewat MutationObserver (bukan hook ke mountOnboarding --
+   fungsi itu IIFE lokal v0.71.13, gak ada yang di-expose ke luar,
+   jadi gak bisa di-wrap langsung) supaya independen dari kode lama.
+   ============================================================ */
+(function () {
+  function kick(el) {
+    if (!el) return;
+    el.style.transform = 'translateZ(0)';
+    void el.offsetHeight;
+    el.style.transform = '';
+    void el.offsetHeight;
+  }
+
+  function findAndKick() {
+    var el = document.getElementById('onboardingScreen');
+    if (el) kick(el);
+    return el;
+  }
+
+  if (!findAndKick()) {
+    var mo = new MutationObserver(function () {
+      if (findAndKick()) mo.disconnect();
+    });
+    mo.observe(document.documentElement, { childList: true, subtree: true });
+  }
+
+  window.addEventListener('load', function () {
+    requestAnimationFrame(function () {
+      requestAnimationFrame(findAndKick);
+    });
+  });
+})();
+</script>
+
+<style id="codex-revision-v073101d-css">
+/* ============================================================
+   v0.73.101d -- CLUB SPARING: BAND SKOR CREAM NYANGKUT DI ANTARA HIJAU
+
+   Diukur (computed style, light mode): `.sb-topbar` solid putih
+   rgb(255,255,255), `.sparing-score-header` rgba(245,240,230,0.92)
+   di atas html bg rgb(242,245,233) -> komposit ~rgb(245,240,230),
+   krem hangat. Dua permukaan itu bertetangga langsung (topbar
+   nempel tepat di atas sparing header) dan warnanya beda kentara --
+   krem "nyangkut" di antara putih di atas dan pale-sage di sekitar.
+   Dark mode udah dekat (rgb(26,32,16) vs rgba(25,32,12,.92) di atas
+   rgb(20,26,12)), gak disentuh.
+
+   Fix: samain background light-mode ke putih solid yang sama persis
+   dipakai .sb-topbar, bukan bikin token warna baru.
+   ============================================================ */
+html:not(.dark) body .sparing-score-header {
+  background: rgba(255, 255, 255, 0.97) !important;
+}
+</style>
+
+<script id="codex-revision-v073102-js">
+/* ============================================================
+   v0.73.102 -- 'stateRendered' GAK SELALU DIPICU
+
+   Ditelusuri dari laporan user: di viewer mode ("mode nonton", link
+   ?room=...), label ronde balik lagi ke Indonesia ("RONDE", "Ronde
+   Berikutnya") dan ikon trophy podium ilang. Akar yang ketemu:
+   `pullFromFirebase()` (~10763, kode lama, dipakai viewer buat narik
+   update live) manggil `renderAll()` / `renderTourneyGroupPhase()`
+   LANGSUNG -- BUKAN lewat `saveState()`. Event custom 'stateRendered'
+   cuma di-dispatch dari `saveState()` yang di-override (~10836):
+     window.saveState = function() { _origSaveState(); pushToFirebase();
+       window.dispatchEvent(new Event('stateRendered')); };
+   Viewer TIDAK PERNAH manggil saveState() (dia cuma narik data, gak
+   nyimpen), jadi 'stateRendered' TIDAK PERNAH nyala di sesi viewer.
+
+   Konsekuensinya: SEMUA hook yang nunggu 'stateRendered' -- termasuk
+   `forceTrophyIcon()` (v0.73.82, IIFE lokal, gak ke-expose ke luar
+   jadi gak bisa di-wrap langsung) -- gak pernah jalan ulang di
+   viewer. relabel() (v0.73.97-99) AMAN karena dia juga di-hook
+   langsung ke renderAll/renderOverview (bukan cuma 'stateRendered'),
+   tapi trophy-icon TIDAK, karena fungsinya cuma didaftar ke event itu
+   doang.
+
+   FIX -- bukan nebak ulang forceTrophyIcon (gak bisa diakses dari
+   luar IIFE-nya), tapi nutup akarnya: renderAll & renderOverview
+   (sudah global, sudah di-wrap berkali-kali sesi sebelumnya) SEKARANG
+   ikut nge-dispatch 'stateRendered' di akhir tiap panggilan. Ini
+   otomatis nyalain SEMUA listener 'stateRendered' yang ada -- yang
+   sekarang (forceTrophyIcon, modal-relabel observer) MAUPUN yang
+   nanti ditambah -- tanpa perlu tau nama fungsinya atau expose
+   apa pun. Idempotent: dispatch event custom yang gak dipakai buat
+   apa-apa selain notify, aman dipanggil berkali-kali.
+   ============================================================ */
+(function () {
+  function notify() {
+    try { window.dispatchEvent(new Event('stateRendered')); } catch (e) {}
+  }
+  if (typeof renderAll === 'function') {
+    var _ra2 = renderAll;
+    window.renderAll = function () {
+      var r = _ra2.apply(this, arguments);
+      notify();
+      return r;
+    };
+    renderAll = window.renderAll;
+  }
+  if (typeof renderOverview === 'function') {
+    var _ro2 = renderOverview;
+    window.renderOverview = function () {
+      var r = _ro2.apply(this, arguments);
+      notify();
+      return r;
+    };
+    renderOverview = window.renderOverview;
+  }
+  if (typeof renderTourneyGroupPhase === 'function') {
+    var _tgp2 = renderTourneyGroupPhase;
+    window.renderTourneyGroupPhase = function () {
+      var r = _tgp2.apply(this, arguments);
+      notify();
+      return r;
+    };
+    renderTourneyGroupPhase = window.renderTourneyGroupPhase;
+  }
+  if (typeof renderKnockout === 'function') {
+    var _rk2 = renderKnockout;
+    window.renderKnockout = function () {
+      var r = _rk2.apply(this, arguments);
+      notify();
+      return r;
+    };
+    renderKnockout = window.renderKnockout;
+  }
+  if (typeof showTourneyDrawResult === 'function') {
+    var _stdr2 = showTourneyDrawResult;
+    window.showTourneyDrawResult = function () {
+      var r = _stdr2.apply(this, arguments);
+      notify();
+      return r;
+    };
+    showTourneyDrawResult = window.showTourneyDrawResult;
+  }
+})();
+</script>
 
 </body>
 </html>
