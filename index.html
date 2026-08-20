@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.117</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.118</div>
     </div>
   </div>
 
@@ -30148,6 +30148,44 @@ html.dark body #onboardingScreen .onboarding-logo {
     max-width: none !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
+  }
+}
+</style>
+
+<style id="codex-revision-v073118-css">
+/* ============================================================
+   v0.73.118 -- TOMBOL "<" PREV KETEKAN LENGKUNGAN SUDUT ROUND-NAV
+               (viewer landscape, ditemuin abis v0.73.117)
+
+   User report (screenshot crop pojok kiri-atas card round-nav,
+   viewer mode landscape): tombol "<" prev keliatan "mepet" -- ketekan
+   ke lengkungan sudut card, gak proper.
+
+   AKAR MASALAH (diukur pakai Playwright, bukan nebak): `.sb-topbar`
+   di viewer+landscape SELALU 2 baris (row1: ROUND info + tab Skor/
+   Klasemen, row2: tombol prev + Next Round) -- diukur KONSISTEN di
+   semua lebar 600px-1900px, tinggi total selalu ~128px, gak pernah
+   nyusut ke 1 baris walau layar dilebarin. `body.viewer-mode
+   .sb-topbar { border-radius: 999px !important }` (v0.73.47) ke-CLAMP
+   otomatis sama browser jadi radius efektif ~64px (setengah tinggi
+   card 128px) -- itu WAJAR buat <header> yang cuma 1 baris pendek
+   (clamp ke pill kecil), tapi buat sb-topbar yang 2-baris/tinggi,
+   64px itu segede itu. Sementara `.sb-round-nav` (baris ke-2, isi
+   tombol "<" + Next Round) cuma punya inset ~14px dari tepi card --
+   jauh di bawah radius 64px, jadi tombol prev-nya kejebak DI DALAM
+   area lengkungan, bukan di luar/lepas dari kurva.
+
+   FIX: balikin sb-topbar (KHUSUS viewer+landscape) ke radius sistem
+   desain app sendiri, `--v73-r-xl: 28px` (nilai yang sama dipakai
+   sebelum v0.73.47 nge-override ke 999px) -- radius wajar buat card
+   2-baris, gak makan ke konten. <header> & .round-pill (tombol angka
+   1-10) TETAP 999px, gak disentuh -- itu keputusan lain yang sudah
+   settled (v0.73.47), dan dua-duanya emang pendek/kotak jadi cocok
+   full-pill.
+   ============================================================ */
+@media (orientation: landscape) and (min-width: 600px) {
+  body.viewer-mode .sb-topbar {
+    border-radius: var(--v73-r-xl, 28px) !important;
   }
 }
 </style>
