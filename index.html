@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.116</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.117</div>
     </div>
   </div>
 
@@ -30112,6 +30112,45 @@ html.dark body #onboardingScreen .onboarding-logo {
   }
 })();
 </script>
+
+<style id="codex-revision-v073117-css">
+/* ============================================================
+   v0.73.117 -- ROUND-NAV CARD LEBIH SEMPIT DARI HEADER DI DESKTOP
+               LANDSCAPE (mode nonton)
+
+   User report (screenshot browser laptop, mode nonton landscape):
+   header ("padel.teroos" + toggle icons) full-bleed edge-to-edge,
+   tapi card round-nav ("ROUND X of Y" + Skor/Klasemen + Next Round)
+   di bawahnya keliatan jauh lebih sempit & ke-center, gak nyambung
+   lebarnya sama header.
+
+   AKAR MASALAH: v0.73.98 nambahin cap lebar konten desktop --
+     @media (min-width:1024px) {
+       html body main > .view.active { max-width:1080px !important;
+         margin-left:auto !important; margin-right:auto !important; }
+     }
+   `.sb-topbar` (round-nav card) & `#roundPillNav` hidup DI DALAM
+   `#view-overview.view.active`, jadi ke-cap 1080px & center. `<header>`
+   hidup DI LUAR `.view` (sibling `main`), gak kena cap sama sekali --
+   width-nya `calc(100% - 16px)` relatif full viewport. Di layar
+   >=1024px CSS-px yang lebih lebar dari ~1112px, dua elemen ini jadi
+   beda lebar mencolok.
+
+   FIX: kecualikan #view-overview (live scoreboard: topbar + round
+   pills + court/standings) dari cap 1080 itu, biar lebarnya balik
+   ngikutin full viewport kayak header (via ID selector, spesifisitas
+   lebih tinggi dari rule asal, menang independen dari urutan source).
+   Cap 1080 buat view lain (#view-setup dst) TETAP, gak disentuh --
+   ini scoped cuma ke #view-overview.
+   ============================================================ */
+@media (min-width: 1024px) {
+  html body main > #view-overview.view.active {
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+}
+</style>
 
 </body>
 </html>
