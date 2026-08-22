@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.118</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.119</div>
     </div>
   </div>
 
@@ -30109,6 +30109,150 @@ html.dark body #onboardingScreen .onboarding-logo {
       return computeStandings();
     };
     mexicanoStandings = window.mexicanoStandings;
+  }
+})();
+</script>
+
+<script id="codex-revision-v073119-js">
+/* ============================================================
+   v0.73.119 -- MEXICANO: WARMUP 6 ROUND PERTAMA HARUS NYAMPUR,
+               JANGAN LANGSUNG KEBAGI GRUP RANK
+
+   User report: "Round 0-5 harus nyampur dong jangan dibagi grup."
+   Dikonfirmasi lewat simulasi behavioral (harness Node.js, 12 round,
+   skenario skill gap nyata, seed tetap) SEBELUM fix: quartet atas
+   (mis. P1-P4) dan quartet bawah (P9-P12) kekunci total di court
+   masing-masing dari round 0 sampai round 5 -- BARU mulai campur di
+   round 6+. Ini bukan bug (v0.73.113-116 gak disentuh, keputusan GP>
+   rank-live tetap benar buat kompetisi jangka panjang) -- akar
+   masalahnya threshold switch ke rank-based itu KETERLALU CEPAT:
+   buildMexicanoMatches/buildTeamMexicanoMatches/buildMixicanoRound
+   cuma mixing random di round 0 doang (`scoredRoundsCount() === 0`),
+   round 1 udah lompat ke rank-based -- padahal 1 round data belum
+   cukup buat ranking berarti, jadi rank di round 1 nyaris sama urutan
+   seed awal -> grup langsung "kebaca" dan diulang terus.
+
+   FIX: perpanjang jendela mixing dari "cuma round 0" jadi "round
+   0-5" (6 round pertama, MEXICANO_WARMUP_ROUNDS). Selama window ini:
+   - Individual & Team Mexicano: pakai ULANG selectPlayingPool +
+     assignPlayersToCourts (individual) / buildTeamMatches (team) --
+     PERSIS mekanisme yang sudah dipakai round 0 sekarang, yang
+     sudah kebukti anti-repeat partner/lawan (min-cost perfect
+     matching lewat hist.partner/hist.opponent). GP-fairness tetap
+     terjaga (selectPlayingPool sort by games played duluan).
+   - Mixicano: gpTiers TETAP nentuin siapa main (GP-fairness gak
+     disentuh), tapi urutan aktif laki/perempuan di-ACAK (bukan
+     rank-sort) sebelum dipotong per court, biar pairing gak
+     ke-lock ke urutan rank yang sama tiap round.
+   - Round >= 6 (scoredRoundsCount() >= MEXICANO_WARMUP_ROUNDS):
+     BALIK ke rank-based murni (chain v0.73.115/116, gak diubah
+     sama sekali) -- keputusan "rank-based murni" user TETAP menang
+     begitu datanya cukup buat berarti.
+
+   TIDAK disentuh: gpTiers, selectByGPThenRank, mexicanoStandings,
+   restedTwoBackSet -- semua fungsi sensitif yang sudah 4x direvisi
+   itu utuh, gak diedit. Ini cuma nambah gerbang threshold baru DI
+   ATAS chain yang sudah ada (append-only, gampang di-revert).
+   ============================================================ */
+(function () {
+  var MEXICANO_WARMUP_ROUNDS = 6; // round 0-5 = mixing, round 6+ = rank-based
+
+  function scoredRoundsCount119() {
+    return state.rounds.filter(function (r) {
+      return r && r.matches && r.matches.some(function (m) { return m.scoreA > 0 || m.scoreB > 0; });
+    }).length;
+  }
+
+  // --- Individual Mexicano ---
+  if (typeof buildMexicanoMatches === 'function') {
+    var _rankBasedBMM = buildMexicanoMatches;
+    window.buildMexicanoMatches = function (roundIdx) {
+      if (scoredRoundsCount119() >= MEXICANO_WARMUP_ROUNDS) {
+        return _rankBasedBMM.apply(this, arguments);
+      }
+      var hist = buildHistory(roundIdx);
+      var total = state.players;
+      var activePlayers = state.courts * 4;
+      var pool = selectPlayingPool(total, activePlayers, hist.games, restedLastRoundSet(roundIdx));
+      var assignments = assignPlayersToCourts(pool.playing, state.courts, hist);
+      return { matches: buildIndividualMatchesFromAssignments(assignments), resting: pool.resting };
+    };
+    buildMexicanoMatches = window.buildMexicanoMatches;
+  }
+
+  // --- Team Mexicano ---
+  if (typeof buildTeamMexicanoMatches === 'function') {
+    var _rankBasedTMM = buildTeamMexicanoMatches;
+    window.buildTeamMexicanoMatches = function (roundIdx) {
+      if (scoredRoundsCount119() >= MEXICANO_WARMUP_ROUNDS) {
+        return _rankBasedTMM.apply(this, arguments);
+      }
+      var hist = buildHistory(roundIdx);
+      var total = state.pairs;
+      var activePairs = state.courts * 2;
+      var pool = selectPlayingPool(total, activePairs, hist.games, restedLastRoundSet(roundIdx));
+      return { matches: buildTeamMatches(pool.playing), resting: pool.resting };
+    };
+    buildTeamMexicanoMatches = window.buildTeamMexicanoMatches;
+  }
+
+  // --- Mixicano ---
+  if (typeof buildMixicanoRound === 'function') {
+    var _rankBasedMXR = buildMixicanoRound;
+    window.buildMixicanoRound = function (roundIdx) {
+      if (scoredRoundsCount119() >= MEXICANO_WARMUP_ROUNDS) {
+        return _rankBasedMXR.apply(this, arguments);
+      }
+      var hist = buildHistory(roundIdx);
+      var total = state.players;
+      var males = [], females = [], unavailable = [];
+      for (var i = 0; i < total; i++) {
+        if (!isAvailable(i)) { unavailable.push(i); continue; }
+        if (state.playerGenders[i] === 'M') males.push(i);
+        else if (state.playerGenders[i] === 'F') females.push(i);
+      }
+      var needPerGender = state.courts * 2;
+      var rested2x = restedTwoBackSet(roundIdx);
+
+      // GP-fairness (siapa main) TETAP lewat gpTiers -- gak disentuh.
+      var tiersM = gpTiers(males, needPerGender, hist.games);
+      var tiersF = gpTiers(females, needPerGender, hist.games);
+      var pickGenderShuffled = function (tiers) {
+        var rested2Sorted = tiers.bubble.slice().sort(function (a, b) {
+          var ra = rested2x.has(a) ? 0 : 1, rb = rested2x.has(b) ? 0 : 1;
+          if (ra !== rb) return ra - rb;
+          return Math.random() - 0.5; // ACAK, bukan rank -- inti fix warmup
+        });
+        var pick = rested2Sorted.slice(0, tiers.slots);
+        var sit = rested2Sorted.slice(tiers.slots);
+        return { active: tiers.forced.concat(pick), sit: sit.concat(tiers.above) };
+      };
+      var pM = pickGenderShuffled(tiersM);
+      var pF = pickGenderShuffled(tiersF);
+      var activeMales = shuffle(pM.active);
+      var activeFemales = shuffle(pF.active);
+      var resting = pM.sit.concat(pF.sit, unavailable);
+
+      if (activeMales.length !== activeFemales.length) {
+        var n = Math.min(activeMales.length, activeFemales.length);
+        if (activeMales.length > n) { resting = activeMales.slice(n).concat(resting); activeMales = activeMales.slice(0, n); }
+        if (activeFemales.length > n) { resting = activeFemales.slice(n).concat(resting); activeFemales = activeFemales.slice(0, n); }
+      }
+
+      var courts = [];
+      for (var c = 0; c < state.courts; c++) {
+        var mGroup = activeMales.slice(c * 2, c * 2 + 2);
+        var fGroup = activeFemales.slice(c * 2, c * 2 + 2);
+        if (mGroup.length < 2 || fGroup.length < 2) break;
+        courts.push({ teamA: [mGroup[0], fGroup[1]], teamB: [mGroup[1], fGroup[0]] });
+      }
+      var matched = {};
+      courts.forEach(function (ct) { ct.teamA.concat(ct.teamB).forEach(function (id) { matched[id] = true; }); });
+      activeMales.concat(activeFemales).forEach(function (id) { if (!matched[id]) resting.push(id); });
+
+      return { courts: courts, resting: resting };
+    };
+    buildMixicanoRound = window.buildMixicanoRound;
   }
 })();
 </script>
