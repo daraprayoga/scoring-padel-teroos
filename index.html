@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.122</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.123</div>
     </div>
   </div>
 
@@ -30480,11 +30480,19 @@ html.dark #standingBody td.num.diff-neg { color: var(--red) !important; font-wei
 }
 .standing-form-dots .fdot.loss { background: var(--red); }
 .standing-form-dots .fdot.tie { background: var(--gold); opacity: 0.8; }
-.standing-form-dots .fdot.empty { background: transparent; border: 1px solid var(--border-strong); opacity: 0.4; }
+/* v0.73.123 fix: nama class SEBELUMNYA "empty" tabrakan sama `.empty`
+   yang UDAH ada di app (~1685, generic "no data" placeholder state:
+   padding 40px + height:100% + flex column) -- dot jadi 82px raksasa
+   di real device (ketauan dari screenshot user, GP<9 jadi ada dot
+   padding, KELEWAT di tes awal karena tes gue kebetulan semua GP>=9).
+   Rename ke "fdot-pad" (namespaced ke .fdot, gak ada di tempat lain)
+   biar gak collide -- JANGAN pake nama class generik (empty/active/
+   loading/dst) buat elemen baru, selalu prefix unik. */
+.standing-form-dots .fdot.fdot-pad { background: transparent; border: 1px solid var(--border-strong); opacity: 0.4; }
 html.dark .standing-form-dots .fdot { background: #94b946; }
 html.dark .standing-form-dots .fdot.loss { background: var(--red); }
 html.dark .standing-form-dots .fdot.tie { background: var(--gold-bright); }
-html.dark .standing-form-dots .fdot.empty { border-color: var(--border); }
+html.dark .standing-form-dots .fdot.fdot-pad { border-color: var(--border); }
 
 @media (max-width: 480px) {
   .standing-form-dots .fdot { width: 7px; height: 7px; }
@@ -30538,7 +30546,7 @@ html.dark .standing-form-dots .fdot.empty { border-color: var(--border); }
     const games = formStrips[id] || [];
     const pad = Math.max(0, FORM_DOTS - games.length);
     let html = '';
-    for (let i = 0; i < pad; i++) html += '<span class="fdot empty"></span>';
+    for (let i = 0; i < pad; i++) html += '<span class="fdot fdot-pad"></span>';
     games.forEach(r => {
       const cls = r === 'W' ? '' : r === 'L' ? 'loss' : 'tie';
       html += `<span class="fdot ${cls}"></span>`;
