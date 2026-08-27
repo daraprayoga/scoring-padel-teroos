@@ -4157,7 +4157,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.130</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.131</div>
     </div>
   </div>
 
@@ -31486,6 +31486,275 @@ html:not(.dark) #sparingCatFilterRow .cat-filter-btn.cat-filter-btn-active {
   if (document.getElementById('sparingCatFilterRow')) {
     try { syncCatFilterActive(); } catch (e) {}
   }
+})();
+</script>
+
+
+<style id="codex-revision-v073131-css">
+/* v0.73.131 — club pill KENTARA di court card + swap modal (bukan gender-badge yang bisa ketimpa) */
+html body .club-pill {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0 !important;
+  min-width: 22px;
+  height: 16px;
+  padding: 0 5px;
+  margin-left: 5px;
+  border-radius: 5px;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.4px;
+  line-height: 1;
+  -webkit-user-select: none;
+  user-select: none;
+  vertical-align: middle;
+}
+html body .club-pill-a {
+  background: rgba(74, 144, 217, 0.22) !important;
+  color: #2b6cb0 !important;
+  border: 1px solid rgba(74, 144, 217, 0.55) !important;
+}
+html body .club-pill-b {
+  background: rgba(200, 90, 140, 0.20) !important;
+  color: #b83280 !important;
+  border: 1px solid rgba(200, 90, 140, 0.55) !important;
+}
+html.dark body .club-pill-a {
+  background: rgba(96, 165, 250, 0.22) !important;
+  color: #93c5fd !important;
+  border-color: rgba(96, 165, 250, 0.5) !important;
+}
+html.dark body .club-pill-b {
+  background: rgba(244, 114, 182, 0.22) !important;
+  color: #f9a8d4 !important;
+  border-color: rgba(244, 114, 182, 0.5) !important;
+}
+/* Court player row: pastikan flex biar pill gak ke-clip overflow */
+html body .sb-court-card .sb-player.has-club-pill {
+  display: flex !important;
+  align-items: center !important;
+  gap: 2px;
+  overflow: hidden !important;
+}
+html body .sb-court-card .sb-player.has-club-pill .sb-player-name {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  flex: 1 1 auto;
+}
+/* Swap modal list */
+html body #swapModal .swap-opt-row {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+html body #swapModal .swap-opt-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+html body #swapModal .swap-current-row {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+html body #sbRest .rest-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+</style>
+<script id="codex-revision-v073131-js">
+/* v0.73.131 -- Club pill robust (court + swap + rest).
+
+   v0.73.129 inject gagal di device user (badge gak muncul di court & swap).
+   Kemungkinan: post-process sekali ke-race / gender-badge CSS ketimpa /
+   overflow clip. Pendekatan baru:
+
+   1. HTML pill SENDIRI (.club-pill) + warna inline-safe via CSS !important
+   2. MutationObserver di #sbCourts — inject ulang setiap DOM court berubah
+   3. showSwapModal full reimplement (light-theme text) + pill di tiap opsi
+   4. PAIR REST ikut pill
+*/
+(function () {
+  'use strict';
+  if (typeof isSparing !== 'function') return;
+
+  function clubSide(pairId) {
+    if (typeof clubOf === 'function') return clubOf(pairId);
+    return (state.pairClubs && state.pairClubs[pairId] === 'B') ? 'B' : 'A';
+  }
+  function clubFull(side) {
+    if (typeof clubLabel === 'function') return clubLabel(side);
+    return side === 'B' ? ((state.sparingClubB || '').trim() || 'Club B')
+                        : ((state.sparingClubA || '').trim() || 'Club A');
+  }
+  function clubInitials(side) {
+    if (typeof clubBadgeLabel === 'function') return clubBadgeLabel(side);
+    const full = clubFull(side);
+    const custom = side === 'B' ? state.sparingClubB : state.sparingClubA;
+    if ((custom || '').trim()) return custom.trim().slice(0, 2).toUpperCase();
+    return side;
+  }
+  function clubPillHtml(pairId) {
+    if (!isSparing()) return '';
+    const side = clubSide(pairId);
+    const full = clubFull(side);
+    const ini = clubInitials(side);
+    const cls = side === 'B' ? 'club-pill club-pill-b' : 'club-pill club-pill-a';
+    return '<span class="' + cls + '" title="' + escapeHtml(full) + '">' +
+      escapeHtml(ini) + '</span>';
+  }
+
+  function stampPlayerEl(el) {
+    if (!el || el.querySelector('.club-pill')) return;
+    const pairId = parseInt(el.getAttribute('data-player-id'), 10);
+    if (isNaN(pairId)) return;
+    const pill = clubPillHtml(pairId);
+    if (!pill) return;
+    const nameEl = el.querySelector('.sb-player-name');
+    const raw = (nameEl ? nameEl.textContent : el.textContent) || '';
+    el.classList.add('has-club-pill', 'has-badge');
+    el.innerHTML = '<span class="sb-player-name">' + escapeHtml(raw.trim()) + '</span>' + pill;
+  }
+
+  function stampAllCourts(root) {
+    if (!isSparing() || !isTeam()) return;
+    (root || document).querySelectorAll('.sb-court-card .sb-player[data-player-id]').forEach(stampPlayerEl);
+  }
+
+  function stampRest() {
+    if (!isSparing() || !isTeam()) return;
+    const restEl = document.getElementById('sbRest');
+    if (!restEl || restEl.style.display === 'none') return;
+    const row = restEl.querySelector('.sb-rest-row');
+    if (!row) return;
+    const round = state.rounds && state.rounds[state.currentRoundIdx];
+    if (!round || !round.resting || !round.resting.length) return;
+    const strong = row.querySelector('strong');
+    const label = strong ? strong.outerHTML : '';
+    row.innerHTML = label + ' ' + round.resting.map(function (id) {
+      return '<span class="rest-pair">' + escapeHtml(entityName(id)) + clubPillHtml(id) + '</span>';
+    }).join(' <span style="opacity:0.4">·</span> ');
+  }
+
+  // ---- wrap renderCourts ----
+  if (typeof renderCourts === 'function') {
+    const _prevRC = window.renderCourts || renderCourts;
+    window.renderCourts = function () {
+      _prevRC.apply(this, arguments);
+      try {
+        stampAllCourts(document.getElementById('sbCourts') || document);
+        stampRest();
+        if (typeof fitScoreboardPlayerNames === 'function') {
+          requestAnimationFrame(function () { fitScoreboardPlayerNames(); });
+        }
+      } catch (e) { console.warn('v073131 stamp:', e); }
+    };
+    renderCourts = window.renderCourts;
+  }
+
+  // ---- MutationObserver: jaga pill tetap ada meski DOM court di-rebuild ----
+  function armObserver() {
+    const host = document.getElementById('sbCourts');
+    if (!host || host._clubPillObs) return;
+    let t = null;
+    const obs = new MutationObserver(function () {
+      if (t) clearTimeout(t);
+      t = setTimeout(function () {
+        if (!isSparing() || !isTeam()) return;
+        stampAllCourts(host);
+      }, 30);
+    });
+    obs.observe(host, { childList: true, subtree: true });
+    host._clubPillObs = obs;
+    stampAllCourts(host);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', armObserver, { once: true });
+  } else {
+    armObserver();
+  }
+  // Arm lagi setelah delay (kalau sbCourts baru ke-mount)
+  setTimeout(armObserver, 500);
+  setTimeout(armObserver, 2000);
+
+  // ---- showSwapModal: full override, light-theme safe + club pill ----
+  window.showSwapModal = function (currentId, triggerEl) {
+    const existing = document.getElementById('swapModal');
+    if (existing) existing.remove();
+
+    const isT = isTeam();
+    const count = isT ? state.pairs : state.players;
+    const currentName = isT
+      ? ((state.pairNames[currentId] && state.pairNames[currentId][0] || '') + ' & ' +
+         (state.pairNames[currentId] && state.pairNames[currentId][1] || ''))
+      : (state.playerNames[currentId] || defaultName(currentId));
+    const currentPill = (isSparing() && isT) ? clubPillHtml(currentId) : '';
+
+    const modal = document.createElement('div');
+    modal.id = 'swapModal';
+    modal.style.cssText = 'position:fixed;inset:0;display:flex;align-items:flex-end;justify-content:center;z-index:500;';
+
+    const panel = document.createElement('div');
+    panel.style.cssText = 'width:100%;max-width:480px;max-height:70vh;display:flex;flex-direction:column;gap:12px;padding:20px 16px 32px;border-radius:20px 20px 0 0;';
+
+    panel.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">' +
+        '<div style="min-width:0;flex:1;">' +
+          '<div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c9a961;font-weight:700;margin-bottom:4px;">' +
+            (isT ? 'Swap Pair' : 'Swap Player') +
+          '</div>' +
+          '<div class="swap-current-row" style="font-size:15px;font-weight:800;color:#252d11;text-transform:uppercase;">' +
+            '<span>' + escapeHtml(currentName) + '</span>' + currentPill +
+          '</div>' +
+        '</div>' +
+        '<button type="button" id="swapModalClose" style="flex-shrink:0;background:rgba(82,102,39,0.08);border:1px solid rgba(82,102,39,0.18);border-radius:10px;color:#252d11;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">✕</button>' +
+      '</div>' +
+      '<div style="font-size:12px;color:#526627;letter-spacing:0.3px;">' +
+        'Pilih ' + (isT ? 'pair' : 'player') + ' pengganti. Semua round yang belum dimainkan akan ikut terupdate.' +
+      '</div>' +
+      '<div id="swapList" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px;padding-right:4px;"></div>';
+
+    modal.appendChild(panel);
+    document.body.appendChild(modal);
+
+    const listEl = panel.querySelector('#swapList');
+    for (let i = 0; i < count; i++) {
+      if (i === currentId) continue;
+      const name = isT
+        ? ((state.pairNames[i] && state.pairNames[i][0] || ('Player ' + (i * 2 + 1))) + ' & ' +
+           (state.pairNames[i] && state.pairNames[i][1] || ('Player ' + (i * 2 + 2))))
+        : (state.playerNames[i] || defaultName(i));
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.style.cssText = 'background:rgba(255,255,255,0.92);border:1px solid rgba(82,102,39,0.18);border-radius:12px;padding:12px 16px;text-align:left;cursor:pointer;color:#252d11;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;width:100%;';
+      const pill = (isSparing() && isT) ? clubPillHtml(i) : '';
+      btn.innerHTML = '<span class="swap-opt-row"><span class="swap-opt-name">' +
+        escapeHtml(name) + '</span>' + pill + '</span>';
+      (function (id) {
+        btn.addEventListener('click', function () {
+          swapEntity(currentId, id);
+          modal.remove();
+        });
+      })(i);
+      listEl.appendChild(btn);
+    }
+
+    panel.querySelector('#swapModalClose').addEventListener('click', function () { modal.remove(); });
+    modal.addEventListener('click', function (e) { if (e.target === modal) modal.remove(); });
+  };
+  showSwapModal = window.showSwapModal;
+
+  // Stamp sekali kalau court sudah ada
+  try { stampAllCourts(document); stampRest(); } catch (e) {}
 })();
 </script>
 
