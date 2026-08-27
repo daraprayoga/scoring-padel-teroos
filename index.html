@@ -4157,7 +4157,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.127</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.128</div>
     </div>
   </div>
 
@@ -31114,6 +31114,116 @@ html.dark #pairsList .cat-toggle .cat-btn.cat-btn-active {
     }
   };
   updateStandingTable = window.updateStandingTable;
+})();
+</script>
+
+
+<script id="codex-revision-v073128-js">
+/* v0.73.128 -- Sparing multi-kategori: header skor balik ke format WINS
+   (sama kayak mode tanpa kategori), BUKAN percentage.
+
+   Laporan user: "Skornya masa pake percentage kayak image 2? Gak umum."
+   v0.73.125 pakai win-rate % sebagai angka utama biar netral lintas
+   kategori (jumlah match beda). Tapi di lapangan % terasa asing —
+   format yang familiar = angka wins mentah di kotak tengah, pts·diff
+   di subteks (persis renderSparingScoreHeader asli).
+
+   Perubahan:
+   - Angka utama (ssh-box): SUM wins antar kategori yang sudah terskor
+   - Subteks: SUM pts · SUM diff (bukan avg)
+   - Highlight lead: tetap pakai rata-rata win-rate → pts/game → diff/game
+     (fairness lintas kategori gak diubah)
+   - Breakdown baris bawah: tetap W-L + pts per kategori
+   - Sesi tanpa kategori: 0 perubahan (masih delegate ke fungsi asli)
+
+   GAGAL/OFFLINE pill: bukan bug — status push Firebase (v0.70.48).
+   GAGAL = push gagal (jaringan/rules); OFFLINE = realtime putus.
+   Detail di tooltip pill. App tetap jalan offline via localStorage.
+*/
+(function () {
+  'use strict';
+  if (typeof isSparing !== 'function') return;
+
+  function sumCategoryTallies() {
+    const zero = () => ({ wins: 0, losses: 0, ties: 0, points: 0, conceded: 0, played: 0, diff: 0 });
+    const sum = { A: zero(), B: zero() };
+    const cats = state.sparingCategories || [];
+    const perCategory = [];
+    cats.forEach(c => {
+      if (typeof computeClubTallyForCategory !== 'function') return;
+      const t = computeClubTallyForCategory(c.id);
+      if (t.A.played === 0 && t.B.played === 0) return;
+      perCategory.push({ id: c.id, label: c.label, tally: t });
+      ['A', 'B'].forEach(side => {
+        sum[side].wins += t[side].wins;
+        sum[side].losses += t[side].losses;
+        sum[side].ties += t[side].ties;
+        sum[side].points += t[side].points;
+        sum[side].conceded += t[side].conceded;
+        sum[side].played += t[side].played;
+      });
+    });
+    sum.A.diff = sum.A.points - sum.A.conceded;
+    sum.B.diff = sum.B.points - sum.B.conceded;
+    return { sum, perCategory };
+  }
+
+  // Re-override di atas layer v0.73.125 — rantai append-only.
+  const _prevRenderSSH128 = window.renderSparingScoreHeader || renderSparingScoreHeader;
+  window.renderSparingScoreHeader = function () {
+    if (!isSparing() || !state.sparingCategories || state.sparingCategories.length === 0) {
+      const bd = document.getElementById('sshCategoryBreakdown');
+      if (bd) bd.style.display = 'none';
+      // Panggil original non-category path (bukan layer 125 yang % )
+      // _prevRenderSSH128 saat ini = override 125; kalau kategori kosong
+      // override 125 sudah delegate ke _origRenderSparingScoreHeader125.
+      return _prevRenderSSH128.apply(this, arguments);
+    }
+    const el = document.getElementById('sparingScoreHeader');
+    if (!el) return;
+    if (!state.started) { el.style.display = 'none'; return; }
+    el.style.display = 'flex';
+
+    const { sum, perCategory } = sumCategoryTallies();
+    // Lead tetap fairness-averaged (win-rate → pts/game → diff/game)
+    const avg = typeof computeClubTallyAveraged === 'function'
+      ? computeClubTallyAveraged()
+      : { winner: null, A: {}, B: {}, perCategory: [] };
+    const nameA = escapeHtml(clubLabel('A')), nameB = escapeHtml(clubLabel('B'));
+    const leadA = avg.winner === 'A', leadB = avg.winner === 'B';
+
+    el.innerHTML = `
+      <div class="ssh-side ssh-a ${leadA ? 'ssh-lead' : ''}">
+        <span class="ssh-name">${nameA}</span>
+        <span class="ssh-sub">${sum.A.points} pts · ${sum.A.diff > 0 ? '+' : ''}${sum.A.diff} diff</span>
+      </div>
+      <div class="ssh-scores">
+        <div class="ssh-box ${leadA ? 'ssh-box-lead' : ''}">${sum.A.wins}</div>
+        <div class="ssh-box ${leadB ? 'ssh-box-lead' : ''}">${sum.B.wins}</div>
+      </div>
+      <div class="ssh-side ssh-b ${leadB ? 'ssh-lead' : ''}">
+        <span class="ssh-name">${nameB}</span>
+        <span class="ssh-sub">${sum.B.points} pts · ${sum.B.diff > 0 ? '+' : ''}${sum.B.diff} diff</span>
+      </div>
+    `;
+
+    let breakdown = document.getElementById('sshCategoryBreakdown');
+    if (!breakdown) {
+      breakdown = document.createElement('div');
+      breakdown.id = 'sshCategoryBreakdown';
+      breakdown.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;justify-content:center;padding:4px 12px 8px;font-size:11px;color:var(--cream-dim);width:100%;';
+      el.parentNode.insertBefore(breakdown, el.nextSibling);
+    }
+    breakdown.style.display = 'flex';
+    const cats = perCategory.length ? perCategory : (avg.perCategory || []);
+    breakdown.innerHTML = cats.length
+      ? cats.map(c => {
+          const t = c.tally;
+          return `<span><strong>${escapeHtml(c.label || 'Kategori')}</strong>: ${t.A.wins}-${t.B.wins} (${t.A.points}-${t.B.points} pts)</span>`;
+        }).join(' &nbsp;·&nbsp; ')
+      : '<span>Belum ada match terskor</span>';
+  };
+  renderSparingScoreHeader = window.renderSparingScoreHeader;
 })();
 </script>
 
