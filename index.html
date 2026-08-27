@@ -4157,7 +4157,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.134</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.135</div>
     </div>
   </div>
 
@@ -32019,6 +32019,98 @@ html body .sb-court-card .sb-team.right .sb-player.has-club-pill .club-pill {
   try { fixPillOrder(document); } catch (e) {}
 })();
 </script>
+
+
+<style id="codex-revision-v073135-css">
+/* ============================================================
+   v0.73.135
+   1) Tombol kategori setup: teks aktif HILANG — --cream di light mode
+      = #526627 (hijau gelap) SAMA dengan --green-bright. Active = dark
+      text di dark green → blob hijau tanpa label. Fix: paksa teks terang.
+   2) Header skor klub: band putih solid (v0.73.101d) aneh di atas
+      page sage. Soft-tint + radius biar nyatu, bukan blok putih.
+   ============================================================ */
+
+/* --- Category buttons (setup pair rows) --- */
+html:not(.dark) #pairsList .cat-toggle .cat-btn {
+  background: rgba(255, 255, 255, 0.85) !important;
+  color: #3c5d00 !important;
+  border: 1.5px solid rgba(60, 93, 0, 0.28) !important;
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  padding: 7px 14px !important;
+  min-height: 32px !important;
+  box-shadow: none !important;
+}
+html:not(.dark) #pairsList .cat-toggle .cat-btn.cat-btn-active {
+  background: #3c5d00 !important;
+  color: #f5f0e6 !important; /* PAKSA terang — jangan pakai var(--cream) */
+  border-color: #3c5d00 !important;
+  box-shadow: 0 1px 3px rgba(60, 93, 0, 0.25) !important;
+}
+html.dark #pairsList .cat-toggle .cat-btn {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #ece7da !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.18) !important;
+  border-radius: 999px !important;
+}
+html.dark #pairsList .cat-toggle .cat-btn.cat-btn-active {
+  background: #709224 !important;
+  color: #141a0a !important;
+  border-color: #709224 !important;
+}
+
+/* Standings filter kategori — sama, teks aktif harus kontras */
+html:not(.dark) #sparingCatFilterRow .cat-filter-btn {
+  background: rgba(255, 255, 255, 0.85) !important;
+  color: #3c5d00 !important;
+  border: 1.5px solid rgba(60, 93, 0, 0.28) !important;
+  border-radius: 999px !important;
+}
+html:not(.dark) #sparingCatFilterRow .cat-filter-btn.cat-filter-btn-active {
+  background: #3c5d00 !important;
+  color: #f5f0e6 !important;
+  border-color: #3c5d00 !important;
+}
+html.dark #sparingCatFilterRow .cat-filter-btn.cat-filter-btn-active {
+  background: #709224 !important;
+  color: #141a0a !important;
+  border-color: #709224 !important;
+}
+
+/* --- Club score header: hilangkan band putih aneh --- */
+html:not(.dark) body .sparing-score-header,
+html:not(.dark) body #sparingScoreHeader.sparing-score-header {
+  background: rgba(238, 243, 226, 0.55) !important; /* soft sage, nyatu page */
+  -webkit-backdrop-filter: blur(12px) saturate(1.2) !important;
+  backdrop-filter: blur(12px) saturate(1.2) !important;
+  border: 1px solid rgba(60, 93, 0, 0.08) !important;
+  border-radius: var(--v73-r-xl, 28px) !important;
+  border-bottom: 1px solid rgba(60, 93, 0, 0.08) !important;
+  margin: 4px 10px 12px !important;
+  width: calc(100% - 20px) !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 2px 10px rgba(44, 68, 0, 0.05) !important;
+  padding: 10px 16px !important;
+}
+/* Kotak angka di header: sedikit lebih solid biar kebaca */
+html:not(.dark) body .sparing-score-header .ssh-box {
+  background: rgba(255, 255, 255, 0.78) !important;
+  border: 1px solid rgba(60, 93, 0, 0.14) !important;
+}
+/* Viewer: tetap cream-glass, override putih solid 101d */
+html:not(.dark) body.viewer-mode .sparing-score-header,
+html:not(.dark) body.viewer-url .sparing-score-header {
+  background: rgba(252, 249, 242, 0.58) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(1.4) !important;
+  backdrop-filter: blur(26px) saturate(1.4) !important;
+  border: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 6px 24px rgba(0, 0, 0, 0.10) !important;
+}
+</style>
 
 </body>
 </html>
