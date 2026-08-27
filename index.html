@@ -4157,7 +4157,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.128</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.130</div>
     </div>
   </div>
 
@@ -31224,6 +31224,268 @@ html.dark #pairsList .cat-toggle .cat-btn.cat-btn-active {
       : '<span>Belum ada match terskor</span>';
   };
   renderSparingScoreHeader = window.renderSparingScoreHeader;
+})();
+</script>
+
+
+<style id="codex-revision-v073129-css">
+/* v0.73.129 — club badge di scoreboard team/sparing + swap modal */
+/* Badge reuse .gender-badge m/f (A=biru, B=pink) — sudah ada styling dark/light. */
+html body .sb-court-card .sb-player.has-badge .gender-badge,
+html body #swapModal .gender-badge,
+html body #sbRest .gender-badge {
+  flex-shrink: 0;
+}
+/* Swap modal list: name + badge sejajar */
+html body #swapModal .swap-opt-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+html body #swapModal .swap-opt-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+html body #swapModal .swap-current-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+html body #sbRest .rest-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+</style>
+<script id="codex-revision-v073129-js">
+/* v0.73.129 -- Penanda klub di scoreboard + modal swap (long-press)
+
+   Laporan user: mau tau pair/pemain dari klub mana di live scoreboard
+   (image court cards) DAN di window ganti pair (tap-and-hold).
+
+   Sebelumnya clubBadge() hanya disisip di:
+   - mode individual (bukan team) di playerHtml
+   - klasemen / podium / results
+   Mode club_sparing = isTeam() → branch team di renderCourts TIDAK
+   pernah manggil clubBadge, jadi di court card gak ada penanda.
+
+   Fix (append-only, post-process DOM setelah renderCourts):
+   1. Court cards team+sparing: sisip clubBadge(pairId) di tiap .sb-player
+   2. PAIR REST / sitting out: badge di samping nama pair
+   3. showSwapModal: badge di header "current" + tiap opsi list
+
+   clubBadge() existing: isSparing-only, label 2-huruf dari nama klub
+   (clubBadgeLabel), warna .m (A) / .f (B). title=full club name.
+*/
+(function () {
+  'use strict';
+  if (typeof renderCourts !== 'function') return;
+
+  function clubBadgeWithTitle(pairId) {
+    if (typeof clubBadge !== 'function' || !isSparing()) return '';
+    const side = clubOf(pairId);
+    const full = typeof clubLabel === 'function' ? clubLabel(side) : side;
+    const html = clubBadge(pairId);
+    if (!html) return '';
+    // Inject title for long club names (tooltip)
+    return html.replace('<span class="gender-badge',
+      '<span title="' + escapeHtml(full) + '" class="gender-badge');
+  }
+
+  function injectClubBadgesOnCourts() {
+    if (!isSparing() || !isTeam()) return;
+    document.querySelectorAll('.sb-court-card .sb-player[data-player-id]').forEach(el => {
+      if (el.querySelector('.gender-badge')) return; // sudah ada
+      const pairId = parseInt(el.dataset.playerId, 10);
+      if (isNaN(pairId)) return;
+      const badge = clubBadgeWithTitle(pairId);
+      if (!badge) return;
+      // Ambil teks nama (bisa nested kalau sudah pernah di-patch)
+      const nameEl = el.querySelector('.sb-player-name');
+      const rawName = nameEl ? nameEl.textContent : el.textContent;
+      el.classList.add('has-badge');
+      el.innerHTML = '<span class="sb-player-name">' + escapeHtml(rawName.trim()) + '</span>' + badge;
+    });
+  }
+
+  function injectClubBadgesOnRest() {
+    if (!isSparing() || !isTeam()) return;
+    const restEl = document.getElementById('sbRest');
+    if (!restEl || restEl.style.display === 'none') return;
+    const row = restEl.querySelector('.sb-rest-row');
+    if (!row) return;
+    // Rebuild pair list dengan badge — strong label tetap
+    const strong = row.querySelector('strong');
+    const label = strong ? strong.outerHTML : '';
+    const round = state.rounds[state.currentRoundIdx];
+    if (!round || !round.resting || !round.resting.length) return;
+    const parts = round.resting.map(id => {
+      const nm = escapeHtml(entityName(id));
+      const badge = clubBadgeWithTitle(id);
+      return '<span class="rest-pair">' + nm + (badge || '') + '</span>';
+    });
+    row.innerHTML = label + ' ' + parts.join(' <span style="opacity:0.45">·</span> ');
+  }
+
+  const _prevRenderCourts129 = renderCourts;
+  window.renderCourts = function () {
+    _prevRenderCourts129.apply(this, arguments);
+    try {
+      injectClubBadgesOnCourts();
+      injectClubBadgesOnRest();
+      // fitScoreboardPlayerNames jalan di rAF di dalam renderCourts —
+      // patch badge ubah layout, trigger ulang fit kalau ada.
+      if (typeof fitScoreboardPlayerNames === 'function') {
+        requestAnimationFrame(function () { fitScoreboardPlayerNames(); });
+      }
+    } catch (e) { console.warn('v073129 club badge inject:', e); }
+  };
+  renderCourts = window.renderCourts;
+
+  // ---------- Swap modal: reimplement + badge (id-aware, bukan match nama) ----------
+  window.showSwapModal = function (currentId, triggerEl) {
+    const existing = document.getElementById('swapModal');
+    if (existing) existing.remove();
+
+    const isT = isTeam();
+    const count = isT ? state.pairs : state.players;
+    const currentName = isT
+      ? ((state.pairNames[currentId]?.[0] || '') + ' & ' + (state.pairNames[currentId]?.[1] || ''))
+      : (state.playerNames[currentId] || defaultName(currentId));
+    const currentBadge = (isSparing() && isT) ? clubBadgeWithTitle(currentId) : '';
+
+    const options = [];
+    for (let i = 0; i < count; i++) {
+      const name = isT
+        ? ((state.pairNames[i]?.[0] || ('Player ' + (i * 2 + 1))) + ' & ' + (state.pairNames[i]?.[1] || ('Player ' + (i * 2 + 2))))
+        : (state.playerNames[i] || defaultName(i));
+      options.push({ id: i, name });
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'swapModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:flex-end;justify-content:center;z-index:500;backdrop-filter:blur(4px);';
+
+    const panel = document.createElement('div');
+    panel.style.cssText = 'background:#191f0c;border:1px solid rgba(201,169,97,0.25);border-radius:20px 20px 0 0;padding:20px 16px 32px;width:100%;max-width:480px;max-height:70vh;display:flex;flex-direction:column;gap:12px;';
+
+    panel.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+        '<div>' +
+          '<div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c9a961;font-weight:700;margin-bottom:4px;">' +
+            (isT ? 'Swap Pair' : 'Swap Player') +
+          '</div>' +
+          '<div class="swap-current-row" style="font-size:15px;font-weight:800;color:#f5f0e6;text-transform:uppercase;">' +
+            '<span>' + escapeHtml(currentName) + '</span>' + currentBadge +
+          '</div>' +
+        '</div>' +
+        '<button id="swapModalClose" style="background:rgba(82,102,39,0.08);border:1px solid rgba(82,102,39,0.18);border-radius:10px;color:#f5f0e6;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">✕</button>' +
+      '</div>' +
+      '<div style="font-size:12px;color:rgba(245,240,230,0.65);letter-spacing:0.3px;">' +
+        'Pilih ' + (isT ? 'pair' : 'player') + ' pengganti. Semua round yang belum dimainkan akan ikut terupdate.' +
+      '</div>' +
+      '<div id="swapList" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px;padding-right:4px;"></div>';
+
+    modal.appendChild(panel);
+    document.body.appendChild(modal);
+
+    const listEl = panel.querySelector('#swapList');
+    options.forEach(opt => {
+      if (opt.id === currentId) return;
+      const btn = document.createElement('button');
+      btn.style.cssText = 'background:rgba(255,255,255,0.65);border:1px solid rgba(82,102,39,0.2);border-radius:12px;padding:12px 16px;text-align:left;cursor:pointer;color:#252d11;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;width:100%;';
+      const badge = (isSparing() && isT) ? clubBadgeWithTitle(opt.id) : '';
+      btn.innerHTML = '<span class="swap-opt-row"><span class="swap-opt-name">' +
+        escapeHtml(opt.name) + '</span>' + badge + '</span>';
+      btn.addEventListener('pointerenter', () => {
+        btn.style.background = 'rgba(201,169,97,0.16)';
+        btn.style.borderColor = 'rgba(201,169,97,0.45)';
+      });
+      btn.addEventListener('pointerleave', () => {
+        btn.style.background = 'rgba(255,255,255,0.65)';
+        btn.style.borderColor = 'rgba(82,102,39,0.2)';
+      });
+      btn.addEventListener('click', () => {
+        swapEntity(currentId, opt.id);
+        modal.remove();
+      });
+      listEl.appendChild(btn);
+    });
+
+    panel.querySelector('#swapModalClose').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  };
+  showSwapModal = window.showSwapModal;
+})();
+</script>
+
+
+<style id="codex-revision-v073130-css">
+/* v0.73.130 — standings category filter: active state harus kelihatan.
+   Akar SAMA persis v0.73.126 (pair cat-btn): inline style
+   background:var(--green-bright) kalah sama
+   `.ghost-btn { background: … !important }` di cascade lebih awal.
+   Fix: kelas .cat-filter-btn-active + specificity html+id+class + !important. */
+html:not(.dark) #sparingCatFilterRow .cat-filter-btn.cat-filter-btn-active,
+html.dark #sparingCatFilterRow .cat-filter-btn.cat-filter-btn-active {
+  background: var(--green-bright) !important;
+  color: var(--cream) !important;
+  border-color: var(--green-bright) !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+}
+html:not(.dark) #sparingCatFilterRow .cat-filter-btn.cat-filter-btn-active {
+  color: #f5f0e6 !important; /* cream token kadang resolve ke gelap di light — paksa terang */
+}
+</style>
+<script id="codex-revision-v073130-js">
+/* v0.73.130 -- Filter kategori di tab Klasemen: highlight aktif kentara.
+
+   User report (standings): tombol Men's / Women's keliatan sama pas diklik
+   — gak ada penanda mana yang selected. Root cause = gotcha .ghost-btn
+   !important (sudah kejadian di pair cat-btn, difix v0.73.126; filter
+   standings kelewatan, masih inline-style tanpa !important).
+
+   Fix append-only: setelah updateStandingTable rebuild baris filter,
+   sync kelas .cat-filter-btn-active dari state.standingsCategoryFilter.
+   CSS di atas yang nentuin tampilan aktif.
+*/
+(function () {
+  'use strict';
+  if (typeof updateStandingTable !== 'function') return;
+
+  function syncCatFilterActive() {
+    const host = document.getElementById('sparingCatFilterRow');
+    if (!host) return;
+    const active = state.standingsCategoryFilter;
+    host.querySelectorAll('.cat-filter-btn').forEach(btn => {
+      const on = btn.getAttribute('data-cat-id') === active;
+      btn.classList.toggle('cat-filter-btn-active', on);
+      // Bersihkan inline style warisan v0.73.125 biar gak dobel/conflicting
+      if (on) {
+        btn.style.background = '';
+        btn.style.color = '';
+        btn.style.borderColor = '';
+      }
+    });
+  }
+
+  const _prevUST130 = window.updateStandingTable || updateStandingTable;
+  window.updateStandingTable = function () {
+    _prevUST130.apply(this, arguments);
+    try { syncCatFilterActive(); } catch (e) { /* best-effort */ }
+  };
+  updateStandingTable = window.updateStandingTable;
+
+  // Safety: kalau klasemen sudah ke-render sebelum script ini, sync sekali
+  if (document.getElementById('sparingCatFilterRow')) {
+    try { syncCatFilterActive(); } catch (e) {}
+  }
 })();
 </script>
 
