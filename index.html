@@ -4157,7 +4157,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.131</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.132</div>
     </div>
   </div>
 
@@ -31757,6 +31757,100 @@ html body #sbRest .rest-pair {
   try { stampAllCourts(document); stampRest(); } catch (e) {}
 })();
 </script>
+
+
+<style id="codex-revision-v073132-css">
+/* ============================================================
+   v0.73.132 -- VIEWER: skor klub + court card samain material top card
+
+   Laporan user (mode nonton): background skor club & kotak sb-court
+   putih dingin, beda dari top card (ROUND / Next Round) yang cream
+   liquid-glass.
+
+   Material acuan = body.viewer-mode .sb-topbar (v0.73.47):
+     background: rgba(252,249,242,0.58)
+     backdrop-filter: blur(26px) saturate(1.4)
+     box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 6px 24px rgba(0,0,0,0.10)
+
+   Scope: viewer-mode / viewer-url SAJA. Admin mode gak disentuh
+   (court card tetap --v73-paper putih sesuai design system admin).
+
+   Override v0.73.101d (sparing header → putih solid) di viewer:
+   di-scope ulang ke cream glass yang sama.
+   ============================================================ */
+
+/* --- Club score header (sparing) --- */
+html:not(.dark) body.viewer-mode .sparing-score-header,
+html:not(.dark) body.viewer-url .sparing-score-header,
+html:not(.dark) .viewer-url .sparing-score-header {
+  background: rgba(252, 249, 242, 0.58) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(1.4) !important;
+  backdrop-filter: blur(26px) saturate(1.4) !important;
+  border-bottom: none !important;
+  border: none !important;
+  border-radius: var(--v73-r-xl, 28px) !important;
+  margin: 0 8px 10px !important;
+  width: calc(100% - 16px) !important;
+  box-sizing: border-box !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 6px 24px rgba(0, 0, 0, 0.10) !important;
+  padding: 10px 16px !important;
+}
+/* Breakdown baris kecil di bawah header (per kategori) ikut material */
+html:not(.dark) body.viewer-mode #sshCategoryBreakdown,
+html:not(.dark) body.viewer-url #sshCategoryBreakdown {
+  background: transparent !important;
+  color: rgba(46, 57, 21, 0.55) !important;
+}
+
+/* --- Court cards --- */
+html:not(.dark) body.viewer-mode .sb-court-card,
+html:not(.dark) body.viewer-url .sb-court-card,
+html:not(.dark) .viewer-url .sb-court-card {
+  background: rgba(252, 249, 242, 0.58) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(1.4) !important;
+  backdrop-filter: blur(26px) saturate(1.4) !important;
+  border: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 6px 24px rgba(0, 0, 0, 0.10) !important;
+}
+html:not(.dark) body.viewer-mode .sb-court-card.complete,
+html:not(.dark) body.viewer-url .sb-court-card.complete {
+  background: rgba(245, 247, 238, 0.72) !important; /* sedikit lebih solid pas done */
+}
+
+/* Dark viewer: samain ke material topbar dark */
+html.dark body.viewer-mode .sparing-score-header,
+html.dark body.viewer-url .sparing-score-header {
+  background: rgba(18, 22, 9, 0.62) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(1.4) !important;
+  backdrop-filter: blur(26px) saturate(1.4) !important;
+  border: none !important;
+  border-radius: var(--v73-r-xl, 28px) !important;
+  margin: 0 8px 10px !important;
+  width: calc(100% - 16px) !important;
+  box-sizing: border-box !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 6px 24px rgba(0, 0, 0, 0.35) !important;
+}
+html.dark body.viewer-mode .sb-court-card,
+html.dark body.viewer-url .sb-court-card {
+  background: rgba(18, 22, 9, 0.62) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(1.4) !important;
+  backdrop-filter: blur(26px) saturate(1.4) !important;
+  border: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 6px 24px rgba(0, 0, 0, 0.35) !important;
+}
+html.dark body.viewer-mode .sb-court-card.complete,
+html.dark body.viewer-url .sb-court-card.complete {
+  background: rgba(18, 22, 9, 0.78) !important;
+}
+</style>
 
 </body>
 </html>
