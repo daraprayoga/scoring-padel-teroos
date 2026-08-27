@@ -4157,7 +4157,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.125</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.127</div>
     </div>
   </div>
 
@@ -30637,6 +30637,25 @@ html.dark .standing-form-dots .fdot.fdot-pad { border-color: var(--border); }
 
 <style id="codex-revision-v073125-css">
 /* ============================================================
+   v0.73.127 -- FIX FATAL: Start sparing gak generate match sama sekali.
+   Akar: override generateRound() di v0.73.125 cuma nge-REPLACE round yg
+   UDAH ADA (`if (state.rounds[idx])`), gak ada branch buat PUSH round
+   baru. Round 0 pas Start = state.rounds masih [], if selalu false,
+   match gak pernah ke-generate -- diem total tanpa error. Fix: samain
+   persis logic generateRound asli (if replace / else push).
+   ------------------------------------------------------------
+   v0.73.126 -- FIX 2 BUG DI MULTI-KATEGORI v0.73.125:
+   [1] input label/court kategori nutup keyboard/kehilangan fokus tiap 1
+       huruf -- akar: listener 'input' manggil renderPairsList() penuh,
+       yang manggil balik renderSparingCategoryList() = innerHTML='' host
+       yang lagi ditulisin user. Fix: listener cuma update state + sync
+       text cat-btn terkait, TANPA rebuild DOM.
+   [2] tombol kategori per-pair (Men's/Women's dst) keliatan gak bisa
+       diklik -- klik-nya sebenernya JALAN (state ke-update), cuma
+       highlight aktifnya kekubur rule `.ghost-btn{background:...!important}`
+       yang lebih dulu di cascade. Fix: kelas .cat-btn-active + CSS
+       !important + specificity lebih tinggi, ditaruh di posisi akhir.
+   ------------------------------------------------------------
    v0.73.125 -- SPARING MULTI-KATEGORI (cowok/cewek/fix-mix BARENG
                1 SESI, court dedicated per kategori)
 
@@ -30683,6 +30702,18 @@ html.dark .standing-form-dots .fdot.fdot-pad { border-color: var(--border); }
    dianggap 0), biar gak nge-drag turun sebelum kategori itu mulai.
    ============================================================ */
 .cat-toggle .cat-btn { transition: background 0.15s, border-color 0.15s, color 0.15s; }
+/* v0.73.126 fix: tombol kategori per-pair keliatan gak ke-klik -- padahal
+   klik-nya jalan (state ke-update), cuma highlight aktifnya kekubur sama
+   rule `.ghost-btn { background: ... !important }` yang udah lebih dulu
+   di cascade (lihat gotcha CSS override di CLAUDE.md). Fix di TOKEN:
+   kelas .cat-btn-active + specificity html+id+class lebih tinggi + !important,
+   posisi paling akhir di source -- menang di 3 sumbu sekaligus. */
+html:not(.dark) #pairsList .cat-toggle .cat-btn.cat-btn-active,
+html.dark #pairsList .cat-toggle .cat-btn.cat-btn-active {
+  background: var(--green-bright) !important;
+  color: var(--cream) !important;
+  border-color: var(--green-bright) !important;
+}
 .cat-filter-btn { transition: background 0.15s, border-color 0.15s, color 0.15s; }
 #sshCategoryBreakdown strong { color: var(--cream); }
 </style>
@@ -30735,9 +30766,20 @@ html.dark .standing-form-dots .fdot.fdot-pad { border-color: var(--border); }
         const ci = parseInt(e.target.dataset.catIdx, 10);
         const field = e.target.dataset.field;
         if (!state.sparingCategories[ci]) return;
-        if (field === 'label') state.sparingCategories[ci].label = e.target.value;
-        else if (field === 'courts') state.sparingCategories[ci].courts = parseCourtRange(e.target.value);
-        if (typeof renderPairsList === 'function') renderPairsList();
+        // v0.73.126 fix: JANGAN renderPairsList() di sini -- itu manggil balik
+        // renderSparingCategoryList() yang innerHTML='' host ini sendiri,
+        // ngerusak fokus input tiap 1 keystroke (keyboard mobile nutup).
+        // Cukup update state + sinkron label ke cat-btn yang udah ada di DOM,
+        // tanpa rebuild apa pun.
+        if (field === 'label') {
+          state.sparingCategories[ci].label = e.target.value;
+          const catId = state.sparingCategories[ci].id;
+          document.querySelectorAll(`#pairsList .cat-btn[data-cat-id="${catId}"]`).forEach(b => {
+            b.textContent = e.target.value || 'Kategori';
+          });
+        } else if (field === 'courts') {
+          state.sparingCategories[ci].courts = parseCourtRange(e.target.value);
+        }
       });
     });
     host.querySelectorAll('button[data-remove-cat]').forEach(btn => {
@@ -30779,7 +30821,7 @@ html.dark .standing-form-dots .fdot.fdot-pad { border-color: var(--border); }
       wrap.className = 'cat-toggle';
       wrap.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;';
       wrap.innerHTML = state.sparingCategories.map(cat => `
-        <button type="button" class="ghost-btn cat-btn" data-pair-idx="${i}" data-cat-id="${cat.id}" style="padding:6px 12px;font-size:12px;${currentCat === cat.id ? 'background:var(--green-bright);color:var(--cream);border-color:var(--green-bright);' : ''}">${escapeHtml(cat.label || 'Kategori')}</button>
+        <button type="button" class="ghost-btn cat-btn${currentCat === cat.id ? ' cat-btn-active' : ''}" data-pair-idx="${i}" data-cat-id="${cat.id}" style="padding:6px 12px;font-size:12px;">${escapeHtml(cat.label || 'Kategori')}</button>
       `).join('');
       row.appendChild(wrap);
     });
@@ -30899,7 +30941,13 @@ html.dark .standing-form-dots .fdot.fdot-pad { border-color: var(--border); }
   window.generateRound = function (idx) {
     if (isSparing() && state.sparingCategories && state.sparingCategories.length > 0) {
       const result = buildSparingRoundCategorized(idx);
+      // v0.73.126 fix: kondisi asal cuma nge-REPLACE round yang UDAH ada
+      // (`if (state.rounds[idx])`), gak ada branch buat PUSH round baru.
+      // Round 0 pas Start = state.rounds masih [], jadi if selalu false,
+      // match gak pernah ke-generate -- start tournament diem total tanpa
+      // error. Fix: samain persis logic generateRound asli (baris ~7787-7788).
       if (state.rounds[idx]) state.rounds[idx] = { matches: result.matches, resting: result.resting };
+      else state.rounds.push({ matches: result.matches, resting: result.resting });
       return;
     }
     return _origGenerateRound125.apply(this, arguments);
