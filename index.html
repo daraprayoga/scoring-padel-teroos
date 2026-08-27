@@ -4157,7 +4157,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.132</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.133</div>
     </div>
   </div>
 
@@ -31849,6 +31849,45 @@ html.dark body.viewer-url .sb-court-card {
 html.dark body.viewer-mode .sb-court-card.complete,
 html.dark body.viewer-url .sb-court-card.complete {
   background: rgba(18, 22, 9, 0.78) !important;
+}
+</style>
+
+
+<style id="codex-revision-v073133-css">
+/* ============================================================
+   v0.73.133 -- Skor klub (0 : 0) harus di TENGAH pill
+
+   Laporan user: angka skor kurang tengah. Akar: .sparing-score-header
+   pakai flex + justify-content:center, cluster nama+skor di-center
+   sebagai satu blok. Kalau nama klub kiri/kanan beda panjang
+   ("padel.teroos" vs "Level Up"), kotak skor bergeser dari midline
+   visual pill.
+
+   Fix: grid 3 kolom 1fr / auto / 1fr — kolom tengah (ssh-scores)
+   selalu di geometric center, sisi kiri/kanan simetris.
+   ============================================================ */
+html body .sparing-score-header,
+html body #sparingScoreHeader.sparing-score-header {
+  display: grid !important;
+  grid-template-columns: 1fr auto 1fr !important;
+  align-items: center !important;
+  justify-content: stretch !important;
+  gap: 10px !important;
+  column-gap: 12px !important;
+}
+html body .sparing-score-header .ssh-side.ssh-a {
+  justify-self: end !important;
+  text-align: right !important;
+  max-width: 100% !important;
+}
+html body .sparing-score-header .ssh-side.ssh-b {
+  justify-self: start !important;
+  text-align: left !important;
+  max-width: 100% !important;
+}
+html body .sparing-score-header .ssh-scores {
+  justify-self: center !important;
+  justify-content: center !important;
 }
 </style>
 
