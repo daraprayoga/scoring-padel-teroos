@@ -4147,7 +4147,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.119</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.122</div>
     </div>
   </div>
 
@@ -30133,7 +30133,8 @@ html.dark body #onboardingScreen .onboarding-logo {
    seed awal -> grup langsung "kebaca" dan diulang terus.
 
    FIX: perpanjang jendela mixing dari "cuma round 0" jadi "round
-   0-5" (6 round pertama, MEXICANO_WARMUP_ROUNDS). Selama window ini:
+   0-3" (v0.73.120: 4 round pertama, MEXICANO_WARMUP_ROUNDS -- awalnya
+   6, diperpendek ke 4 atas permintaan eksplisit user). Selama window ini:
    - Individual & Team Mexicano: pakai ULANG selectPlayingPool +
      assignPlayersToCourts (individual) / buildTeamMatches (team) --
      PERSIS mekanisme yang sudah dipakai round 0 sekarang, yang
@@ -30144,7 +30145,7 @@ html.dark body #onboardingScreen .onboarding-logo {
      disentuh), tapi urutan aktif laki/perempuan di-ACAK (bukan
      rank-sort) sebelum dipotong per court, biar pairing gak
      ke-lock ke urutan rank yang sama tiap round.
-   - Round >= 6 (scoredRoundsCount() >= MEXICANO_WARMUP_ROUNDS):
+   - Round >= 4 (scoredRoundsCount() >= MEXICANO_WARMUP_ROUNDS):
      BALIK ke rank-based murni (chain v0.73.115/116, gak diubah
      sama sekali) -- keputusan "rank-based murni" user TETAP menang
      begitu datanya cukup buat berarti.
@@ -30155,7 +30156,7 @@ html.dark body #onboardingScreen .onboarding-logo {
    ATAS chain yang sudah ada (append-only, gampang di-revert).
    ============================================================ */
 (function () {
-  var MEXICANO_WARMUP_ROUNDS = 6; // round 0-5 = mixing, round 6+ = rank-based
+  var MEXICANO_WARMUP_ROUNDS = 4; // round 0-3 = mixing, round 4+ = rank-based
 
   function scoredRoundsCount119() {
     return state.rounds.filter(function (r) {
@@ -30333,6 +30334,266 @@ html.dark body #onboardingScreen .onboarding-logo {
   }
 }
 </style>
+
+<script id="codex-revision-v073121-js">
+/* ============================================================
+   v0.73.121 -- SHARE BUTTON: COPY TEKS BERFORMAT, BUKAN LINK POLOS
+
+   User request: klik share (mode nonton) mau kecopy dengan format:
+     📺 LIVE Score - [nama mabar session] - [tanggal]
+     [link]
+
+   IMPLEMENTASI: override `showShareButton` (v0.71.x, base) --
+   idempotent-guard-nya sendiri (`if (existing) return`) di base
+   function udah nyegah dobel-render tombol, jadi override di sini
+   CUMA nge-replace fungsi di window SEBELUM tombol pernah dibikin
+   (dipanggil event-driven belakangan lewat 'stateRendered' /
+   Firebase viewer-count listener) -- gak ada race, pola sama kayak
+   override mexicanoStandings/buildMexicanoMatches sebelumnya.
+
+   Nama sesi: `state.tournamentName` (fallback 'Mabar Padel', field
+   yang sama dipakai podium/story share -- lihat ~9084/9127/9411).
+   Tanggal: `formatDate(new Date())` (helper yang UDAH ADA di base,
+   ~9441) -- dipakai as-is biar konsisten format tanggal di semua
+   tempat, bukan bikin formatter baru.
+
+   Clipboard write DAN fallback execCommand dua-duanya diganti ke
+   `shareText` (bukan `url` doang) -- kalau cuma salah satu yang
+   diganti, browser lama/gak-support clipboard API bakal tetep
+   nge-copy link polos.
+   ============================================================ */
+(function () {
+  if (typeof showShareButton !== 'function') return;
+
+  const ICON_SHARE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>';
+  const ICON_CHECK = '<svg class="icn" width="16" height="16"><use href="#i-check"/></svg>';
+
+  async function handleShareClick(btn) {
+    const roomId = getRoomId();
+    const url = `${location.origin}${location.pathname}?room=${roomId}`;
+    const sessionName = (state.tournamentName || 'Mabar Padel').trim();
+    const dateStr = formatDate(new Date());
+    const shareText = `\uD83D\uDCFA LIVE Score - ${sessionName} - ${dateStr}\n${url}`;
+    try {
+      await navigator.clipboard.writeText(shareText);
+    } catch {
+      const tmp = document.createElement('textarea');
+      tmp.value = shareText;
+      document.body.appendChild(tmp);
+      tmp.select();
+      document.execCommand('copy');
+      document.body.removeChild(tmp);
+    }
+    btn.innerHTML = ICON_CHECK;
+    showToast('Link + info sesi ini sudah dicopy! Link ini permanen untuk mabar ini 🔗');
+    setTimeout(() => { btn.innerHTML = ICON_SHARE; }, 2000);
+  }
+
+  // cloneNode(true) strips any listener bound by the OLD handler (race:
+  // boot flow bisa aja manggil showShareButton() SEBELUM override ini
+  // sempat jalan -- await Firebase resolve sebagai microtask, bisa
+  // nyempil sebelum script tag berikutnya dieksekusi). Rebind di sini
+  // nutup race itu buat tombol yang KADUNG kebuat duluan.
+  function rebind(btn) {
+    const fresh = btn.cloneNode(true);
+    btn.parentNode.replaceChild(fresh, btn);
+    fresh.addEventListener('click', () => handleShareClick(fresh));
+    return fresh;
+  }
+
+  window.showShareButton = function () {
+    const existing = document.getElementById('shareBtn');
+    if (existing) { rebind(existing); return; }
+    const btn = document.createElement('button');
+    btn.id = 'shareBtn';
+    btn.className = 'icon-btn';
+    btn.title = 'Share live link';
+    btn.innerHTML = ICON_SHARE;
+    btn.style.display = 'none';
+    btn.addEventListener('click', () => handleShareClick(btn));
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.parentNode.insertBefore(btn, saveBtn);
+  };
+  showShareButton = window.showShareButton;
+
+  // Safety net: kalau tombol udah ke-render duluan (race di atas) SEBELUM
+  // baris ini sempat jalan, rebind sekarang juga -- jangan nunggu
+  // showShareButton() dipanggil ulang (bisa aja gak pernah dipanggil lagi).
+  const alreadyThere = document.getElementById('shareBtn');
+  if (alreadyThere) rebind(alreadyThere);
+})();
+</script>
+
+<style id="codex-revision-v073122-css">
+/* ============================================================
+   v0.73.122 -- KLASEMEN: KOLOM +M (MISSED GAMES) + STRIP FORM
+               9 ROUND TERAKHIR, WARNA IKUT VISUAL LANGUAGE APP
+
+   Referensi user: screenshot app lain (DIFF/+M/P + strip 9 titik
+   ijo/merah per baris). Diff & Pts udah ada datanya (s.diff/s.points),
+   +M dipetakan ke s.missedGames yang JUGA udah ada (kompensasi
+   bonus poin, lihat computeStandings ~7776). Yang beneran baru cuma
+   strip form -- computeFormStrips() nambah loop terpisah (gak
+   ngubah computeStandings) yang catet W/L/T per match per entity,
+   ambil 9 TERAKHIR yang beneran dimainkan (sit-out round dilewat,
+   bukan dihitung sebagai loss).
+
+   WARNA -- pakai token yang UDAH ada, bukan hijau/merah generik:
+   - Semua angka di .standing-table UDAH ijo default (`#3c5d00` light /
+     `#709224` dark, lihat `#standingBody .num` ~19429/19444) -- jadi
+     diff POSITIF gak perlu warna khusus, udah konsisten ijo kayak
+     kolom lain. Yang ditonjolin cuma diff NEGATIF -> var(--red)
+     #A03838 (token yang sama dipakai .status-left chip, gak ada
+     precedent dark-mode-red terpisah, kontras udah kebukti oke).
+   - Dot form-strip: menang = var(--green)/#94b946(dark), kalah =
+     var(--red), seri = var(--gold) pudar (BUKAN gold solid -- gold
+     direservasi ketat buat penghormatan peringkat per § Desain).
+   - GOTCHA spesifisitas (v0.73.122): `#standingBody .num` pakai ID
+     selector, spek (1,2,1) -- ngalahin class-only selector manapun.
+     Override manapun ke kolom .num WAJIB pakai `#standingBody` juga
+     di selector-nya, bukan cuma `.standing-table`, atau kalah walau
+     ditulis belakangan.
+
+   Kolom +M taruh SEBELUM Pts (urutan sama persis kayak referensi:
+   DIFF, +M, P). Header <th> baru di-insert via JS (bukan edit
+   markup statis) biar tetep di jalur append-only.
+   ============================================================ */
+/* v0.73.122 fix: `html:not(.dark) #standingBody .num` / `html.dark
+   #standingBody .num` (~19429/19444) pakai ID selector (#standingBody)
+   -- spesifisitas (1,2,1), NGALAHIN class-only selector manapun (maks
+   (0,3,1)) walau ditulis belakangan. Semua angka di tabel ini emang
+   UDAH ijo default (#3c5d00 light / #709224 dark) -- jadi diff POSITIF
+   gak perlu warna khusus (udah ijo by default, konsisten sama kolom
+   lain). Yang beneran perlu ditonjolin cuma diff NEGATIF (merah) --
+   itu satu-satunya override yang perlu speknya nyamain (pakai ID yang
+   sama) baru menang lewat urutan sumber (belakangan = menang, spek
+   seri). +M sengaja DIBIARIN ikut warna default juga -- itu angka
+   netral, bukan indikator baik/buruk. */
+#standingBody td.num.diff-neg { color: var(--red) !important; font-weight: 800; }
+html.dark #standingBody td.num.diff-neg { color: var(--red) !important; font-weight: 800; }
+
+.standing-form-row td { padding: 2px 10px 8px !important; border-bottom: 1px solid var(--border) !important; }
+.standing-form-dots { display: flex; gap: 4px; align-items: center; }
+.standing-form-dots .fdot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: var(--green);
+}
+.standing-form-dots .fdot.loss { background: var(--red); }
+.standing-form-dots .fdot.tie { background: var(--gold); opacity: 0.8; }
+.standing-form-dots .fdot.empty { background: transparent; border: 1px solid var(--border-strong); opacity: 0.4; }
+html.dark .standing-form-dots .fdot { background: #94b946; }
+html.dark .standing-form-dots .fdot.loss { background: var(--red); }
+html.dark .standing-form-dots .fdot.tie { background: var(--gold-bright); }
+html.dark .standing-form-dots .fdot.empty { border-color: var(--border); }
+
+@media (max-width: 480px) {
+  .standing-form-dots .fdot { width: 7px; height: 7px; }
+}
+</style>
+
+<script id="codex-revision-v073122-js">
+(function () {
+  if (typeof computeStandings !== 'function' || typeof updateStandingTable !== 'function') return;
+
+  const FORM_DOTS = 9;
+
+  // Loop terpisah dari computeStandings -- gak ngubah fungsi itu sama
+  // sekali. Sit-out round (gak ada di m.teamA/teamB entity itu) otomatis
+  // gak nambah entry, jadi strip cuma nyatet game yang BENERAN dimainkan.
+  function computeFormStrips() {
+    const count = isTeam() ? state.pairs : state.players;
+    const form = {};
+    for (let i = 0; i < count; i++) form[i] = [];
+    state.rounds.forEach(round => {
+      if (!round || !round.matches) return;
+      round.matches.forEach(m => {
+        if (m.scoreA === 0 && m.scoreB === 0) return; // belum diskor, skip
+        m.teamA.forEach(id => {
+          if (form[id] === undefined) return;
+          form[id].push(m.scoreA > m.scoreB ? 'W' : m.scoreA < m.scoreB ? 'L' : 'T');
+        });
+        m.teamB.forEach(id => {
+          if (form[id] === undefined) return;
+          form[id].push(m.scoreB > m.scoreA ? 'W' : m.scoreB < m.scoreA ? 'L' : 'T');
+        });
+      });
+    });
+    Object.keys(form).forEach(id => { form[id] = form[id].slice(-FORM_DOTS); });
+    return form;
+  }
+
+  function ensureHeaderColumn() {
+    const headRow = document.querySelector('#standingTable thead tr');
+    if (!headRow || document.getElementById('standingColMissed')) return;
+    const ptsTh = headRow.querySelector('th:last-child');
+    const th = document.createElement('th');
+    th.id = 'standingColMissed';
+    th.className = 'num';
+    th.textContent = '+M';
+    th.title = 'Missed games (kompensasi bonus poin)';
+    headRow.insertBefore(th, ptsTh);
+  }
+
+  function renderDots(id, formStrips) {
+    const games = formStrips[id] || [];
+    const pad = Math.max(0, FORM_DOTS - games.length);
+    let html = '';
+    for (let i = 0; i < pad; i++) html += '<span class="fdot empty"></span>';
+    games.forEach(r => {
+      const cls = r === 'W' ? '' : r === 'L' ? 'loss' : 'tie';
+      html += `<span class="fdot ${cls}"></span>`;
+    });
+    return html;
+  }
+
+  const _origUpdateStandingTable = updateStandingTable;
+  window.updateStandingTable = function () {
+    ensureHeaderColumn();
+    const standings = computeStandings();
+    const formStrips = computeFormStrips();
+    const tbody = document.getElementById('standingBody');
+    if (!tbody) return;
+    const _flipPrev = typeof _captureStandingPos === 'function' ? _captureStandingPos() : null;
+    tbody.innerHTML = '';
+    const sortBy = state.sortBy || 'wins';
+    let anyBonus = false;
+    standings.forEach((s, i) => {
+      const tr = document.createElement('tr');
+      tr.dataset.eid = String(s.id);
+      const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
+      if (i < 3) tr.className = `standing-top3 standing-rank-${i + 1}`;
+      const bonusMarker = s.bonus ? `<span class="bonus-marker" title="+${s.bonusPoints} pts for ${s.missedGames} missed game${s.missedGames > 1 ? 's' : ''}">&nbsp;+${s.bonusPoints}</span>` : '';
+      if (s.bonus) anyBonus = true;
+      const diffCls = s.diff > 0 ? 'diff-pos' : s.diff < 0 ? 'diff-neg' : '';
+      tr.innerHTML = `
+        <td><span class="rank ${rankClass}">${i + 1}</span></td>
+        <td class="player-name-cell">${escapeHtml(s.name)}${genderBadge(s.id)}${clubBadge(s.id)}${bonusMarker}</td>
+        <td class="num">${s.games}</td>
+        <td class="num ${sortBy === 'wins' ? 'sort-active' : ''}">${s.wins}</td>
+        <td class="num">${s.losses}</td>
+        <td class="num">${s.ties}</td>
+        <td class="num ${sortBy === 'diff' ? 'sort-active' : ''} ${diffCls}">${s.diff > 0 ? '+' : ''}${s.diff}</td>
+        <td class="num">${s.missedGames || 0}</td>
+        <td class="num points-cell">${s.points}</td>
+      `;
+      tbody.appendChild(tr);
+
+      const formTr = document.createElement('tr');
+      formTr.className = 'standing-form-row';
+      formTr.dataset.formFor = String(s.id);
+      const formTd = document.createElement('td');
+      formTd.colSpan = 9;
+      formTd.innerHTML = `<div class="standing-form-dots">${renderDots(s.id, formStrips)}</div>`;
+      formTr.appendChild(formTd);
+      tbody.appendChild(formTr);
+    });
+    const legend = document.getElementById('bonusLegend');
+    if (legend) legend.style.display = anyBonus ? 'block' : 'none';
+    if (typeof _playStandingFlip === 'function' && _flipPrev) _playStandingFlip(_flipPrev);
+  };
+  updateStandingTable = window.updateStandingTable;
+})();
+</script>
 
 </body>
 </html>
