@@ -4157,7 +4157,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.133</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.134</div>
     </div>
   </div>
 
@@ -31890,6 +31890,135 @@ html body .sparing-score-header .ssh-scores {
   justify-content: center !important;
 }
 </style>
+
+
+<style id="codex-revision-v073134-css">
+/* ============================================================
+   v0.73.134
+   1) Skor klub 0-0 absolute center horizontal di pill
+   2) Club pill sisi kanan: di DALAM (dekat skor), simetris kiri
+   ============================================================ */
+
+/* --- Skor klub: absolute center, independen panjang nama --- */
+html body .sparing-score-header,
+html body #sparingScoreHeader.sparing-score-header {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0 !important;
+  /* ruang tengah buat kotak skor biar nama gak nempel */
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+}
+html body .sparing-score-header .ssh-side.ssh-a {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  max-width: calc(50% - 52px) !important;
+  justify-self: stretch !important;
+  text-align: right !important;
+  align-items: flex-end !important;
+  padding-right: 8px !important;
+  box-sizing: border-box !important;
+}
+html body .sparing-score-header .ssh-side.ssh-b {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  max-width: calc(50% - 52px) !important;
+  justify-self: stretch !important;
+  text-align: left !important;
+  align-items: flex-start !important;
+  padding-left: 8px !important;
+  box-sizing: border-box !important;
+}
+html body .sparing-score-header .ssh-scores {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  justify-self: center !important;
+  z-index: 1 !important;
+  margin: 0 !important;
+}
+
+/* --- Club pill: kiri = setelah nama (dekat skor); kanan = sebelum nama (dekat skor) --- */
+html body .sb-court-card .sb-team.left .sb-player.has-club-pill {
+  flex-direction: row !important; /* name lalu pill */
+}
+html body .sb-court-card .sb-team.right .sb-player.has-club-pill {
+  flex-direction: row-reverse !important; /* visual: pill di kiri nama = dekat skor */
+  /* row-reverse: DOM order name+pill → tampil pill|name, align flex-end di team.right
+     menempelkan ke tepi kanan: [  pill name] → pill lebih dekat ke skor di tengah */
+}
+html body .sb-court-card .sb-team.left .sb-player.has-club-pill .club-pill {
+  margin-left: 5px !important;
+  margin-right: 0 !important;
+}
+html body .sb-court-card .sb-team.right .sb-player.has-club-pill .club-pill {
+  margin-right: 5px !important;
+  margin-left: 0 !important;
+}
+</style>
+<script id="codex-revision-v073134-js">
+/* v0.73.134 -- club pill order: sisi kanan pill di dalam (dekat skor).
+   Re-stamp: kalau pill sudah ada tapi urutan salah di team.right, perbaiki. */
+(function () {
+  'use strict';
+  if (typeof isSparing !== 'function') return;
+
+  function fixPillOrder(root) {
+    if (!isSparing() || typeof isTeam !== 'function' || !isTeam()) return;
+    (root || document).querySelectorAll('.sb-court-card .sb-team.right .sb-player.has-club-pill').forEach(function (el) {
+      const pill = el.querySelector('.club-pill');
+      const name = el.querySelector('.sb-player-name');
+      if (!pill || !name) return;
+      // Pastikan DOM: name lalu pill; CSS row-reverse yang nampilin pill|name
+      if (pill.nextSibling === name) {
+        el.insertBefore(name, pill);
+      }
+    });
+    (root || document).querySelectorAll('.sb-court-card .sb-team.left .sb-player.has-club-pill').forEach(function (el) {
+      const pill = el.querySelector('.club-pill');
+      const name = el.querySelector('.sb-player-name');
+      if (!pill || !name) return;
+      // DOM: name lalu pill
+      if (name.nextSibling !== pill) {
+        el.appendChild(pill);
+      }
+    });
+  }
+
+  // Hook setelah renderCourts chain
+  if (typeof renderCourts === 'function') {
+    const _prev = window.renderCourts || renderCourts;
+    window.renderCourts = function () {
+      _prev.apply(this, arguments);
+      try {
+        fixPillOrder(document.getElementById('sbCourts') || document);
+      } catch (e) {}
+    };
+    renderCourts = window.renderCourts;
+  }
+
+  // Observer ikut jaga order
+  function arm() {
+    const host = document.getElementById('sbCourts');
+    if (!host || host._clubPillOrderObs) return;
+    let t = null;
+    const obs = new MutationObserver(function () {
+      if (t) clearTimeout(t);
+      t = setTimeout(function () { fixPillOrder(host); }, 40);
+    });
+    obs.observe(host, { childList: true, subtree: true });
+    host._clubPillOrderObs = obs;
+    fixPillOrder(host);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arm, { once: true });
+  else arm();
+  setTimeout(arm, 600);
+  try { fixPillOrder(document); } catch (e) {}
+})();
+</script>
 
 </body>
 </html>
