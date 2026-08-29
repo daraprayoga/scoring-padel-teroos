@@ -4157,7 +4157,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.136</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.137</div>
     </div>
   </div>
 
@@ -32217,6 +32217,76 @@ html:not(.dark) body.viewer-url .sparing-score-header {
   if (STORY_TEMPLATES[2] && STORY_TEMPLATES[2].name === 'Klasemen') {
     STORY_TEMPLATES[2].render = window.tplStandings;
   }
+})();
+</script>
+
+<script id="codex-revision-v073137-js">
+/* ============================================================
+   v0.73.137 -- "Full Standings" di podium in-app modal (showPodium(),
+   bukan story export) belum nampilin L (losses) & T (ties), cuma
+   #/Player/GP/W/+-/WR/Pts. User minta L & T ditambahin (dots GAK
+   perlu di layar ini, beda sama request v0.73.136 buat story
+   Klasemen).
+   Pattern SAMA persis kayak v0.73.92 (collapseTieGroups) -- post-
+   process DOM SETELAH showPodium() render, BUKAN bedah fungsi
+   builder-nya (~260 baris, dipakai juga buat story export via
+   buildRow/standingsTableHtml yang scope-nya closure lokal, gak
+   ada yang di-export ke window). Reuse data-pid yang UDAH ADA di
+   tiap name-cell (v0.70.81, dipasang bareng podiumRankEntries) buat
+   map balik ke computeStandings() -- gak perlu re-derive apa pun,
+   satu sumber kebenaran.
+   Idempotent: guard dataset flag per <table>, walau innerHTML full
+   rebuild tiap showPodium() jadi node lama otomatis kebuang -- flag
+   cuma jaring pengaman kalau ada pemanggilan ganda dalam microtask
+   yang sama.
+   ============================================================ */
+(function () {
+  if (typeof showPodium !== 'function' || typeof computeStandings !== 'function') return;
+  var _origShowPodium137 = showPodium;
+
+  function injectLossTie() {
+    var tables = document.querySelectorAll('#podiumModal .podium-standings-table');
+    if (!tables.length) return;
+    var standings = computeStandings();
+    var byId = {};
+    standings.forEach(function (s) { byId[s.id] = s; });
+
+    tables.forEach(function (table) {
+      if (table.dataset.ltInjected === '1') return;
+      var headRow = table.querySelector('thead tr');
+      if (headRow) {
+        var wTh = headRow.children[3]; // #, name, GP, W, +/-, WR, Pts
+        if (wTh) {
+          var thL = document.createElement('th'); thL.textContent = 'L';
+          var thT = document.createElement('th'); thT.textContent = 'T';
+          wTh.after(thL, thT);
+        }
+      }
+      table.querySelectorAll('tbody tr').forEach(function (tr) {
+        var nameCell = tr.children[1];
+        var wTd = tr.children[3];
+        if (!nameCell || !wTd) return;
+        var pid = nameCell.dataset.pid;
+        var s = byId[pid];
+        if (!s) return;
+        var tdL = document.createElement('td');
+        tdL.className = 'num-cell';
+        tdL.textContent = s.losses;
+        var tdT = document.createElement('td');
+        tdT.className = 'num-cell';
+        tdT.textContent = s.ties;
+        wTd.after(tdL, tdT);
+      });
+      table.dataset.ltInjected = '1';
+    });
+  }
+
+  window.showPodium = function () {
+    var r = _origShowPodium137.apply(this, arguments);
+    try { injectLossTie(); } catch (e) { console.warn('[v0.73.137] inject L/T failed:', e); }
+    return r;
+  };
+  showPodium = window.showPodium;
 })();
 </script>
 
