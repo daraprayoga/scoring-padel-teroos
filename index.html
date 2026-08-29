@@ -4157,7 +4157,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.135</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.136</div>
     </div>
   </div>
 
@@ -32111,6 +32111,114 @@ html:not(.dark) body.viewer-url .sparing-score-header {
     0 6px 24px rgba(0, 0, 0, 0.10) !important;
 }
 </style>
+
+<style id="codex-revision-v073136-css">
+/* ============================================================
+   v0.73.136 -- Podium shareable page, template Klasemen (tplStandings)
+   ditambah form-strip dots per pemain, konsisten visual sama klasemen
+   utama in-app (v0.73.122). Teks "W-L-T" yang UDAH ADA (wlt()) TETAP
+   dipertahankan -- dots nambah SEBAGAI BARIS BARU di bawah tiap row,
+   bukan gantiin. Scope CUMA template Klasemen (podium & top3 sengaja
+   TIDAK disentuh -- keputusan eksplisit, biar dua template lain gak
+   kepenuhan).
+   Warna literal (bukan var()) sengaja dipakai: overlay ini dirender
+   OFFSCREEN via html2canvas ke node terpisah (lihat exportStudio()),
+   custom-property masih ke-inherit tapi literal lebih aman dari
+   kemungkinan computed-style keburu disnapshot sebelum reflow custom
+   prop kelar di node yang baru attach.
+   ============================================================ */
+.ss-overlay .t3-dotsrow td { padding: 0 16px 14px 106px !important; background: transparent !important; border-radius: 0 !important; }
+.ss-overlay .t3-formdots { display: flex; gap: 5px; align-items: center; justify-content: flex-start; }
+.ss-overlay .t3-formdots .fd { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; background: #94b946; }
+.ss-overlay .t3-formdots .fd.loss { background: #c0392b; }
+.ss-overlay .t3-formdots .fd.tie { background: #d9b971; opacity: 0.85; }
+.ss-overlay .t3-formdots .fd.pad { background: transparent; border: 1px solid rgba(245,240,230,0.25); opacity: 0.5; }
+</style>
+
+<script id="codex-revision-v073136-js">
+(function () {
+  if (typeof computeStandings !== 'function' || typeof STORY_TEMPLATES === 'undefined') return;
+
+  const STORY_FORM_DOTS = 9;
+
+  // Duplikat computeFormStrips (v0.73.122, scope IIFE di block itu, gak
+  // pernah diexport ke window) -- sengaja duplikat bukan reuse, biar
+  // block ini self-contained sesuai aturan append-only (jangan sentuh
+  // block lama kecuali yang lagi dibenerin persis).
+  function computeStoryFormStrips() {
+    const count = isTeam() ? state.pairs : state.players;
+    const form = {};
+    for (let i = 0; i < count; i++) form[i] = [];
+    state.rounds.forEach(round => {
+      if (!round || !round.matches) return;
+      round.matches.forEach(m => {
+        if (m.scoreA === 0 && m.scoreB === 0) return; // belum diskor, skip
+        m.teamA.forEach(id => { if (form[id] !== undefined) form[id].push(m.scoreA > m.scoreB ? 'W' : m.scoreA < m.scoreB ? 'L' : 'T'); });
+        m.teamB.forEach(id => { if (form[id] !== undefined) form[id].push(m.scoreB > m.scoreA ? 'W' : m.scoreB < m.scoreA ? 'L' : 'T'); });
+      });
+    });
+    Object.keys(form).forEach(id => { form[id] = form[id].slice(-STORY_FORM_DOTS); });
+    return form;
+  }
+
+  // Urutan kiri->kanan = KRONOLOGIS (round lama di kiri, terbaru di
+  // kanan), padding "belum main" di UJUNG KANAN -- sama persis aturan
+  // v0.73.123 di klasemen utama, biar gak kontradiksi antar layar.
+  function renderStoryDots(id, strips) {
+    const games = strips[id] || [];
+    const pad = Math.max(0, STORY_FORM_DOTS - games.length);
+    let html = '';
+    games.forEach(r => {
+      const cls = r === 'W' ? '' : r === 'L' ? 'loss' : 'tie';
+      html += `<span class="fd ${cls}"></span>`;
+    });
+    for (let i = 0; i < pad; i++) html += '<span class="fd pad"></span>';
+    return html;
+  }
+
+  window.tplStandings = function () {
+    const s = computeStandings();
+    const strips = computeStoryFormStrips();
+    const start = Math.max(0, Math.min((_ssStandingsStart || 0), s.length - 1));
+    const slice = s.slice(start, start + 8);
+    const title = escapeHtml(state.tournamentName || 'Mabar Padel');
+    const ordinal = n => {
+      const s2 = ['th', 'st', 'nd', 'rd'], v = n % 100;
+      return n + (s2[(v - 20) % 10] || s2[v] || s2[0]);
+    };
+    const rows = slice.map((p, i) => `
+      <tr class="t3-row ${(start + i) < 3 ? 'top3' : ''}">
+        <td>${ordinal(start + i + 1)}</td>
+        <td class="l">${escapeHtml(p.name)}</td>
+        <td>${wlt(p)}</td>
+        <td>${p.diff > 0 ? '+' : ''}${p.diff}</td>
+        <td>${p.points}</td>
+      </tr>
+      <tr class="t3-dotsrow">
+        <td colspan="5"><div class="t3-formdots">${renderStoryDots(p.id, strips)}</div></td>
+      </tr>`).join('');
+    return `
+      <div class="ss-scrim-bot"></div>
+      <div class="ss-logo t3-logo">padel<span>.</span>teroos</div>
+      <div class="t3-card">
+        <div class="t3-head">Klasemen Akhir</div>
+        <div class="t3-sub">${escapeHtml(formatLabel(state.format))}</div>
+        <table class="t3-table">
+          <thead><tr><th>#</th><th class="l">${isTeam() ? 'Pair' : 'Pemain'}</th><th>W-L-T</th><th>+/−</th><th>Pts</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="t3-foot">${title}</div>`;
+  };
+  tplStandings = window.tplStandings;
+  // STORY_TEMPLATES[2].render nyimpen REFERENSI fungsi asli pas array
+  // dideklarasikan (line ~9195) -- reassign window.tplStandings doang
+  // gak ngubah referensi yang UDAH kesimpen di array. Patch langsung.
+  if (STORY_TEMPLATES[2] && STORY_TEMPLATES[2].name === 'Klasemen') {
+    STORY_TEMPLATES[2].render = window.tplStandings;
+  }
+})();
+</script>
 
 </body>
 </html>
