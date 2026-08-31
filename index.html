@@ -4157,7 +4157,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.138</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.139</div>
     </div>
   </div>
 
@@ -32500,6 +32500,39 @@ html.dark .sb-score-box { border-radius: var(--v73-r-md) !important; }
 #standingTable thead th.num { font-size: var(--v73-t-micro) !important; }
 .rp-qr-label { font-size: var(--v73-t-micro) !important; }
 .bonus-marker { font-size: var(--v73-t-label) !important; }
+</style>
+
+
+<style id="codex-revision-v073139-css">
+/* ============================================================
+   v0.73.139 -- Icon podium di mode nonton (viewer) harus HITAM
+
+   v0.73.104 memaksa PNG trophy putih di SEMUA state (admin + viewer)
+   lewat `brightness(0) invert(1)` karena tombol End/Podium admin
+   background hijau. Di mode nonton tombol podium (terutama
+   `.pdm-live` gold) teks sudah gelap (#1a1408 / #2a1e05) — icon
+   putih kontras aneh / keliatan "salah warna".
+
+   Fix append-only: di viewer-mode, cabut invert putih. PNG aslinya
+   pure hitam → `filter: none` (atau drop-shadow tipis saja) = hitam.
+   Admin (body:not(.viewer-mode)) TETAP putih di atas hijau — rule
+   v0.73.104 tidak disentuh.
+
+   Specificity: (0, 5, 1) sama bentuk v0.73.104 + body.viewer-mode,
+   ditulis belakangan → menang cascade di viewer saja.
+   ============================================================ */
+body.viewer-mode [data-action="podium"].sb-action-sm .pdm-icn.trophy-pdm-icn,
+body.viewer-mode [data-action="podium"].sb-action-sm .trophy-pdm-icn {
+  filter: drop-shadow(0 1px 1px rgba(58, 42, 10, 0.28)) !important;
+  opacity: 1 !important;
+}
+/* pdm-live gold: pastikan tetap hitam (tanpa invert), drop-shadow
+   sedikit lebih kuat biar siluet kepisah dari fill emas. */
+body.viewer-mode [data-action="podium"].pdm-live .pdm-icn.trophy-pdm-icn,
+body.viewer-mode [data-action="podium"].pdm-live .trophy-pdm-icn {
+  filter: drop-shadow(0 1px 1px rgba(58, 42, 10, 0.32)) !important;
+  opacity: 1 !important;
+}
 </style>
 
 </body>
