@@ -4157,7 +4157,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.139</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.140</div>
     </div>
   </div>
 
@@ -32532,6 +32532,99 @@ body.viewer-mode [data-action="podium"].pdm-live .pdm-icn.trophy-pdm-icn,
 body.viewer-mode [data-action="podium"].pdm-live .trophy-pdm-icn {
   filter: drop-shadow(0 1px 1px rgba(58, 42, 10, 0.32)) !important;
   opacity: 1 !important;
+}
+</style>
+
+
+<style id="codex-revision-v073140-css">
+/* ============================================================
+   v0.73.140 -- Ritme vertikal scoreboard konsisten (10px)
+
+   Screenshot user: jarak yang ditandai MERAH (header↔topbar,
+   topbar↔pills, pills↔court, REST↔actions) beda dari BIRU
+   (antar court-card, court↔REST). Biru ≈ gap sistem 10px; merah
+   membesar karena margin/padding bertumpuk.
+
+   Stack aktual:
+     .sb-topbar          margin-top/bottom 10  (v0.73.15)
+     #roundPillNav       margin-bottom 10     (v0.73.15)
+     .sb-page            padding-top 10/12    ← STACK di atas pills mb
+     .sb-courts          gap 10
+     .sb-rest            margin-top 10
+     .sb-actions         margin-top 14        ← lebih lebar dari gap
+
+   pills → courts = 10 (pill mb) + 10 (page pad-top) = 20px  ← merah
+   REST → actions = 14px                                      ← merah
+   court ↔ court  = 10px                                      ← biru
+
+   Fix: satu ritme --v73-stack-gap: 10px.
+   - .sb-page padding-top 0 (horizontal + bottom tetap)
+   - .sb-actions margin-top = gap
+   - pastikan topbar / pills / courts / rest ikut token yang sama
+   Admin + viewer, light + dark. Append-only.
+   ============================================================ */
+
+:root {
+  --v73-stack-gap: 10px;
+}
+
+/* Topbar ↔ konten di bawah (pills atau page) */
+html body .sb-topbar,
+html body:not(.viewer-mode) .sb-topbar,
+html body.viewer-mode .sb-topbar {
+  margin-top: var(--v73-stack-gap) !important;
+  margin-bottom: var(--v73-stack-gap) !important;
+}
+
+/* Round pills: mb = gap, tanpa pad vertikal ekstra */
+html body #roundPillNav,
+html body #roundPillNav.visible {
+  margin-top: 0 !important;
+  margin-bottom: var(--v73-stack-gap) !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+html body #roundPillNav:not(.visible) {
+  margin: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* KUNCI: hilangkan padding-top .sb-page yang numpang di atas
+   margin-bottom pills → dobel gap. Kiri/kanan/bawah tetap. */
+html body .sb-page,
+html body #sbPageScore.sb-page,
+html body #sbPageStandings.sb-page {
+  padding-top: 0 !important;
+}
+
+/* Antar court-card */
+html body .sb-courts,
+html:not(.dark) body .sb-courts,
+html.dark body .sb-courts {
+  gap: var(--v73-stack-gap) !important;
+}
+
+/* Court terakhir → REST */
+html body .sb-rest,
+html:not(.dark) body .sb-rest,
+html.dark body .sb-rest {
+  margin-top: var(--v73-stack-gap) !important;
+}
+
+/* REST → action row (sebelumnya 14px) */
+html body .sb-actions,
+html:not(.dark) body .sb-actions,
+html.dark body .sb-actions,
+html body #sbActions.sb-actions {
+  margin-top: var(--v73-stack-gap) !important;
+}
+
+/* Sparing score header (kalau ada): ikut ritme yang sama */
+html body #sparingScoreHeader.sparing-score-header:not(:empty),
+html body .sparing-score-header:not(:empty) {
+  margin-top: 0 !important;
+  margin-bottom: var(--v73-stack-gap) !important;
 }
 </style>
 
