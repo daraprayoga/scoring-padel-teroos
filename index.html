@@ -4157,7 +4157,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.137</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.138</div>
     </div>
   </div>
 
@@ -32289,6 +32289,218 @@ html:not(.dark) body.viewer-url .sparing-score-header {
   showPodium = window.showPodium;
 })();
 </script>
+
+<style id="codex-revision-v073138-css">
+/* ============================================================
+   v0.73.138 -- PAKET A (fix klasemen) + PAKET B (disiplin token)
+
+   Semua angka HASIL UKUR di Chromium 430px (getComputedStyle +
+   getBoundingClientRect + enumerasi document.styleSheets) pada
+   v0.73.137. Append-only: block lama TIDAK disentuh.
+
+   CATATAN CASCADE: percobaan pertama revisi ini GAGAL di 4 dari 9
+   target karena spesifisitas dihitung asal ("posisi paling akhir +
+   !important pasti menang"). Itu persis jebakan yang udah dicatat di
+   CLAUDE.md. Angka spesifisitas di bawah dihitung eksplisit dan
+   diverifikasi lewat enumerasi rule yang beneran match.
+   ============================================================ */
+
+/* ============================================================
+   [A] FIX KLASEMEN
+   ============================================================ */
+
+/* A1 -- #sparingScoreHeader kosong makan 22px di format non-sparing.
+   Terukur: height 22px, innerHTML "", muncul sebagai strip pucat
+   melayang di bawah header card.
+   AKARNYA BUKAN CUMA STYLING. JS-nya SUDAH bener: elemen ini dikasih
+   inline `display:none`. Yang bikin tetep nongol itu
+   `html body #sparingScoreHeader.sparing-score-header{display:flex
+   !important}` -- !important di stylesheet ngalahin inline TANPA
+   important. Jadi ini rule lama yang ngelawan maksud JS-nya sendiri.
+   Spesifisitas lawan = (1,1,2). Percobaan pertama gue pakai
+   `#sparingScoreHeader:empty` = (1,1,0) -> KALAH di hitungan elemen.
+   Sekarang (1,2,2): id 1, class 2 (.sparing-score-header + :empty),
+   elemen 2 (html+body). Menang telak, dan cuma pas elemennya beneran
+   kosong jadi mode sparing gak kesenggol. */
+html body #sparingScoreHeader.sparing-score-header:empty,
+html body .sparing-score-header:empty {
+  display: none !important;
+}
+
+/* A2 -- dots form strip gak align ke kolom nama.
+   Terukur: teks nama mulai x=62, tabel x=10, dots x=20 (dari
+   `padding: 2px 10px 8px` v0.73.122). Dots nyangkut di bawah rank
+   badge, bukan di bawah nama yang diwakili. 62-10 = 52px.
+   Longhand, JANGAN shorthand -- shorthand bakal reset padding lain. */
+#standingBody .standing-form-row td {
+  padding-left: 52px !important;
+}
+
+/* A3 -- highlight top-3 putus di baris dots.
+   Baris dots adalah <tr> terpisah, jadi tint `tr.standing-rank-N`
+   berhenti dan satu pemain kebaca sebagai dua entitas. Adjacent
+   sibling (+) dipilih supaya nol JS dan otomatis ngikut kalau urutan
+   berubah. Gradient disamain persis sama v0.72.x (transparent 34%). */
+#standingBody tr.standing-rank-1 + tr.standing-form-row {
+  background: linear-gradient(90deg, rgba(201,169,97,0.12), transparent 34%) !important;
+}
+#standingBody tr.standing-rank-2 + tr.standing-form-row {
+  background: linear-gradient(90deg, rgba(150,150,150,0.10), transparent 34%) !important;
+}
+#standingBody tr.standing-rank-3 + tr.standing-form-row {
+  background: linear-gradient(90deg, rgba(205,127,50,0.10), transparent 34%) !important;
+}
+/* Accent bar kiri diterusin ke baris dots biar blok top-3 kebaca satu
+   kesatuan. Geometri sama persis kayak ~3341 (left 0, width 3px). */
+#standingBody tr.standing-top3 + tr.standing-form-row td:first-child {
+  position: relative;
+}
+#standingBody tr.standing-top3 + tr.standing-form-row td:first-child::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 4px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+}
+/* Baris data top-3 aslinya `top:4px; bottom:4px` (~3341), jadi begitu
+   bar diterusin ke baris dots ada gap 4px di sambungannya. Di builder
+   v0.73.122 tiap baris data SELALU diikutin form-row (push-nya
+   sepasang, gak ada cabang yang cuma push satu), jadi `bottom:0` di
+   sini aman tanpa perlu `:has()` -- sekalian gak ninggalin risiko di
+   iOS Safari lama. */
+#standingBody tr.standing-top3 td:first-child::before { bottom: 0 !important; }
+#standingBody tr.standing-rank-1 + tr.standing-form-row td:first-child::before { background: #8b6914; }
+#standingBody tr.standing-rank-2 + tr.standing-form-row td:first-child::before { background: #707070; }
+#standingBody tr.standing-rank-3 + tr.standing-form-row td:first-child::before { background: #7a4a1a; }
+
+/* A4 -- kontras header tabel gagal WCAG AA di dark mode.
+   KOREKSI ANGKA: audit awal nyebut rasio 3.6, itu SALAH -- alat ukur
+   gue waktu itu ngabaikan alpha, jadi rgba(255,255,255,0.06) dihitung
+   sebagai putih pekat. Setelah dikomposit bener di atas rgb(20,26,12),
+   bg efektifnya rgb(34,40,27) dan rasio #709224 yang sebenernya =
+   4.20. Tetep di bawah ambang 4.5, jadi temuannya valid, cuma
+   marginal bukan parah. #a8c95a diukur ulang di bawah.
+   Light mode (7.61) aman, TIDAK disentuh. */
+html.dark #standingTable thead th,
+html.dark #standingTable thead th.num {
+  color: #a8c95a !important;
+}
+
+/* A5 -- touch target di bawah 44px.
+   Terukur: dropdown urutan 79x28, switch Sensor 36x20.
+   Dropdown -> min-height 40px (44 bikin baris kontrolnya kelewat
+   tinggi; 40 + area label sekitarnya udah nyaman buat jempol).
+   Switch: ukuran VISUAL sengaja tetep 36x20 -- switch gede kelihatan
+   kasar di baris kontrol yang tipis. Yang diperbesar cuma HIT AREA
+   lewat ::before transparan 44x44. */
+.sort-selector select {
+  min-height: 40px !important;
+}
+#blurSwitch { position: relative; }
+#blurSwitch::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+/* A9 -- underline dotted di SEMUA nama pemain (~472).
+   Karena semua punya, dia gak nandain apa-apa; di HP kebaca sebagai
+   typo/spell-check. Affordance "bisa diklik" dipindah ke sinyal yang
+   cuma muncul pas dibutuhin. */
+#standingBody .player-name-cell,
+#standingTable tbody .player-name-cell {
+  text-decoration: none !important;
+}
+#standingBody .player-name-cell:hover,
+#standingBody .player-name-cell:focus-visible {
+  text-decoration: underline solid rgba(82,102,39,0.45) !important;
+  text-underline-offset: 3px;
+}
+html.dark #standingBody .player-name-cell:hover,
+html.dark #standingBody .player-name-cell:focus-visible {
+  text-decoration-color: rgba(236,231,218,0.45) !important;
+}
+
+/* ============================================================
+   [B] DISIPLIN TOKEN
+
+   KOREKSI BESAR DARI ASESMEN AWAL. Setelah tiap nilai "liar" ditelusuri
+   ke sumbernya (enumerasi rule yang match, bukan grep), tiga dari
+   empat pecahan ternyata BUKAN token liar:
+
+   - 15.5px `.sb-player` = output algoritma shrink-to-fit
+     (`fitScoreboardPlayerNames`, ~21390) yang nulis inline
+     `font-size !important` dan nge-cache base di dataset. Inline
+     !important gak bisa dikalahin CSS, dan kalaupun bisa, itu bakal
+     ngerusak logika fit-nya. TIDAK DISENTUH.
+   - 10.5px `.pill-label` = hasil tuning bertumpuk SEPULUH rule
+     !important (9 -> 10 -> 11 -> 11 -> 10 -> 10 -> 10 -> 10.5). Yang
+     menang spesifisitas (0,4,0). Setengah piksel itu keputusan sadar
+     biar pas di keycap, bukan kecelakaan. TIDAK DISENTUH.
+   - 13.33px `.bottom-tab` = font-size default UA buat <button> yang
+     gak pernah di-set. Anaknya yang keliatan. TIDAK DISENTUH.
+
+   Dan yang paling penting: app ini SUDAH PUNYA token radius
+   `--v73-r-xl/lg/md` (~18680). Bikin `--r-*` baru = bikin sistem token
+   KEDUA, yang justru nambah masalah yang mau dibenerin. Percobaan
+   pertama revisi ini melakukan itu; sekarang dicabut, diganti EXTEND
+   sistem yang udah ada pakai prefix yang sama.
+   ============================================================ */
+
+:root {
+  /* Extend tangga radius yang UDAH ADA (--v73-r-xl:28 / lg:22 / md:16).
+     Dua anak tangga di bawah md ditambahin karena praktik butuh, tapi
+     sebelumnya gak punya nama. */
+  --v73-r-sm: 12px;  /* sb-rest */
+  --v73-r-xs: 8px;   /* round-pill, select, rank badge, sb-tab */
+
+  /* Type scale: sebelumnya gak ada token sama sekali. Diambil dari
+     ukuran yang dominan di praktik, bukan dikarang. --v73-t-body 13px
+     = ukuran paling banyak dipakai (202 elemen). */
+  --v73-t-micro: 10px;
+  --v73-t-label: 11px;
+  --v73-t-small: 12px;
+  --v73-t-body:  13px;
+  --v73-t-emph:  15px;
+  --v73-t-lead:  16px;
+  --v73-t-h3:    17px;
+  --v73-t-h2:    20px;
+  --v73-t-num:   24px;
+  --v73-t-hero:  30px;
+}
+
+/* B1 -- snap radius yang nyempil ke anak tangga terdekat.
+   9px -> 8px  (.sb-tab, delta 1px)
+   20px -> 22px (.format-badge/.tournament-name, delta 2px)
+   18px -> 16px (.sb-score-box, delta 2px). Yang ini kalah di percobaan
+   pertama: lawannya `html:not(.dark) .sb-score-box, html.dark
+   .sb-score-box` = (0,2,0) !important, sedangkan `.sb-score-box` cuma
+   (0,1,0). Sekarang selectornya disamain bentuknya jadi (0,2,0) dan
+   ditaruh belakangan -> menang lewat urutan sumber pada spesifisitas
+   seri.
+   3px dan 6px SENGAJA DIBIARIN: 3px itu accent bar dekoratif di
+   round-pill (bukan radius permukaan), 6px cuma di <canvas> QR. */
+.sb-tab { border-radius: var(--v73-r-xs) !important; }
+.format-badge,
+.tournament-name { border-radius: var(--v73-r-lg) !important; }
+html:not(.dark) .sb-score-box,
+html.dark .sb-score-box { border-radius: var(--v73-r-md) !important; }
+
+/* B2 -- type: buang pecahan yang beneran gak disengaja, dan naikin 9px.
+   9px -> 10px: terlalu kecil buat dibaca di HP DAN itu akar kontras
+   marginal di A4 (rasio dihitung pakai ambang teks kecil). Naik ke
+   10px nyelesein dua-duanya.
+   11.7px -> 11px (.bonus-marker; 11.7 itu sisa `em` relatif, bukan
+   keputusan desain kayak 10.5px-nya pill-label). */
+#standingTable thead th,
+#standingTable thead th.num { font-size: var(--v73-t-micro) !important; }
+.rp-qr-label { font-size: var(--v73-t-micro) !important; }
+.bonus-marker { font-size: var(--v73-t-label) !important; }
+</style>
 
 </body>
 </html>
