@@ -4157,7 +4157,7 @@ try { if (localStorage.getItem('ptDarkMode') === '1') document.documentElement.c
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.140</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.141</div>
     </div>
   </div>
 
@@ -10338,17 +10338,29 @@ function closePlayerProfile() {
 }
 
 // Wire player name clicks in standing table (delegated)
+// FIX (bug lama, bukan baru): sebelumnya idx dihitung dari posisi <tr> di
+// DOM (Array.from(tr.parentNode.children).indexOf(tr)). Itu ASUMSI diam-diam
+// bahwa satu baris data = satu index di computeStandings(). Sejak
+// standing-form-row (baris dots) disisipin di antara tiap baris data
+// (v0.73.122), asumsi itu gak berlaku lagi -- setiap baris data ke-N di DOM
+// sebenarnya "geser" N baris gara-gara form-row ikut kehitung, jadi kartu
+// yang kebuka salah orang (klik rank-3 nampilin data rank-6, dst).
+// Fix: baca tr.dataset.eid -- id pemain stabil yang UDAH ADA (v0.71.31,
+// dipasang buat animasi FLIP), lalu cari entrinya di computeStandings()
+// by id. Sama persis pattern yang dipakai listener podium di bawah ini.
 document.addEventListener('click', e => {
   const cell = e.target.closest('#standingBody .player-name-cell');
   if (!cell) return;
   const tr = cell.closest('tr');
-  if (!tr) return;
-  const idx = Array.from(tr.parentNode.children).indexOf(tr);
+  if (!tr || tr.dataset.eid === undefined) return;
+  const playerId = Number(tr.dataset.eid);
   const standings = computeStandings();
-  const s = standings[idx];
-  if (!s) return;
-  showPlayerProfile(s.id, idx, s.name);
+  const rank = standings.findIndex(x => x.id === playerId);
+  if (rank === -1) return;
+  const s = standings[rank];
+  showPlayerProfile(s.id, rank, s.name);
 });
+
 
 // Wire player name clicks on the Podium page — same profile card, both the
 // top-3 cards and the full-standings rows below them. Works in admin AND
