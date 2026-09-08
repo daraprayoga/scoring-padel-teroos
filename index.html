@@ -4181,7 +4181,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.146</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.147</div>
     </div>
   </div>
 
@@ -7398,18 +7398,37 @@ function assignmentCost(assignments, hist) {
 // jarang lebih dari 4-6 ronde, jadi user PRAKTIS gak pernah lihat kohort
 // pecah sama sekali. Fix: penalti eksplisit di level KOHORT (bukan pasangan),
 // ditambah ke skor kandidat yang sama kayak DOUBLE_REST_PENALTY/CONSEC_PLAY_PENALTY.
+// v0.73.147: exact-match BINARY di bawah cuma efektif di pool KECIL (8p/1c,
+// tempat ini divalidasi v0.72.13). Di pool BESAR (32p/4c, dilaporkan user
+// real-time pas mabar) kemungkinan 16 orang aktif PERSIS SAMA dua kali itu
+// C(32,16) ~ 601 juta kombinasi -- praktis mustahil kejadian exact, jadi
+// penalti ini SELALU 0 di skala itu walau pool-nya beneran ngumpul jadi dua
+// "kubu" yang jarang silang (gak exact-repeat, tapi overlap tinggi terus-
+// terusan). Diganti Jaccard overlap (|irisan|/|gabungan|) yang KONTINYU,
+// bukan diganti fungsi baru -- generalisasi murni dari mekanisme yang sama:
+// exact match (irisan=gabungan=n) tetap ngasih skor 1.0 PERSIS SAMA kayak
+// binary lama, jadi perilaku yang udah divalidasi di 8p/1c (pecah ronde 3,
+// 150/150 seed) TIDAK BERUBAH. Yang berubah cuma kasus BUKAN exact-match:
+// dulu selalu 0 (dianggap gak masalah), sekarang overlap TINGGI (misal 14
+// dari 16 orang sama) ngasih skor ~0.75, dorong exploration ke kombinasi
+// yang lebih beda dari histori -- inilah yang nutup kloter di pool besar.
 function activeSetRepeatCount(playingSet, uptoRoundIdx) {
-  let n = 0;
-  const key = [...playingSet].sort((a, b) => a - b).join(',');
+  const set = new Set(playingSet);
+  const n = set.size;
+  let total = 0;
   for (let r = 0; r < Math.min(uptoRoundIdx, state.rounds.length); r++) {
     const round = state.rounds[r];
     if (!round || !round.matches) continue;
     const roundPlaying = new Set();
     round.matches.forEach(m => { m.teamA.forEach(x => roundPlaying.add(x)); m.teamB.forEach(x => roundPlaying.add(x)); });
-    const roundKey = [...roundPlaying].sort((a, b) => a - b).join(',');
-    if (roundKey === key) n++;
+    if (roundPlaying.size === 0) continue;
+    let inter = 0;
+    roundPlaying.forEach(id => { if (set.has(id)) inter++; });
+    const union = n + roundPlaying.size - inter;
+    if (union === 0) continue;
+    total += inter / union; // 1.0 = identik persis (sama kayak binary lama)
   }
-  return n;
+  return total;
 }
 // v0.72.13: bobot 1.0 -- diverifikasi simulasi: cost floor reuse-kohort di
 // 8p/1c = 2.0, campuran termurah yang keliatan di eksplorasi awal = 2.25.
