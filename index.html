@@ -4181,7 +4181,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.144</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.145</div>
     </div>
   </div>
 
@@ -32776,6 +32776,41 @@ html body .sparing-score-header:not(:empty) {
    ============================================================ */
 body.fs-active header {
   padding-top: max(6px, env(safe-area-inset-top, 0px)) !important;
+}
+</style>
+
+<style id="codex-revision-v073145-css">
+/* ============================================================
+   v0.73.145 -- Fix v0.73.144 TERBUKTI GAK NGARUH di iPad (user kirim
+   screenshot: status bar 17:34/wifi/baterai masih penuh keliatan di
+   fullscreen, header masih ketiban).
+
+   AKAR SEBENARNYA (koreksi dari v0.73.144): `env(safe-area-inset-top)`
+   di Safari iPad RESOLVE KE 0 bahkan pas status bar keliatan dan
+   fullscreen aktif -- beda sama asumsi awal. Ini konsisten sama
+   dokumentasi Apple sendiri (developer.apple.com/forums/thread/110724):
+   di iPad (beda dari iPhone), top inset itu KHUSUS buat status bar,
+   BUKAN "ears"/notch -- tapi itu native UIKit `safeAreaInsets`, bukan
+   CSS `env()` di web. Safari WEB rupanya TIDAK nge-update env() itu
+   pas masuk Fullscreen API mode di iPad (kemungkinan browser cuma
+   nge-track notch/Dynamic-Island geometry buat CSS env(), bukan status
+   bar visibility state) -- makanya `max(6px, env(...))` kemarin =
+   `max(6px, 0)` = 6px, SAMA PERSIS kayak sebelum difix. Nihil.
+
+   FIX: berhenti gantungin ke env() buat kasus spesifik ini -- dia
+   TERBUKTI gak reliable di kombinasi iPad+Safari+Fullscreen API.
+   Pakai angka pasti (54px) yang ngecover status bar iPad (~24pt) PLUS
+   margin buat kontrol exit-fullscreen NATIVE Safari sendiri (X button
+   pojok kiri atas yang keliatan di screenshot user -- itu chrome
+   browser, di LUAR kendali kita, override CSS apa pun gak bisa
+   mindahin dia, tapi ngasih clearance ekstra ngurangin tabrakan sama
+   logo kita). max() sama env() TETEP dipertahankan buat platform lain
+   yang env()-nya beneran reliable (kalau suatu saat lebih gede dari
+   54px, itu yang menang) -- gak ngerusak apa pun, cuma iPad yang
+   sebelumnya nihil ini yang kebantu.
+   ============================================================ */
+body.fs-active header {
+  padding-top: max(54px, env(safe-area-inset-top, 0px)) !important;
 }
 </style>
 
