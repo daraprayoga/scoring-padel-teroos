@@ -4181,7 +4181,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.143</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.144</div>
     </div>
   </div>
 
@@ -32748,6 +32748,36 @@ html body .sparing-score-header:not(:empty) {
   }
 })();
 </script>
+
+<style id="codex-revision-v073144-css">
+/* ============================================================
+   v0.73.144 -- Header nabrak status bar iPad (sinyal/baterai/jam/
+   tanggal) pas Mode Nonton dibuka fullscreen di Safari iPad landscape.
+
+   AKAR: `body.fs-active header { padding: 6px 16px !important; }`
+   (~208) DROP total term env(safe-area-inset-top) yang biasanya ada,
+   diganti flat 6px. Itu ASUMSI diam-diam "fullscreen = status bar
+   ilang, jadi safe-area gak perlu lagi". Asumsi itu BENER di Android
+   Chrome/desktop, tapi SALAH di Safari iPad: `Element.requestFullscreen()`
+   di iPadOS gak nyembunyiin status bar sistem sama sekali (beda dari
+   Android/desktop) -- ini keterbatasan platform yang udah lama
+   didokumentasikan, bukan bug browser yang bisa di-workaround dari JS.
+   iPhone malah gak support fullscreen buat non-media element sama
+   sekali (API-nya reject), jadi kasus ini spesifik iPad yang punya
+   dukungan lebih penuh tapi TETAP nampilin status bar-nya.
+
+   FIX: header di fs-active tetap hormat safe-area-inset-top (via max()
+   biar minimal tetep 6px di device yang beneran nyembunyiin status
+   bar-nya, kayak Android). Nol dampak di platform yang fullscreen-nya
+   beneran total (env() resolve ke 0 di situ, max(6,0)=6, sama kayak
+   sebelumnya) -- cuma iPad yang kebantu.
+   Selector identik `body.fs-active header` (spesifisitas sama, 0,2,1)
+   ditaruh belakangan biar menang lewat posisi sumber.
+   ============================================================ */
+body.fs-active header {
+  padding-top: max(6px, env(safe-area-inset-top, 0px)) !important;
+}
+</style>
 
 </body>
 </html>
