@@ -4181,7 +4181,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.145</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.146</div>
     </div>
   </div>
 
@@ -32811,6 +32811,45 @@ body.fs-active header {
    ============================================================ */
 body.fs-active header {
   padding-top: max(54px, env(safe-area-inset-top, 0px)) !important;
+}
+</style>
+
+<style id="codex-revision-v073146-css">
+/* ============================================================
+   v0.73.146 -- Skor gede club sparing gak nampilin box pemenang ijo.
+   User report + screenshot: box "5" (padel.teroos, menang wins/pts/diff
+   telak) keliatan pucat, bukan hijau solid kayak box winner biasa.
+
+   AKAR: `.ssh-box-lead` (~17886, spesifisitas 0,1,0 + !important) NIAT-nya
+   ngasih background hijau solid `#526627` ke sisi yang unggul -- resep
+   yang sama kayak `.sb-score-box.winner`. Tapi ada rule LEBIH BARU
+   (v0.73.13x era, ~32149) buat "kotak angka lebih solid biar kebaca":
+   `html:not(.dark) body .sparing-score-header .ssh-box { background:
+   rgba(255,255,255,0.78) !important; }`. Selector itu SPESIFISITASNYA
+   (0,3,2) -- jauh lebih tinggi dari `.ssh-box-lead` (0,1,0) -- dan
+   div pemenang PUNYA DUA CLASS SEKALIGUS (`class="ssh-box ssh-box-lead"`),
+   jadi rule generik `.ssh-box` itu ikut nyasar ke box pemenang juga dan
+   NIMPA background hijaunya jadi putih pucat lagi.
+   Hasilnya: teks putih (dari .ssh-box-lead, itu bagian yang SELAMAT
+   karena rule 32149 gak nyentuh color) di atas background putih pucat
+   (dari rule 32149 yang menang) -- nyaris gak kebaca, itu yang
+   dilaporin sebagai "gak muncul yang win".
+
+   Diverifikasi lewat simulasi computeClubTally() + inspeksi computed
+   style: winner='A' kedeteksi bener, class 'ssh-box-lead' ke-apply
+   bener, tapi backgroundColor computed = rgba(255,255,255,0.78),
+   BUKAN #526627 -- persis bukti di atas.
+
+   FIX: rule baru, selector SAMA PERSIS kayak rule 32149 + `.ssh-box-lead`
+   ditambahin (spesifisitas 0,4,2, LEBIH TINGGI), restore background
+   hijau + shadow-nya. Gak nyentuh rule 32149 sama sekali (dia tetap
+   bener buat box yang BUKAN pemenang), cuma nutup celah buat kombinasi
+   dua class itu spesifik.
+   ============================================================ */
+html:not(.dark) body .sparing-score-header .ssh-box.ssh-box-lead {
+  background: #526627 !important;
+  border-color: rgba(255,255,255,0.25) !important;
+  box-shadow: 0 2px 10px rgba(82,102,39,0.35) !important;
 }
 </style>
 
