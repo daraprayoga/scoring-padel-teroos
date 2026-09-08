@@ -4181,7 +4181,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.147</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.148</div>
     </div>
   </div>
 
@@ -7240,20 +7240,54 @@ function buildSparingRound(roundIdx) {
   const { pool: poolB, forcedRest: forcedB } = capMustRest(availB, mustRest, usableCourts, hist.games);
   const forcedRestByStreak = [...forcedA, ...forcedB];
 
+  // v0.73.148: pickSide LAMA cuma pertimbangin GP-fairness/rest-history --
+  // BUTA TOTAL sama opponent-freshness (siapa yang UDAH/BELUM ketemu lintas
+  // klub). Di format non-sparing itu gak masalah karena kolam lawan gede
+  // (semua pemain lain), tapi sparing MAKSA lintas-klub doang (costFn
+  // sparingPairCost balikin Infinity buat se-klub) -- kolam lawan valid per
+  // pair jadi CUMA sebesar klub lawan. Kalau pair yang kepilih main tiap
+  // ronde itu random terhadap freshness, gampang kejadian: pair yang
+  // fresh-option-nya udah tinggal dikit gak kepilih main (sementara
+  // fresh-option-nya keburu abis dipakein pair lain), sedangkan yang masih
+  // banyak opsi fresh malah nganggur -- ujungnya repeat kejadian PADAHAL
+  // masih ada kombinasi lintas-klub yang belum pernah ketemu di pool
+  // keseluruhan. User report + testimoni live: "jangan ketemu lagi berulang
+  // kalau belum keputer semua."
+  //
+  // Fix: tie-break TAMBAHAN di dalam tier GP yang SAMA (rankOf, parameter
+  // yang UDAH ADA di sampleBubble buat kebutuhan Mexicano -- reuse, bukan
+  // bikin mekanisme baru) -- pair yang MASIH PUNYA BANYAK lawan lintas-klub
+  // yang belum pernah ketemu diprioritasin MAIN duluan (rank kecil). Ini
+  // gak ngelanggar GP-fairness (forced tier tetap kaku, gak disentuh) --
+  // cuma mutusin siapa dari BUBBLE (GP seri) yang kepilih.
+  function sparingFreshnessRank(pool, otherPool, histRef) {
+    const rankOf = {};
+    pool.forEach(id => {
+      let fresh = 0;
+      otherPool.forEach(other => { if ((histRef.opponent[id][other] || 0) === 0) fresh++; });
+      rankOf[id] = -fresh; // makin banyak opsi fresh tersisa = rank makin kecil = makin diprioritasin main
+    });
+    return rankOf;
+  }
+
   // Seleksi per klub pakai helper yang sama dengan format lain, supaya aturan
   // GP-tier / anti-double-rest konsisten -- cuma dijalanin dua kali, sekali
   // per klub, bukan sekali buat gabungan.
-  const pickSide = (pool, strategy) => {
+  const pickSide = (pool, otherPool, strategy) => {
     const t = gpTiers(pool, usableCourts, hist.games);
-    const { pick, sit } = sampleBubble(t.bubble, t.slots, r1, rested2, strategy);
+    const rankOf = sparingFreshnessRank(t.bubble, otherPool, hist);
+    const { pick, sit } = sampleBubble(t.bubble, t.slots, r1, rested2, strategy, rankOf);
     return { play: [...t.forced, ...pick], sit: [...sit, ...t.above] };
   };
 
   let best = null;
-  for (let a = 0; a < 120; a++) {
+  // v0.73.148: 120 -> 400 attempt -- lebih banyak eksplorasi kombinasi
+  // bubble-pick, naikin peluang nemu kombinasi cost=0 (full fresh) kalau
+  // itu beneran ada di pool yang tersedia ronde ini.
+  for (let a = 0; a < 400; a++) {
     const strategy = a % 2 === 0 ? 'rest' : 'free';
-    const sa = pickSide(poolA, strategy);
-    const sb = pickSide(poolB, strategy);
+    const sa = pickSide(poolA, poolB, strategy);
+    const sb = pickSide(poolB, poolA, strategy);
     if (sa.play.length !== usableCourts || sb.play.length !== usableCourts) continue;
 
     // Pool gabungan dijamin seimbang (n dari A, n dari B), jadi matching
@@ -7264,7 +7298,11 @@ function buildSparingRound(roundIdx) {
     if (!m) continue;
 
     const sit = [...sa.sit, ...sb.sit];
-    const score = m.cost
+    // v0.73.148: bobot repeat-lawan (m.cost) DIKALIIN 3 -- opponent-freshness
+    // sekarang menang telak lawan rest/consec-play kalau ada pilihan yang
+    // beneran lebih fresh, bukan cuma unggul tipis di jumlah. Rest/consec-play
+    // tetap jadi tie-break pas cost repeat-nya SAMA.
+    const score = m.cost * 3
       + DOUBLE_REST_PENALTY * doubleRestCount(sit, r1)
       + CONSEC_PLAY_PENALTY * consecPlayCount([...sa.play, ...sb.play], playedLast);
     if (!best || score < best.score) best = { pairOrder: m.pairs.flat(), score, sit };
