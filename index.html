@@ -4181,7 +4181,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.149</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.150</div>
     </div>
   </div>
 
@@ -30981,6 +30981,24 @@ html.dark #pairsList .cat-toggle .cat-btn.cat-btn-active {
   renderPairsList = window.renderPairsList;
 
   // ---------- Pairing: 1 kategori (reuse PERSIS algoritma buildSparingRound) ----------
+  //
+  // v0.73.150: user upload JSON sesi kategori (Men's 5v5/3court + Women's
+  // 4v4/2court) -- ternyata fungsi ini CUMA DUPLIKAT dari buildSparingRound
+  // versi LAMA (pre-v0.73.148), bukan reuse beneran walau komentar bilang
+  // "PERSIS algoritma buildSparingRound". Akibatnya dua fix sebelumnya
+  // (v0.73.148 sparingFreshnessRank, v0.73.149 anti-kloter-50%-occupancy)
+  // gak pernah nyampe ke sini -- kategori manapun yang kebetulan occupancy
+  // PERSIS 50% (kasus nyata: Women's 4v4/2court) kena bug 2-kloter yang
+  // SAMA PERSIS kayak yang udah difix di buildSparingRound. Simulasi
+  // konfirmasi: Women's (4v4/2court) kloter baru kebuka round 8, PERSIS
+  // sama kayak buildSparingRound sebelum v0.73.149; Men's (5v5/3court,
+  // occupancy 60%, bukan 50%) gak kena karena bukan kasus edge-nya.
+  // Fix: port ulang KEDUA fix (freshness tie-break + swap anti-lock) ke
+  // sini. TIDAK diubah jadi manggil buildSparingRound langsung (beda
+  // shape parameter: per-kategori pakai courtIndices custom, bukan
+  // state.courts global) -- tetap duplikat, tapi sekarang DISINKRONIN.
+  // Kalau buildSparingRound direvisi lagi soal pairing-core di masa
+  // depan, WAJIB cek juga apa perubahannya perlu di-port ke sini.
   function buildSparingCategoryMatches(roundIdx, catPairIds, courtIndices) {
     const hist = buildHistory(roundIdx);
     const r1 = restedLastRoundSet(roundIdx);
@@ -31003,22 +31021,59 @@ html.dark #pairsList .cat-toggle .cat-btn.cat-btn-active {
     const { pool: poolB, forcedRest: forcedB } = capMustRest(availB, mustRest, usableCourts, hist.games);
     const forcedRestByStreak = [...forcedA, ...forcedB];
 
-    const pickSide = (pool, strategy) => {
+    // v0.73.150 (port dari v0.73.148): tie-break freshness-aware, prioritasin
+    // pair yang masih punya lebih banyak lawan lintas-klub yang belum
+    // pernah ketemu.
+    function categoryFreshnessRank(pool, otherPool, histRef) {
+      const rankOf = {};
+      pool.forEach(id => {
+        let fresh = 0;
+        otherPool.forEach(other => { if ((histRef.opponent[id][other] || 0) === 0) fresh++; });
+        rankOf[id] = -fresh;
+      });
+      return rankOf;
+    }
+
+    // v0.73.150 (port dari v0.73.149): di occupancy PERSIS 50%, bubble.length
+    // == slot yang tersedia -- nol pilihan, freshness rank di atas gak
+    // pernah kepake buat mutusin SIAPA main. Fix: kalau ada kandidat
+    // gak-main yang masih punya lebih banyak opsi fresh dibanding kandidat
+    // main yang paling minim opsi fresh, tukar (GP geser 1 dari jadwal
+    // normal -- keputusan user, variasi menang atas GP-rata-mutlak).
+    const pickSide = (pool, otherPool, strategy) => {
       const t = gpTiers(pool, usableCourts, hist.games);
-      const { pick, sit } = sampleBubble(t.bubble, t.slots, r1, rested2, strategy);
-      return { play: [...t.forced, ...pick], sit: [...sit, ...t.above] };
+      const rankOf = categoryFreshnessRank(pool, otherPool, hist);
+      const { pick, sit } = sampleBubble(t.bubble, t.slots, r1, rested2, strategy, rankOf);
+      let play = [...t.forced, ...pick];
+      let benched = [...sit, ...t.above];
+
+      const inPool = [...benched];
+      if (inPool.length > 0 && pick.length > 0) {
+        const bestIn = [...inPool].sort((x, y) => rankOf[x] - rankOf[y])[0];
+        const swappable = play.filter(id => !t.forced.includes(id));
+        const worstOut = [...swappable].sort((x, y) => rankOf[y] - rankOf[x])[0];
+        if (bestIn !== undefined && worstOut !== undefined && rankOf[bestIn] <= rankOf[worstOut]) {
+          play = play.filter(id => id !== worstOut).concat([bestIn]);
+          benched = benched.filter(id => id !== bestIn).concat([worstOut]);
+        }
+      }
+
+      return { play, sit: benched };
     };
 
     let best = null;
-    for (let a = 0; a < 120; a++) {
+    // v0.73.150 (port dari v0.73.148): 120 -> 400 attempt.
+    for (let a = 0; a < 400; a++) {
       const strategy = a % 2 === 0 ? 'rest' : 'free';
-      const sa = pickSide(poolA, strategy);
-      const sb = pickSide(poolB, strategy);
+      const sa = pickSide(poolA, poolB, strategy);
+      const sb = pickSide(poolB, poolA, strategy);
       if (sa.play.length !== usableCourts || sb.play.length !== usableCourts) continue;
       const m = minCostPerfectMatching([...sa.play, ...sb.play], (x, y) => sparingPairCost(x, y, hist));
       if (!m) continue;
       const sit = [...sa.sit, ...sb.sit];
-      const score = m.cost
+      // v0.73.150 (port dari v0.73.148): m.cost dikaliin 3 -- freshness
+      // menang telak lawan rest/consec-play kalau ada pilihan lebih fresh.
+      const score = m.cost * 3
         + DOUBLE_REST_PENALTY * doubleRestCount(sit, r1)
         + CONSEC_PLAY_PENALTY * consecPlayCount([...sa.play, ...sb.play], playedLast);
       if (!best || score < best.score) best = { pairOrder: m.pairs.flat(), score, sit };
