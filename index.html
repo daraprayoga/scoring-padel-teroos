@@ -4181,7 +4181,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.148</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.149</div>
     </div>
   </div>
 
@@ -7273,11 +7273,46 @@ function buildSparingRound(roundIdx) {
   // Seleksi per klub pakai helper yang sama dengan format lain, supaya aturan
   // GP-tier / anti-double-rest konsisten -- cuma dijalanin dua kali, sekali
   // per klub, bukan sekali buat gabungan.
+  //
+  // v0.73.149: user report + JSON sesi asli -- di occupancy PERSIS 50%
+  // (8 pair aktif dari 16, dst), gpTiers/sampleBubble bikin bubble.length
+  // SELALU == slot yang tersedia begitu GP sama rata (yang mana kejadian
+  // TIAP RONDE begitu occupancy 50%). Kalau bubble == slot, gak ada pilihan
+  // sama sekali -- SEMUA anggota bubble otomatis main, sparingFreshnessRank
+  // (fix v0.73.148) gak pernah kepake buat mutusin SIAPA main. Akibatnya WHO
+  // PLAYS 100% ditentuin urutan GP-tier/rest-history doang, dan karena itu
+  // muter dalam lingkaran tertutup, hasilnya 2 kelompok pair gantian main
+  // SELAMANYA -- gak pernah nyampur (dibuktiin trace attempt: attempt #0
+  // strategi 'rest' SELALU menang di cost=0 selama opponent dalam kelompok
+  // itu masih fresh, jadi loop break sebelum sempet eksplor kombinasi lain).
+  //
+  // Keputusan user (dikonfirmasi eksplisit): variasi-ketemu-semua menang
+  // atas GP-rata-mutlak -- sama seperti kriteria #5 vs anti-double-rest di
+  // format lain (v0.70.85). Fix LOKAL ke buildSparingRound, TIDAK ubah
+  // gpTiers/sampleBubble bersama (dipakai builder lain, sudah teruji beda
+  // occupancy profile): kalau ada kandidat "gak main" (sit ATAU above) yang
+  // masih PUNYA lebih banyak opsi fresh lintas-klub dibanding kandidat
+  // "main" yang paling minim opsi fresh-nya, tukar. GP yang ketuker geser
+  // maju/mundur 1 dari jadwal GP-tier normalnya -- itu ongkos yang diterima.
   const pickSide = (pool, otherPool, strategy) => {
     const t = gpTiers(pool, usableCourts, hist.games);
-    const rankOf = sparingFreshnessRank(t.bubble, otherPool, hist);
+    const rankOf = sparingFreshnessRank(pool, otherPool, hist);
     const { pick, sit } = sampleBubble(t.bubble, t.slots, r1, rested2, strategy, rankOf);
-    return { play: [...t.forced, ...pick], sit: [...sit, ...t.above] };
+    let play = [...t.forced, ...pick];
+    let benched = [...sit, ...t.above];
+
+    const inPool = [...benched];
+    if (inPool.length > 0 && pick.length > 0) {
+      const bestIn = [...inPool].sort((x, y) => rankOf[x] - rankOf[y])[0];
+      const swappable = play.filter(id => !t.forced.includes(id));
+      const worstOut = [...swappable].sort((x, y) => rankOf[y] - rankOf[x])[0];
+      if (bestIn !== undefined && worstOut !== undefined && rankOf[bestIn] <= rankOf[worstOut]) {
+        play = play.filter(id => id !== worstOut).concat([bestIn]);
+        benched = benched.filter(id => id !== bestIn).concat([worstOut]);
+      }
+    }
+
+    return { play, sit: benched };
   };
 
   let best = null;
