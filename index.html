@@ -4181,7 +4181,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.151</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.152</div>
     </div>
   </div>
 
@@ -33050,6 +33050,28 @@ html:not(.dark) body .sparing-score-header .ssh-box.ssh-box-lead {
   if (typeof showPodium !== 'function') return;
   var _origShowPodium151 = showPodium;
 
+  // v0.73.152: dua fix atas laporan user + screenshot v0.73.151:
+  // (1) tombol tab keliatan gak bisa dipencet -- akar SAMA PERSIS gotcha
+  //     `.ghost-btn { background: ... !important }` yang udah kejadian
+  //     2x sebelumnya di codebase ini (v0.73.126 pair cat-btn, v0.73.130
+  //     standings cat-filter): inline style `background:var(--green-bright)`
+  //     kalah cascade. Dibuktikan lewat Playwright: klik SEBENARNYA jalan
+  //     (state.standingsCategoryFilter ke-update, tabel ke-filter bener),
+  //     tapi computed background tombol aktif tetap putih polos (sama kayak
+  //     tombol non-aktif) -- makanya keliatan "gak ngefek" walau fungsinya
+  //     jalan. Fix: pola yang SAMA PERSIS kayak v0.73.130 (kelas
+  //     `.podium-cat-btn-active` + CSS `!important`, lihat block CSS di
+  //     bawah), bukan mekanisme baru.
+  // (2) User: "harusnya gak ada 'Kategori' tapi 'All' ketika digabung" --
+  //     sebelumnya cuma ada tab per kategori REAL, gak ada cara balik liat
+  //     SEMUA pair gabungan (yang sebelum v0.73.151 justru itu default-nya).
+  //     Tambah tab "All" (sentinel id = string kosong '', BUKAN kategori
+  //     asli) di posisi PALING KIRI -- klik ini skip filter sama sekali
+  //     (computeStandings dipakai apa adanya, gak di-swap). Default pas
+  //     modal pertama dibuka (atau kalau state.standingsCategoryFilter
+  //     ternyata gak valid lagi, misal kategori yang lagi dipilih dihapus):
+  //     "All", bukan kategori pertama -- biar gak ujug-ujug nampilin
+  //     sebagian data doang tanpa user minta.
   function ensurePodiumCategoryTabs() {
     var content = document.getElementById('podiumContent');
     if (!content) return;
@@ -33063,12 +33085,11 @@ html:not(.dark) body .sparing-score-header .ssh-box.ssh-box-lead {
       page1.insertBefore(host, stage);
     }
     host.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:4px 0 14px;position:relative;z-index:2;';
-    host.innerHTML = (state.sparingCategories || []).map(function (c) {
+    var tabs = [{ id: '', label: 'All' }].concat(state.sparingCategories || []);
+    host.innerHTML = tabs.map(function (c) {
       var active = state.standingsCategoryFilter === c.id;
-      return '<button type="button" class="ghost-btn podium-cat-btn" data-cat-id="' + c.id + '" ' +
-        'style="padding:6px 14px;font-size:12px;' +
-        (active ? 'background:var(--green-bright);color:var(--cream);border-color:var(--green-bright);' : '') +
-        '">' + escapeHtml(c.label || 'Kategori') + '</button>';
+      return '<button type="button" class="ghost-btn podium-cat-btn' + (active ? ' podium-cat-btn-active' : '') + '" data-cat-id="' + c.id + '" ' +
+        'style="padding:6px 14px;font-size:12px;">' + escapeHtml(c.label || 'Kategori') + '</button>';
     }).join('');
     host.querySelectorAll('.podium-cat-btn').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
@@ -33093,17 +33114,21 @@ html:not(.dark) body .sparing-score-header .ssh-box.ssh-box-lead {
     if (!isSparing() || !state.sparingCategories || state.sparingCategories.length === 0) {
       return _origShowPodium151.apply(this, arguments);
     }
-    if (!state.standingsCategoryFilter || !state.sparingCategories.some(function (c) { return c.id === state.standingsCategoryFilter; })) {
-      state.standingsCategoryFilter = state.sparingCategories[0].id;
+    // v0.73.152: '' (All) sekarang valid juga, bukan cuma id kategori asli.
+    if (state.standingsCategoryFilter == null || (state.standingsCategoryFilter !== '' && !state.sparingCategories.some(function (c) { return c.id === state.standingsCategoryFilter; }))) {
+      state.standingsCategoryFilter = '';
     }
     var activeCat = state.standingsCategoryFilter;
-    var activeCatObj = state.sparingCategories.find(function (c) { return c.id === activeCat; });
+    var isAll = activeCat === '';
+    var activeCatObj = isAll ? null : state.sparingCategories.find(function (c) { return c.id === activeCat; });
     var _origComputeStandings151 = computeStandings;
-    computeStandings = function () {
-      return _origComputeStandings151().filter(function (s) {
-        return (state.pairCategoryId || [])[s.id] === activeCat;
-      });
-    };
+    if (!isAll) {
+      computeStandings = function () {
+        return _origComputeStandings151().filter(function (s) {
+          return (state.pairCategoryId || [])[s.id] === activeCat;
+        });
+      };
+    }
     try {
       _origShowPodium151.apply(this, arguments);
     } finally {
@@ -33115,6 +33140,24 @@ html:not(.dark) body .sparing-score-header .ssh-box.ssh-box-lead {
   showPodium = window.showPodium;
 })();
 </script>
+
+<style id="codex-revision-v073152-css">
+/* v0.73.152 — podium category tabs: active state harus kelihatan.
+   Akar SAMA PERSIS v0.73.126/v0.73.130: inline style
+   background:var(--green-bright) kalah sama
+   `.ghost-btn { background: … !important }` di cascade lebih awal.
+   Fix: kelas .podium-cat-btn-active + specificity html+id+class + !important. */
+html:not(.dark) #podiumCatFilterRow .podium-cat-btn.podium-cat-btn-active,
+html.dark #podiumCatFilterRow .podium-cat-btn.podium-cat-btn-active {
+  background: var(--green-bright) !important;
+  color: var(--cream) !important;
+  border-color: var(--green-bright) !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+}
+html:not(.dark) #podiumCatFilterRow .podium-cat-btn.podium-cat-btn-active {
+  color: #f5f0e6 !important;
+}
+</style>
 
 </body>
 </html>
