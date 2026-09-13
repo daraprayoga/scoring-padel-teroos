@@ -4181,7 +4181,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.150</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.151</div>
     </div>
   </div>
 
@@ -32999,6 +32999,122 @@ html:not(.dark) body .sparing-score-header .ssh-box.ssh-box-lead {
   box-shadow: 0 2px 10px rgba(82,102,39,0.35) !important;
 }
 </style>
+
+<script id="codex-revision-v073151-js">
+/* ============================================================
+   v0.73.151 -- Club Sparing multi-kategori: "Full Standings"
+   (modal showPodium(), dipakai BARENG admin & viewer -- lihat
+   patch viewer di ~11209) belum bisa dipecah per kategori.
+
+   User report + screenshot: sesi "padel.teroos X Level Up" (Men's
+   5v5/3court + Women's 4v4/2court) -- tabel "Full Standings" di
+   modal ini nampilin SEMUA 18 pair (Men's + Women's) DIGABUNG jadi
+   satu ranking, cuma badge klub (PA/LE) yang keliatan, TIDAK ada
+   pemisah kategori. Padahal GP per kategori beda (Men's 3 court
+   vs Women's 2 court), jadi ranking gabungan gak apple-to-apple.
+
+   Tab filter kategori BUKAN hal baru -- udah ada sejak v0.73.130
+   di tab "Klasemen" in-app (`updateStandingTable`/`sparingCatFilterRow`),
+   tapi scope-nya cuma tab itu. Modal showPodium() ("Full Standings",
+   diakses dari tombol Podium/End -- SAMA di admin maupun viewer,
+   lihat komentar "Patch showPodium so close button stays enabled
+   for viewer" di ~11209) manggil computeStandings() SENDIRI, gak
+   pernah kena filter itu.
+
+   Fix: reuse PERSIS pola swap `computeStandings` yang sudah
+   terbukti di v0.73.125 (bukan mekanisme baru) -- override
+   showPodium(), kalau sesi sparing+kategori aktif: pastikan
+   `state.standingsCategoryFilter` (state YANG SAMA dipakai tab
+   Klasemen -- satu konsep "kategori aktif" konsisten se-app,
+   bukan state kedua yang bisa out-of-sync), swap computeStandings
+   jadi versi terfilter SELAMA render asli jalan, balikin di
+   `finally`. Konsekuensi (disengaja): "Final Podium" top-3 di
+   halaman 1 IKUT terfilter per kategori juga -- ini benar secara
+   makna: Champion Men's dan Champion Women's beda orang, gak ada
+   satu "juara keseluruhan" yang valid kalau court/jumlah pair per
+   kategori beda. computeClubTally() (skor klub gabungan di
+   `clubResultHtml`) TIDAK disentuh -- itu tetap rata-rata lintas
+   kategori (v0.73.125), scope beda dari standings individu/pair.
+
+   Tab kategori disisip di podium-page-1, tepat sebelum
+   `.podium-stage`, biar keliatan duluan pas modal dibuka. Klik tab
+   set `state.standingsCategoryFilter` lalu panggil ulang
+   `showPodium()` (full re-render -- modal ini emang dibuka dari
+   awal tiap kali, bukan tab yang di-preserve scroll position-nya,
+   jadi reset ke atas WAJAR, sama kayak buka ulang modal).
+
+   Sesi TANPA kategori: 0 perubahan, delegate penuh ke showPodium
+   asli (guard di awal wrapper).
+   ============================================================ */
+(function () {
+  if (typeof showPodium !== 'function') return;
+  var _origShowPodium151 = showPodium;
+
+  function ensurePodiumCategoryTabs() {
+    var content = document.getElementById('podiumContent');
+    if (!content) return;
+    var page1 = content.querySelector('.podium-page-1');
+    var stage = page1 && page1.querySelector('.podium-stage');
+    if (!page1 || !stage) return;
+    var host = document.getElementById('podiumCatFilterRow');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'podiumCatFilterRow';
+      page1.insertBefore(host, stage);
+    }
+    host.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:4px 0 14px;position:relative;z-index:2;';
+    host.innerHTML = (state.sparingCategories || []).map(function (c) {
+      var active = state.standingsCategoryFilter === c.id;
+      return '<button type="button" class="ghost-btn podium-cat-btn" data-cat-id="' + c.id + '" ' +
+        'style="padding:6px 14px;font-size:12px;' +
+        (active ? 'background:var(--green-bright);color:var(--cream);border-color:var(--green-bright);' : '') +
+        '">' + escapeHtml(c.label || 'Kategori') + '</button>';
+    }).join('');
+    host.querySelectorAll('.podium-cat-btn').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        state.standingsCategoryFilter = e.currentTarget.dataset.catId;
+        showPodium();
+      });
+    });
+  }
+
+  function tagStandingsHeaderWithCategory(catLabel) {
+    if (!catLabel) return;
+    var content = document.getElementById('podiumContent');
+    if (!content) return;
+    content.querySelectorAll('.podium-standings-header h2').forEach(function (h2) {
+      if (h2.dataset.catTagged === '1') return;
+      h2.dataset.catTagged = '1';
+      h2.innerHTML = h2.innerHTML.replace('Full Standings', 'Full Standings · ' + escapeHtml(catLabel));
+    });
+  }
+
+  window.showPodium = function () {
+    if (!isSparing() || !state.sparingCategories || state.sparingCategories.length === 0) {
+      return _origShowPodium151.apply(this, arguments);
+    }
+    if (!state.standingsCategoryFilter || !state.sparingCategories.some(function (c) { return c.id === state.standingsCategoryFilter; })) {
+      state.standingsCategoryFilter = state.sparingCategories[0].id;
+    }
+    var activeCat = state.standingsCategoryFilter;
+    var activeCatObj = state.sparingCategories.find(function (c) { return c.id === activeCat; });
+    var _origComputeStandings151 = computeStandings;
+    computeStandings = function () {
+      return _origComputeStandings151().filter(function (s) {
+        return (state.pairCategoryId || [])[s.id] === activeCat;
+      });
+    };
+    try {
+      _origShowPodium151.apply(this, arguments);
+    } finally {
+      computeStandings = _origComputeStandings151;
+    }
+    ensurePodiumCategoryTabs();
+    tagStandingsHeaderWithCategory(activeCatObj && activeCatObj.label);
+  };
+  showPodium = window.showPodium;
+})();
+</script>
 
 </body>
 </html>
