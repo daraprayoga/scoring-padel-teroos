@@ -4181,7 +4181,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.152</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.153</div>
     </div>
   </div>
 
@@ -11066,6 +11066,16 @@ saveState = window.saveState;
         // belum ada/ditambah nanti (nutup kelas bug ini permanen, bukan tambal
         // per-modal). Regenerate (mutasi state.rounds) SENGAJA tetap terkunci.
         if (el.hasAttribute && el.hasAttribute('data-close')) return;
+        // v0.73.153: tab kategori podium (v0.73.151-152) belum masuk
+        // allowlist -- kena disable diam-diam pas viewer mode ("gak bisa
+        // dipencet", padahal semua tombol lain di viewer emang MEMANG
+        // sengaja dimatiin, ini beneran kelewatan). Sama kelas bug persis
+        // podium-tie-btn (v0.70.77) / data-close (v0.71.5): elemen
+        // interaktif baru WAJIB masuk allowlist, atau mati diam-diam.
+        // Konteksnya SAMA relevan kayak podium-tie-btn: viewer yang lihat
+        // Final Podium via link share justru butuh ganti-ganti tab
+        // kategori buat lihat Men's/Women's, bukan cuma admin.
+        if (el.classList && el.classList.contains('podium-cat-btn')) return;
         el.style.pointerEvents = 'none';
         el.style.opacity = '0.3';
         el.style.cursor = 'not-allowed';
@@ -33085,7 +33095,14 @@ html:not(.dark) body .sparing-score-header .ssh-box.ssh-box-lead {
       page1.insertBefore(host, stage);
     }
     host.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:4px 0 14px;position:relative;z-index:2;';
-    var tabs = [{ id: '', label: 'All' }].concat(state.sparingCategories || []);
+    var tabs = [{ id: '', label: 'All' }].concat((state.sparingCategories || []).filter(function (c) {
+      // v0.73.153: sembunyiin tab buat kategori yang beneran kosong (0
+      // pair ke-assign) -- biasanya sisa percobaan bikin kategori yang
+      // gak jadi kepake, muncul cuma sebagai "Kategori" (fallback label
+      // kosong) yang bingungin ("kayak gak perlu gak sih?" -- user report).
+      // "All" TETAP selalu ada apapun kondisinya (bukan kategori asli).
+      return (state.pairCategoryId || []).some(function (cid) { return cid === c.id; });
+    }));
     host.innerHTML = tabs.map(function (c) {
       var active = state.standingsCategoryFilter === c.id;
       return '<button type="button" class="ghost-btn podium-cat-btn' + (active ? ' podium-cat-btn-active' : '') + '" data-cat-id="' + c.id + '" ' +
@@ -33156,6 +33173,18 @@ html.dark #podiumCatFilterRow .podium-cat-btn.podium-cat-btn-active {
 }
 html:not(.dark) #podiumCatFilterRow .podium-cat-btn.podium-cat-btn-active {
   color: #f5f0e6 !important;
+}
+/* v0.73.153: lapis kedua sama persis pola v0.70.77 (podium-tie-btn) --
+   disable-pass applyViewerUI() (~11069) nulis INLINE
+   pointer-events:none + opacity:0.3 ke SEMUA <button> kecuali allowlist.
+   Allowlist JS udah ditambah, tapi rule ini jaga-jaga kalau ada
+   disable-pass lain di masa depan yang lupa lagi (kelas bug yang sama
+   udah kejadian: podium-tie-btn v0.70.77, data-close v0.71.5, sekarang
+   podium-cat-btn). Cuma !important yang bisa ngalahin inline style. */
+.podium-cat-btn {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
 }
 </style>
 
