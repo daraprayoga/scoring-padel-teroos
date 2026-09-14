@@ -4181,7 +4181,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.156</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.157</div>
     </div>
   </div>
 
@@ -21509,6 +21509,7 @@ html.dark body.header-scrolled header{
   }
 }
 
+
 @media all and (display-mode: standalone) {
   html:not(.dark) header,
   html.dark header{
@@ -33272,6 +33273,70 @@ html:not(.dark) #podiumCatFilterRow .podium-cat-btn.podium-cat-btn-active {
   pointer-events: auto !important;
   opacity: 1 !important;
   cursor: pointer !important;
+}
+</style>
+
+<script id="codex-revision-v073157-js">
+/* ============================================================
+   v0.73.157 -- User: "safe space (jam, sinyal dll) di iOS/iPadOS
+   abu-abu sendiri, gak sama warna header/ribbon app."
+
+   DIBUKTIKAN lewat sampling pixel dari screenshot device ASLI
+   (bukan tebak): area status-bar nunjukkin RGB(245,245,245) --
+   abu-abu netral MURNI, TIDAK COCOK sama satu pun warna app
+   (bukan ribbon hijau #526627, bukan header cream, bukan body).
+   Simulasi Playwright dengan --sat dipaksa ke nilai notch asli
+   (55px) NUNJUKKIN ribbon hijau app SENDIRI udah render benar
+   sampai row 0 -- jadi bug-nya BUKAN di halaman/CSS app.
+
+   ROOT CAUSE: iOS 26 Safari (rilis 2025-2026) gak lagi baca meta
+   theme-color -- dia gambar overlay warna chrome-nya SENDIRI di
+   atas konten, dan overlay itu di-derive dari elemen
+   position:fixed/sticky di ujung viewport. `.beta-banner` (ribbon
+   ijo "MODE NONTON") sengaja position:relative (v0.68.1, biar
+   bisa scroll away terus header sticky yang ambil alih) -- gagal
+   syarat fixed/sticky punya iOS 26, jadi overlay-nya fallback ke
+   abu-abu default, NUTUPIN warna ijo yang sebenarnya udah bener
+   di bawahnya.
+
+   FIX: tambah elemen fixed KECIL, TERPISAH dari ribbon, cuma buat
+   ngasih sinyal warna ke detector iOS 26 -- TIDAK NYENTUH ribbon
+   asli sama sekali (nol resiko ke behavior scroll-away yang udah
+   proven). Tinggi = safe-area-inset-top persis, warna ngikutin
+   apa yang SEHARUSNYA keliatan di posisi itu (ribbon ijo di viewer,
+   header cream di admin, versi dark masing-masing). */
+(function () {
+  var el = document.createElement('div');
+  el.id = 'iosChromeColorProxy';
+  document.body.insertBefore(el, document.body.firstChild);
+})();
+</script>
+
+<style id="codex-revision-v073157-css">
+#iosChromeColorProxy {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--sat, env(safe-area-inset-top, 0px));
+  z-index: 9998;
+  pointer-events: none;
+}
+html:not(.dark) #iosChromeColorProxy {
+  background: #fbf7f0;
+}
+html:not(.dark) body.viewer-mode #iosChromeColorProxy,
+html:not(.dark).viewer-url #iosChromeColorProxy,
+html:not(.dark) .viewer-url #iosChromeColorProxy {
+  background: #526627;
+}
+html.dark #iosChromeColorProxy {
+  background: #141a0c;
+}
+html.dark body.viewer-mode #iosChromeColorProxy,
+html.dark.viewer-url #iosChromeColorProxy,
+html.dark .viewer-url #iosChromeColorProxy {
+  background: #6b5a10;
 }
 </style>
 
