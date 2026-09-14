@@ -4181,7 +4181,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.153</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.154</div>
     </div>
   </div>
 
@@ -12967,7 +12967,16 @@ body.viewer-mode #fullscreenBtn * {
   body.viewer-mode .brand {
     align-self: center !important;
   }
-  body.viewer-mode .header-actions {
+  /* v0.73.154: rule di bawah ini nabrak `body.fs-active .header-actions
+     {display:none!important}` (~209) -- spesifisitas SAMA (body+2 class),
+     tapi rule ini muncul LEBIH BELAKANG di source, jadi menang tie-break
+     dan header-actions (toggle dark/share/fullscreen icon) tetap keliatan
+     pas fullscreen viewer di HP portrait / browser sempit (<640px). Ini
+     yang bikin header jadi "kegedean, gak proper" -- niatnya fullscreen
+     cuma nyisain logo doang (lihat komentar ~200), icon-icon itu emang
+     harus ilang. Fix: kecualiin .fs-active dari selector ini, biar rule
+     hide punya fs-active tetap menang di kondisi itu. */
+  body.viewer-mode:not(.fs-active) .header-actions {
     align-items: center !important;
     align-self: center !important;
     display: flex !important;
