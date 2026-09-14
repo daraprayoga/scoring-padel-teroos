@@ -4181,7 +4181,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.155</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.156</div>
     </div>
   </div>
 
@@ -33017,6 +33017,44 @@ body.fs-active header {
    ============================================================ */
 body.fs-active.fs-fallback header {
   padding-top: 6px !important;
+}
+</style>
+
+<style id="codex-revision-v073156-css">
+/* ============================================================
+   v0.73.156 -- v0.73.155 nge-fix HP (fs-fallback), TAPI user lapor
+   browser desktop/laptop landscape MASIH jelek (screenshot sama
+   persis kayak sebelumnya) walau iPad "belum tau" (belum ditest).
+
+   AKAR: v0.73.155 cuma misahin fs-fallback vs true-fullscreen, TAPI
+   true-fullscreen sendiri ternyata BUKAN satu kondisi tunggal --
+   ada DUA platform beda yang sama-sama berhasil masuk TRUE
+   Fullscreen API (fs-active TANPA fs-fallback):
+   - iPad: TETAP nampilin status bar sistemnya sendiri (kuirk
+     platform, v0.73.144/145) -- 54px MEMANG perlu.
+   - Desktop/laptop (Chrome/Edge/Firefox dst): Fullscreen API di
+     desktop itu "bersih" beneran, TIDAK ada status bar/chrome apa
+     pun yang nongol -- 54px di sini MURNI KEBUANG, sama kayak kasus
+     fs-fallback kemarin, cuma mekanisme masuknya beda (bukan lewat
+     fs-fallback, tapi true-fullscreen yang sama-sama gak butuh
+     reservasi).
+
+   fs-fallback vs fs-active-only TIDAK CUKUP buat misahin "butuh
+   reservasi" vs "enggak" -- perlu sinyal platform tambahan. Dipilih
+   `(hover: hover) and (pointer: fine)`: proxy device dengan mouse
+   asli (desktop/laptop) vs device touch-primary (iPad/HP, hover:none
+   pointer:coarse). iPad TANPA mouse eksternal gak match media ini,
+   jadi 54px-nya tetap utuh -- BELUM disentuh sama sekali (user
+   sendiri blang "belum tau" soal iPad, jangan diubah tanpa bukti).
+   Kalau iPad dipakai + Magic Keyboard/trackpad (edge case, hover:hover
+   match), dia bakal ikut turun ke 6px juga -- itu trade-off yang
+   diterima (dan sebenarnya sesuai: kalau device itu dipegang kayak
+   laptop, statusbar-clearance sekunder di banding pointer precision).
+   ============================================================ */
+@media (hover: hover) and (pointer: fine) {
+  body.fs-active:not(.fs-fallback) header {
+    padding-top: 6px !important;
+  }
 }
 </style>
 
