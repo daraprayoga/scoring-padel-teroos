@@ -4181,7 +4181,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.154</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.155</div>
     </div>
   </div>
 
@@ -32977,6 +32977,46 @@ body.fs-active header {
    ============================================================ */
 body.fs-active header {
   padding-top: max(54px, env(safe-area-inset-top, 0px)) !important;
+}
+</style>
+
+<style id="codex-revision-v073155-css">
+/* ============================================================
+   v0.73.155 -- User masih lapor "pill header kegedean" SETELAH v0.73.154
+   (screenshot baru: landscape, true-fullscreen DAN browser biasa, dua-duanya
+   masih nunjukkin logo pill jauh lebih tinggi dari kontennya).
+
+   AKAR SEBENARNYA (beda dari yang dikira v0.73.154): rule di atas
+   (`body.fs-active header { padding-top: max(54px, env(...)) }`,
+   v0.73.145) diterapkan ke SEMUA `fs-active`, TANPA bedain:
+
+   - TRUE fullscreen (`fs-active` TANPA `fs-fallback`): Fullscreen API
+     beneran aktif, browser chrome (address bar dst) BENERAN ilang.
+     Di iPad, status bar sistem TETAP nongol di area ini (kuirk
+     platform yang udah didokumentasikan v0.73.144/145) -- 54px
+     MEMANG perlu di sini.
+   - FALLBACK (`fs-active` + `fs-fallback`): dipasang justru KARENA
+     Fullscreen API gagal/gak ada (lihat enterFS() ~10295) -- browser
+     chrome (address bar, dst) TETAP KELIATAN (persis kayak di
+     screenshot user, s.env(Safari)). Di kondisi ini GAK ADA status
+     bar sistem yang numpuk sama konten kita -- address bar browser
+     itu sendiri yang udah kasih clearance. 54px di sini MURNI
+     KEBUANG, gak ngelindungin apa pun.
+
+   iPhone TIDAK BISA fullscreen elemen sembarang (API-nya reject,
+   lihat komentar ~32927-32932) -- artinya iPhone SELALU masuk jalur
+   fallback, SELALU browser chrome keliatan, SELALU 54px ke-waste.
+   Screenshot user (Safari address bar keliatan jelas) konsisten
+   sama ini.
+
+   FIX: tambah rule LEBIH SPESIFIK (`body.fs-active.fs-fallback`,
+   dua class > satu class) yang menang cuma di kondisi fallback,
+   ngoverride 54px balik ke 6px tanpa nyentuh/menghapus rule 54px asli
+   sama sekali -- rule 54px itu makna ATAU relevansinya masih penuh
+   dipertahankan buat true-fullscreen iPad. Nol dampak ke situ.
+   ============================================================ */
+body.fs-active.fs-fallback header {
+  padding-top: 6px !important;
 }
 </style>
 
