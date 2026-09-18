@@ -4181,7 +4181,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.157</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.158</div>
     </div>
   </div>
 
@@ -8833,7 +8833,17 @@ function swapEntity(idA, idB) {
 
 function applyRedactMode() {
   const overview = document.getElementById('view-overview');
-  overview.classList.toggle('redacted', state.redactMode);
+  // v0.73.158: viewer diminta SELALU liat klasemen ter-censor sampai sesi
+  // di-End, TERPISAH dari toggle "Sensor" admin (dulu 1 state dipakai
+  // bareng admin+viewer lewat sync Firebase -- kalau admin matiin Sensor
+  // buat ngecek sendiri, semua viewer otomatis ikut kebuka juga). Sekarang
+  // viewer punya kunci sendiri: (viewer-mode DAN belum ended) => redacted,
+  // gak peduli state.redactMode admin lagi apa. Admin sendiri TETAP pakai
+  // toggle Sensor seperti biasa, gak berubah.
+  const viewerLocked = document.body.classList.contains('viewer-mode') && !state.ended;
+  const effectiveRedact = viewerLocked || state.redactMode;
+  overview.classList.toggle('redacted', effectiveRedact);
+  overview.classList.toggle('viewer-standings-locked', viewerLocked);
 }
 
 function wireScoreInputs(container) {
@@ -33337,6 +33347,71 @@ html.dark body.viewer-mode #iosChromeColorProxy,
 html.dark.viewer-url #iosChromeColorProxy,
 html.dark .viewer-url #iosChromeColorProxy {
   background: #6b5a10;
+}
+</style>
+
+<script id="codex-revision-v073158-js">
+/* ============================================================
+   v0.73.158 -- User: viewer harusnya SELALU liat klasemen ter-censor,
+   baru kebuka pas sesi di-End -- TERPISAH dari toggle "Sensor" admin
+   (dulu 1 state dipakai bareng admin+viewer via sync Firebase, jadi
+   kalau admin matiin Sensor buat ngecek sendiri, semua viewer ikut
+   kebuka juga). Logic kunci-nya udah ada di applyRedactMode() (dipatch
+   langsung, bukan lewat override di sini -- itu 1 fungsi kecil, satu
+   sumber kebenaran, gak perlu wrapper).
+
+   Bagian ini nambah 2 hal yang gak bisa dipatch di tempat lain tanpa
+   restrukturisasi HTML statis: (1) sembunyiin toggle Sensor dari
+   viewer (itu kontrol admin doang sekarang, viewer gak punya hak
+   ngatur), (2) notice banner pas klasemen viewer lagi terkunci --
+   sebelum ini redact CUMA mem-blur angka tanpa penjelasan, sekarang
+   ada teks "klasemen kebuka pas game berakhir" biar viewer gak
+   ngira itu error/loading gagal. Elemen banner di-insert SEKALI ke
+   `.sb-standings-wrap` (bagian statis di HTML, udah ada di DOM pas
+   script ini jalan -- gak perlu nunggu/poll), visibility-nya
+   full-CSS lewat class `.viewer-standings-locked` yang ditoggle
+   applyRedactMode(), bukan di-append/dilepas tiap render.
+
+   Scope: format round-robin biasa (ind/team/mix Americano & Mexicano,
+   club_sparing) lewat renderAll()->applyRedactMode(). Format Tournament
+   (grup+knockout) PAKAI VIEW BEDA (renderKnockout/renderTourneyGroupPhase),
+   gak pernah manggil applyRedactMode() -- di luar scope fix ini, karena
+   gak ada tabel klasemen yang sama buat di-redact di situ. */
+(function () {
+  var wrap = document.querySelector('.sb-standings-wrap');
+  if (!wrap) return;
+  var el = document.createElement('div');
+  el.id = 'viewerStandingsLockNotice';
+  el.innerHTML = '🔒 <span>Klasemen kebuka setelah game berakhir</span>';
+  wrap.insertBefore(el, wrap.firstChild);
+})();
+</script>
+
+<style id="codex-revision-v073158-css">
+body.viewer-mode .blur-toggle {
+  display: none !important;
+}
+#viewerStandingsLockNotice {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--green-light, #384619);
+  background: rgba(82,102,39,0.1);
+  border: 1px solid rgba(82,102,39,0.25);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+}
+.viewer-standings-locked #viewerStandingsLockNotice {
+  display: flex;
+}
+html.dark #viewerStandingsLockNotice {
+  color: #ece7da;
+  background: rgba(131,163,62,0.12);
+  border-color: rgba(131,163,62,0.3);
 }
 </style>
 
