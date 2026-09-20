@@ -3838,7 +3838,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
 <body>
 <!-- v0.73.166: proxy first-paint. Viewer (?room=) = HIJAU ribbon #526627.
      Admin = cream #f5f0e6. Warna di-set SEBELUM paint supaya status bar gak putih. -->
-<div id="iosChromeColorProxy" aria-hidden="true" style="position:fixed;top:0;left:0;right:0;width:100%;height:max(12px,env(safe-area-inset-top,0px));min-height:12px;z-index:2147483646;pointer-events:none;border:none;margin:0;padding:0;-webkit-backdrop-filter:none;backdrop-filter:none;"></div>
+<div id="iosChromeColorProxy" aria-hidden="true" style="position:fixed;top:0;left:0;right:0;width:100%;height:0;min-height:0;opacity:0;z-index:2147483646;pointer-events:none;border:none;margin:0;padding:0;"></div>
 <script>
 (function(){
   try {
@@ -4212,7 +4212,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.169</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.170</div>
     </div>
   </div>
 
@@ -35298,6 +35298,241 @@ body.viewer-mode #iosChromeColorProxy {
   try {
     new MutationObserver(apply).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
   } catch (e) {}
+})();
+</script>
+
+<style id="codex-revision-v073170-css">
+/* ============================================================
+   v0.73.170 -- (1) White space viewer KECIL
+                (2) No strip flash saat loading
+                (3) Sparing club-score TIDAK nyangkut ke mode lain
+   ============================================================ */
+
+/* --- 1. Viewer header: padding KECIL fixed 8px (bukan sat) --- */
+html.viewer-url header,
+html.viewer-url body header,
+body.viewer-mode header,
+.viewer-url body header,
+html body.viewer-mode header {
+  position: sticky !important;
+  top: 0 !important;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  height: auto !important;
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+@media (max-width: 640px) {
+  html.viewer-url header,
+  body.viewer-mode header {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+}
+
+/* Ribbon di atas page — full teks, tidak pakai sat-pad */
+html.viewer-url .beta-banner,
+body.viewer-mode .beta-banner {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #526627 !important;
+  padding: 7px 12px !important;
+  min-height: 30px !important;
+  margin: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* --- 2. Proxy default HIDDEN (no flash strip) --- */
+#iosChromeColorProxy {
+  height: 0 !important;
+  min-height: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+/* Baru nyala setelah html.chrome-ready (di-set JS pas load stabil) */
+html.chrome-ready #iosChromeColorProxy {
+  height: env(safe-area-inset-top, 0px) !important;
+  opacity: 1 !important;
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+}
+html.chrome-ready.dark #iosChromeColorProxy {
+  background: #121609 !important;
+  background-color: #121609 !important;
+}
+/* Podium: tetap hidden */
+body:has(.podium-backdrop.show) #iosChromeColorProxy {
+  display: none !important;
+  height: 0 !important;
+  opacity: 0 !important;
+}
+
+/* --- 3. Sparing score header: HIDDEN unless club_sparing --- */
+body:not(.format-club-sparing) #sparingScoreHeader,
+html:not(.format-club-sparing) #sparingScoreHeader {
+  display: none !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+</style>
+<script id="codex-revision-v073170-js">
+(function () {
+  /* ---- Chrome ready: cegah flash strip ---- */
+  function markChromeReady() {
+    document.documentElement.classList.add('chrome-ready');
+    var el = document.getElementById('iosChromeColorProxy');
+    if (el && !document.querySelector('.podium-backdrop.show')) {
+      var dark = document.documentElement.classList.contains('dark');
+      var col = dark ? '#121609' : '#f5f0e6';
+      el.style.setProperty('height', 'env(safe-area-inset-top, 0px)', 'important');
+      el.style.setProperty('opacity', '1', 'important');
+      el.style.setProperty('background', col, 'important');
+      el.style.setProperty('background-color', col, 'important');
+    }
+  }
+  // Delay sedikit supaya first paint bersih tanpa strip
+  window.addEventListener('load', function () {
+    setTimeout(markChromeReady, 50);
+  });
+
+  /* ---- Viewer header padding KECIL ---- */
+  function tightenViewerHeader() {
+    var viewer = document.documentElement.classList.contains('viewer-url') ||
+      (document.body && document.body.classList.contains('viewer-mode'));
+    if (!viewer) return;
+    document.querySelectorAll('header').forEach(function (h) {
+      h.style.setProperty('padding-top', '8px', 'important');
+      h.style.setProperty('padding-bottom', '8px', 'important');
+      h.style.setProperty('background', '#f5f0e6', 'important');
+      h.style.setProperty('border-bottom', 'none', 'important');
+      h.style.setProperty('box-shadow', 'none', 'important');
+    });
+  }
+  document.addEventListener('DOMContentLoaded', tightenViewerHeader);
+  window.addEventListener('load', function () {
+    tightenViewerHeader();
+    setTimeout(tightenViewerHeader, 200);
+    setTimeout(tightenViewerHeader, 800);
+  });
+
+  /* ---- Sparing carryover fix ---- */
+  function syncFormatClass() {
+    try {
+      var fmt = (typeof state !== 'undefined' && state.format) ? state.format : '';
+      document.documentElement.classList.toggle('format-club-sparing', fmt === 'club_sparing');
+      if (document.body) document.body.classList.toggle('format-club-sparing', fmt === 'club_sparing');
+      var el = document.getElementById('sparingScoreHeader');
+      if (el && fmt !== 'club_sparing') {
+        el.style.setProperty('display', 'none', 'important');
+        el.innerHTML = '';
+      }
+    } catch (e) {}
+  }
+
+  function clearSparingCarryover() {
+    try {
+      if (typeof state === 'undefined') return;
+      if (state.format === 'club_sparing') return;
+      // Clear sparing-specific fields so they don't leak into other modes
+      state.sparingClubA = '';
+      state.sparingClubB = '';
+      state.sparingCategory = '';
+      state.sparingCategories = [];
+      state.pairCategoryId = [];
+      state.standingsCategoryFilter = null;
+      var el = document.getElementById('sparingScoreHeader');
+      if (el) {
+        el.style.setProperty('display', 'none', 'important');
+        el.innerHTML = '';
+      }
+    } catch (e) {}
+  }
+
+  // Wrap selectFormatCard
+  function wrapFormatSelect() {
+    if (typeof selectFormatCard !== 'function') return;
+    var _orig = selectFormatCard;
+    window.selectFormatCard = function (card) {
+      var prev = state.format;
+      var result = _orig.apply(this, arguments);
+      syncFormatClass();
+      if (state.format !== 'club_sparing' && prev === 'club_sparing') {
+        clearSparingCarryover();
+        // If session already started under sparing, force UI refresh without club header
+        try {
+          if (typeof renderAll === 'function') renderAll();
+          if (typeof renderSparingScoreHeader === 'function') renderSparingScoreHeader();
+        } catch (e) {}
+      }
+      return result;
+    };
+    selectFormatCard = window.selectFormatCard;
+  }
+
+  // Wrap renderSparingScoreHeader to always hide for non-sparing
+  function wrapSparingHeader() {
+    if (typeof renderSparingScoreHeader !== 'function') return;
+    var _orig = renderSparingScoreHeader;
+    window.renderSparingScoreHeader = function () {
+      try {
+        if (typeof state === 'undefined' || state.format !== 'club_sparing') {
+          var el = document.getElementById('sparingScoreHeader');
+          if (el) {
+            el.style.setProperty('display', 'none', 'important');
+            el.innerHTML = '';
+          }
+          syncFormatClass();
+          return;
+        }
+      } catch (e) {}
+      var r = _orig.apply(this, arguments);
+      syncFormatClass();
+      return r;
+    };
+    renderSparingScoreHeader = window.renderSparingScoreHeader;
+  }
+
+  // On startSession: ensure non-sparing hides club header
+  function wrapStart() {
+    if (typeof startSession !== 'function') return;
+    var _orig = startSession;
+    window.startSession = function () {
+      var r = _orig.apply(this, arguments);
+      syncFormatClass();
+      if (state.format !== 'club_sparing') clearSparingCarryover();
+      return r;
+    };
+    startSession = window.startSession;
+  }
+
+  function boot() {
+    wrapFormatSelect();
+    wrapSparingHeader();
+    wrapStart();
+    syncFormatClass();
+    tightenViewerHeader();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+  window.addEventListener('load', function () {
+    boot();
+    setTimeout(boot, 300);
+  });
 })();
 </script>
 </body>
