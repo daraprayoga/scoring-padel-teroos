@@ -3838,7 +3838,7 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
 <body>
 <!-- v0.73.166: proxy first-paint. Viewer (?room=) = HIJAU ribbon #526627.
      Admin = cream #f5f0e6. Warna di-set SEBELUM paint supaya status bar gak putih. -->
-<div id="iosChromeColorProxy" aria-hidden="true" style="position:fixed;top:0;left:0;right:0;width:100%;height:0;min-height:0;opacity:0;z-index:2147483646;pointer-events:none;border:none;margin:0;padding:0;"></div>
+<!-- proxy disabled v0.73.171: was causing load flash + strip -->
 <script>
 (function(){
   try {
@@ -4212,7 +4212,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.170</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.171</div>
     </div>
   </div>
 
@@ -35533,6 +35533,172 @@ html:not(.format-club-sparing) #sparingScoreHeader {
     boot();
     setTimeout(boot, 300);
   });
+})();
+</script>
+
+<style id="codex-revision-v073171-css">
+/* ============================================================
+   v0.73.171 -- Header viewer naik (kayak image 3), NO strip flash
+
+   Image 2: logo terlalu turun (gap cream besar).
+   Image 3: posisi BENAR — logo rapat di bawah status bar.
+   Flash strip: proxy dimatikan total (sumber flash + strip).
+   ============================================================ */
+
+/* PROXY MATI — no flash, no strip */
+#iosChromeColorProxy {
+  display: none !important;
+  height: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+/* Viewer header = rapat seperti image 3 */
+html.viewer-url header,
+html.viewer-url body header,
+body.viewer-mode header,
+body.viewer-mode header.sticky,
+.viewer-url header,
+html body.viewer-mode header {
+  position: sticky !important;
+  top: 0 !important;
+  padding-top: 4px !important;
+  padding-bottom: 6px !important;
+  margin-top: 0 !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  height: auto !important;
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+  background-image: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  z-index: 1000 !important;
+}
+@media (max-width: 640px) {
+  html.viewer-url header,
+  body.viewer-mode header {
+    padding-top: 4px !important;
+    padding-bottom: 6px !important;
+    max-height: none !important;
+  }
+}
+
+/* Ribbon: tipis, di atas header, no sat padding */
+html.viewer-url .beta-banner,
+body.viewer-mode .beta-banner,
+.viewer-url .beta-banner {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #526627 !important;
+  background-color: #526627 !important;
+  padding: 6px 10px !important;
+  min-height: 28px !important;
+  height: auto !important;
+  margin: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  position: relative !important;
+  top: 0 !important;
+}
+
+/* Welcome / splash: no top band */
+#welcomeScreen,
+.welcome-screen,
+[class*="welcome"] {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Body/html no extra top gap */
+html.viewer-url,
+html.viewer-url body,
+body.viewer-mode {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+}
+</style>
+<script id="codex-revision-v073171-js">
+(function () {
+  function isViewer() {
+    try {
+      if (document.documentElement.classList.contains('viewer-url')) return true;
+      if (document.body && document.body.classList.contains('viewer-mode')) return true;
+      var q = new URLSearchParams(location.search);
+      return !!(q.get('room') || q.get('view') === '1');
+    } catch (e) { return false; }
+  }
+
+  function nukeProxy() {
+    var el = document.getElementById('iosChromeColorProxy');
+    if (el) {
+      el.style.cssText = 'display:none!important;height:0!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;';
+    }
+  }
+
+  function pinViewerHeader() {
+    if (!isViewer()) return;
+    document.querySelectorAll('header').forEach(function (h) {
+      // Force like image 3: tight under status bar
+      h.style.setProperty('padding-top', '4px', 'important');
+      h.style.setProperty('padding-bottom', '6px', 'important');
+      h.style.setProperty('margin-top', '0', 'important');
+      h.style.setProperty('top', '0', 'important');
+      h.style.setProperty('position', 'sticky', 'important');
+      h.style.setProperty('background', '#f5f0e6', 'important');
+      h.style.setProperty('background-color', '#f5f0e6', 'important');
+      h.style.setProperty('background-image', 'none', 'important');
+      h.style.setProperty('border-bottom', 'none', 'important');
+      h.style.setProperty('box-shadow', 'none', 'important');
+      h.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+      h.style.setProperty('backdrop-filter', 'none', 'important');
+      h.style.setProperty('max-height', 'none', 'important');
+    });
+    // Ribbon: no sat pad
+    document.querySelectorAll('.beta-banner, #betaBanner').forEach(function (b) {
+      if (document.querySelector('.podium-backdrop.show')) return;
+      b.style.setProperty('padding-top', '6px', 'important');
+      b.style.setProperty('padding-bottom', '6px', 'important');
+      b.style.setProperty('min-height', '28px', 'important');
+      b.style.setProperty('margin', '0', 'important');
+      b.style.setProperty('background', '#526627', 'important');
+    });
+  }
+
+  // Fight older revision scripts that keep resetting padding-top: sat
+  function loop() {
+    nukeProxy();
+    pinViewerHeader();
+  }
+
+  loop();
+  document.addEventListener('DOMContentLoaded', loop);
+  window.addEventListener('load', function () {
+    loop();
+    // Keep re-applying briefly while other late scripts run
+    var n = 0;
+    var id = setInterval(function () {
+      loop();
+      if (++n > 20) clearInterval(id); // ~2s
+    }, 100);
+  });
+  window.addEventListener('scroll', pinViewerHeader, { passive: true });
+
+  try {
+    new MutationObserver(loop).observe(document.documentElement, {
+      attributes: true, attributeFilter: ['class']
+    });
+  } catch (e) {}
+
+  // Disable previous chrome proxy syncers
+  window.__ptSyncChromeProxy = function () { nukeProxy(); };
 })();
 </script>
 </body>
