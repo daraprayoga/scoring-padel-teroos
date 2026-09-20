@@ -4181,7 +4181,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.159</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.162</div>
     </div>
   </div>
 
@@ -33420,6 +33420,474 @@ html.dark #viewerStandingsLockNotice {
   border-color: rgba(131,163,62,0.3);
 }
 </style>
+
+
+<script id="codex-revision-v073160-js">
+/* v0.73.160 — iOS 26 safe-area = warna header (admin + nonton), solid proxy */
+(function () {
+  function ensureProxy() {
+    var el = document.getElementById('iosChromeColorProxy');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'iosChromeColorProxy';
+      if (document.body) document.body.insertBefore(el, document.body.firstChild);
+    }
+    return el;
+  }
+  function parseRgba(str) {
+    var m = str && String(str).match(/rgba?\(([^)]+)\)/);
+    if (!m) return null;
+    var p = m[1].split(',').map(function (s) { return parseFloat(s.trim()); });
+    if (p.length < 3 || p.some(function (n) { return isNaN(n); })) return null;
+    return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 };
+  }
+  function hex2(v) {
+    return Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
+  }
+  function solidFromHeader() {
+    var isDark = document.documentElement.classList.contains('dark');
+    var fallback = isDark ? '#121609' : '#faf7f0';
+    try {
+      var header = document.querySelector('header');
+      if (!header) return fallback;
+      var hc = parseRgba(getComputedStyle(header).backgroundColor);
+      if (!hc) return fallback;
+      var pageBg = parseRgba(getComputedStyle(document.documentElement).backgroundColor)
+        || parseRgba(getComputedStyle(document.body).backgroundColor)
+        || (isDark ? { r: 18, g: 22, b: 9, a: 1 } : { r: 250, g: 247, b: 240, a: 1 });
+      var r = hc.a * hc.r + (1 - hc.a) * pageBg.r;
+      var g = hc.a * hc.g + (1 - hc.a) * pageBg.g;
+      var b = hc.a * hc.b + (1 - hc.a) * pageBg.b;
+      if (hc.a < 0.15) return fallback;
+      return '#' + hex2(r) + hex2(g) + hex2(b);
+    } catch (e) { return fallback; }
+  }
+  window.__ptSyncChromeProxy = function () {
+    try {
+      var el = ensureProxy();
+      var color = solidFromHeader();
+      el.style.background = color;
+      el.style.backgroundColor = color;
+      var meta = document.getElementById('themeColorMeta');
+      if (meta) meta.setAttribute('content', color);
+    } catch (e) {}
+  };
+  function boot() {
+    ensureProxy();
+    window.__ptSyncChromeProxy();
+    setTimeout(window.__ptSyncChromeProxy, 350);
+    setTimeout(window.__ptSyncChromeProxy, 800);
+  }
+  if (document.readyState === 'complete') boot();
+  else window.addEventListener('load', boot);
+  try {
+    new MutationObserver(function () {
+      window.__ptSyncChromeProxy();
+      setTimeout(window.__ptSyncChromeProxy, 350);
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  } catch (e) {}
+  var _prev = window.__ptSyncThemeColor;
+  window.__ptSyncThemeColor = function () {
+    if (typeof _prev === 'function') { try { _prev.apply(this, arguments); } catch (e) {} }
+    window.__ptSyncChromeProxy();
+  };
+})();
+</script>
+<style id="codex-revision-v073160-css">
+#iosChromeColorProxy {
+  position: fixed !important;
+  top: 0 !important; left: 0 !important; right: 0 !important;
+  width: 100% !important;
+  height: max(8px, var(--sat, env(safe-area-inset-top, 0px))) !important;
+  min-height: 8px !important;
+  z-index: 2147483646 !important;
+  pointer-events: none !important;
+  border: none !important; box-shadow: none !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  opacity: 1 !important; display: block !important; visibility: visible !important;
+}
+html:not(.dark) #iosChromeColorProxy,
+html:not(.dark) body.viewer-mode #iosChromeColorProxy,
+html:not(.dark).viewer-url #iosChromeColorProxy,
+html:not(.dark) .viewer-url #iosChromeColorProxy {
+  background: #faf7f0 !important;
+  background-color: #faf7f0 !important;
+}
+html.dark #iosChromeColorProxy,
+html.dark body.viewer-mode #iosChromeColorProxy,
+html.dark.viewer-url #iosChromeColorProxy,
+html.dark .viewer-url #iosChromeColorProxy {
+  background: #121609 !important;
+  background-color: #121609 !important;
+}
+</style>
+
+<script id="codex-revision-v073162-js">
+/* ============================================================
+   v0.73.162 -- Mexicano next-match = klasemen LIVE setelah skor
+                terakhir, terutama saat GP RATA (poin 4 RUN TEST)
+
+   User: "Mode Mexicano, generate next matchnya refer ke posisi
+   klasemen AFTER match terakhir ketika GP rata diinput."
+
+   Plus kebijakan v0.73.161:
+   - Warmup 4 round: mixing anti-repeat
+   - Setelah warmup: rank sit-out; pairing anti-cluster kecuali GP rata
+
+   Saat GP rata (spread games di pool available === 0): rank dari
+   mexicanoStandings()/computeStandings() (klasemen SETELAH skor
+   terakhir) WAJIB dipakai untuk sit-out DAN pairing klasik
+   1+4 vs 2+3 di pool yang main — ini "refer klasemen".
+
+   Saat GP belum rata: sit-out tetap GP+rank (selectByGPThenRank);
+   pairing pakai assignPlayersToCourts anti-repeat (hindari kloter
+   permanen selagi GP masih beda).
+
+   Next/Add: pastikan regenerate unscored future dari klasemen live
+   (perkuat v0.73.111) SEBELUM advance — supaya R+1 bukan pregenerate basi.
+   ============================================================ */
+(function () {
+  var MEXICANO_WARMUP_ROUNDS = 4;
+
+  function scoredRoundsCount162() {
+    return (state.rounds || []).filter(function (r) {
+      return r && r.matches && r.matches.some(function (m) {
+        return (m.scoreA > 0 || m.scoreB > 0);
+      });
+    }).length;
+  }
+
+  function rankMapLive() {
+    var rankOf = {};
+    var list = null;
+    if (typeof mexicanoStandings === 'function') list = mexicanoStandings();
+    else if (typeof computeStandings === 'function') list = computeStandings();
+    if (list) list.forEach(function (s, idx) { rankOf[s.id] = idx; });
+    return rankOf;
+  }
+
+  function gpSpread(ids, gamesArr) {
+    if (!ids || !ids.length) return 0;
+    var min = Infinity, max = -Infinity;
+    for (var i = 0; i < ids.length; i++) {
+      var g = (gamesArr && gamesArr[ids[i]]) || 0;
+      if (g < min) min = g;
+      if (g > max) max = g;
+    }
+    return max - min;
+  }
+
+  function selectByGPThenRank162(roundIdx, available, activeCount, gamesArr, rankOf) {
+    if (typeof selectByGPThenRank === 'function') {
+      return selectByGPThenRank(roundIdx, available, activeCount, gamesArr, rankOf);
+    }
+    // Inline fallback (mirror v0.73.115)
+    var tiers = gpTiers(available, activeCount, gamesArr);
+    var rested2 = typeof restedTwoBackSet === 'function' ? restedTwoBackSet(roundIdx) : new Set();
+    var rk = function (id) { return rankOf[id] !== undefined ? rankOf[id] : 999; };
+    var bubbleSorted = tiers.bubble.slice().sort(function (a, b) {
+      var ra = rested2.has(a) ? 0 : 1, rb = rested2.has(b) ? 0 : 1;
+      if (ra !== rb) return ra - rb;
+      return rk(a) - rk(b);
+    });
+    return {
+      playing: tiers.forced.concat(bubbleSorted.slice(0, tiers.slots)),
+      resting: bubbleSorted.slice(tiers.slots).concat(tiers.above)
+    };
+  }
+
+  function matchesFromRankSlice(playing, rankOf) {
+    var ordered = playing.slice().sort(function (a, b) {
+      return (rankOf[a] !== undefined ? rankOf[a] : 999) - (rankOf[b] !== undefined ? rankOf[b] : 999);
+    });
+    var matches = [];
+    for (var c = 0; c < state.courts; c++) {
+      var group = ordered.slice(c * 4, c * 4 + 4);
+      if (group.length < 4) break;
+      matches.push({
+        court: c,
+        teamA: [group[0], group[3]],
+        teamB: [group[1], group[2]],
+        scoreA: 0,
+        scoreB: 0
+      });
+    }
+    return matches;
+  }
+
+  function matchesFromAntiRepeat(playing, hist) {
+    var assignments = assignPlayersToCourts(playing, state.courts, hist);
+    return buildIndividualMatchesFromAssignments(assignments);
+  }
+
+  // --- Individual Mexicano ---
+  if (typeof buildMexicanoMatches === 'function' && typeof buildHistory === 'function') {
+    window.buildMexicanoMatches = function (roundIdx) {
+      var hist = buildHistory(roundIdx);
+      var total = state.players;
+      var activePlayers = state.courts * 4;
+
+      // Warmup: mixing
+      if (scoredRoundsCount162() < MEXICANO_WARMUP_ROUNDS) {
+        var pool0 = selectPlayingPool(total, activePlayers, hist.games, restedLastRoundSet(roundIdx));
+        var asg0 = assignPlayersToCourts(pool0.playing, state.courts, hist);
+        return { matches: buildIndividualMatchesFromAssignments(asg0), resting: pool0.resting };
+      }
+
+      // Rank-phase: LIVE standings after last scored input
+      var available = [], unavailable = [];
+      for (var i = 0; i < total; i++) {
+        (isAvailable(i) ? available : unavailable).push(i);
+      }
+      var rankOf = rankMapLive(); // klasemen AFTER skor terakhir
+      var sel = selectByGPThenRank162(roundIdx, available, activePlayers, hist.games, rankOf);
+      var playing = sel.playing.slice();
+      var resting = sel.resting.concat(unavailable);
+
+      var matches;
+      // Poin 4: saat GP RATA di pool available → pairing murni dari urutan klasemen
+      if (gpSpread(available, hist.games) === 0) {
+        matches = matchesFromRankSlice(playing, rankOf);
+      } else {
+        matches = matchesFromAntiRepeat(playing, hist);
+      }
+
+      var matched = {};
+      matches.forEach(function (m) {
+        m.teamA.concat(m.teamB).forEach(function (id) { matched[id] = true; });
+      });
+      playing.forEach(function (id) {
+        if (!matched[id] && resting.indexOf(id) < 0) resting.push(id);
+      });
+      return { matches: matches, resting: resting };
+    };
+    buildMexicanoMatches = window.buildMexicanoMatches;
+  }
+
+  // --- Team Mexicano ---
+  if (typeof buildTeamMexicanoMatches === 'function' && typeof buildHistory === 'function') {
+    window.buildTeamMexicanoMatches = function (roundIdx) {
+      var hist = buildHistory(roundIdx);
+      var total = state.pairs;
+      var activePairs = state.courts * 2;
+
+      if (scoredRoundsCount162() < MEXICANO_WARMUP_ROUNDS) {
+        var pool0 = selectPlayingPool(total, activePairs, hist.games, restedLastRoundSet(roundIdx));
+        return { matches: buildTeamMatches(pool0.playing), resting: pool0.resting };
+      }
+
+      var available = [], unavailable = [];
+      for (var i = 0; i < total; i++) {
+        (isAvailable(i) ? available : unavailable).push(i);
+      }
+      var rankOf = rankMapLive();
+      var sel = selectByGPThenRank162(roundIdx, available, activePairs, hist.games, rankOf);
+      var playing = sel.playing.slice();
+      var resting = sel.resting.concat(unavailable);
+
+      var matches = [];
+      if (gpSpread(available, hist.games) === 0) {
+        // GP rata → urut rank, pair berurutan 1vs2, 3vs4, ... (klasemen live)
+        playing.sort(function (a, b) {
+          return (rankOf[a] !== undefined ? rankOf[a] : 999) - (rankOf[b] !== undefined ? rankOf[b] : 999);
+        });
+        matches = typeof buildTeamMatches === 'function' ? buildTeamMatches(playing) : [];
+      } else if (typeof minCostPerfectMatching === 'function' && playing.length >= 2) {
+        var need = Math.min(playing.length, state.courts * 2);
+        if (need % 2 === 1) need -= 1;
+        var pool = playing.slice(0, need);
+        var oppCost = function (a, b) {
+          return (hist.opponent[a] && hist.opponent[a][b]) ? hist.opponent[a][b] : 0;
+        };
+        var teamMatch = minCostPerfectMatching(pool, oppCost);
+        if (teamMatch && teamMatch.pairs) {
+          teamMatch.pairs.forEach(function (pair, c) {
+            var pA = pair[0], pB = pair[1];
+            var aP = state.pairNames[pA], bP = state.pairNames[pB];
+            matches.push({
+              court: c, teamA: [pA], teamB: [pB],
+              teamAPlayers: aP ? [aP[0], aP[1]] : [],
+              teamBPlayers: bP ? [bP[0], bP[1]] : [],
+              scoreA: 0, scoreB: 0
+            });
+          });
+        }
+      }
+      if (!matches.length && typeof buildTeamMatches === 'function') {
+        matches = buildTeamMatches(playing);
+      }
+      var matchedIds = {};
+      matches.forEach(function (m) {
+        m.teamA.concat(m.teamB).forEach(function (id) { matchedIds[id] = true; });
+      });
+      playing.forEach(function (id) {
+        if (!matchedIds[id] && resting.indexOf(id) < 0) resting.push(id);
+      });
+      return { matches: matches, resting: resting };
+    };
+    buildTeamMexicanoMatches = window.buildTeamMexicanoMatches;
+  }
+
+  // --- Mixicano ---
+  if (typeof buildMixicanoRound === 'function' && typeof gpTiers === 'function' && typeof buildHistory === 'function') {
+    window.buildMixicanoRound = function (roundIdx) {
+      var hist = buildHistory(roundIdx);
+      var total = state.players;
+      var males = [], females = [], unavailable = [];
+      for (var i = 0; i < total; i++) {
+        if (!isAvailable(i)) { unavailable.push(i); continue; }
+        if (state.playerGenders[i] === 'M') males.push(i);
+        else if (state.playerGenders[i] === 'F') females.push(i);
+      }
+      var needPerGender = state.courts * 2;
+      var rested2x = typeof restedTwoBackSet === 'function' ? restedTwoBackSet(roundIdx) : new Set();
+      var r1 = typeof restedLastRoundSet === 'function' ? restedLastRoundSet(roundIdx) : new Set();
+      var rankOf = rankMapLive();
+      var inWarmup = scoredRoundsCount162() < MEXICANO_WARMUP_ROUNDS;
+      var gpEven = gpSpread(males.concat(females), hist.games) === 0;
+
+      var tiersM = gpTiers(males, needPerGender, hist.games);
+      var tiersF = gpTiers(females, needPerGender, hist.games);
+
+      var pickGender = function (tiers) {
+        if (typeof sampleBubble === 'function') {
+          var s = sampleBubble(tiers.bubble, tiers.slots, r1, rested2x, 'rest', inWarmup ? null : rankOf);
+          return { active: tiers.forced.concat(s.pick), sit: s.sit.concat(tiers.above) };
+        }
+        var bubble = tiers.bubble.slice().sort(function (a, b) {
+          var ra = rested2x.has(a) ? 0 : 1, rb = rested2x.has(b) ? 0 : 1;
+          if (ra !== rb) return ra - rb;
+          if (!inWarmup && rankOf[a] !== undefined && rankOf[b] !== undefined) return rankOf[a] - rankOf[b];
+          return Math.random() - 0.5;
+        });
+        return {
+          active: tiers.forced.concat(bubble.slice(0, tiers.slots)),
+          sit: bubble.slice(tiers.slots).concat(tiers.above)
+        };
+      };
+
+      var pM = pickGender(tiersM);
+      var pF = pickGender(tiersF);
+      var activeMales, activeFemales;
+      if (inWarmup || !gpEven) {
+        activeMales = typeof shuffle === 'function' ? shuffle(pM.active.slice()) : pM.active.slice();
+        activeFemales = typeof shuffle === 'function' ? shuffle(pF.active.slice()) : pF.active.slice();
+      } else {
+        // GP rata + rank-phase → urut klasemen live
+        activeMales = pM.active.slice().sort(function (a, b) {
+          return (rankOf[a] !== undefined ? rankOf[a] : 999) - (rankOf[b] !== undefined ? rankOf[b] : 999);
+        });
+        activeFemales = pF.active.slice().sort(function (a, b) {
+          return (rankOf[a] !== undefined ? rankOf[a] : 999) - (rankOf[b] !== undefined ? rankOf[b] : 999);
+        });
+      }
+      var resting = pM.sit.concat(pF.sit, unavailable);
+      if (activeMales.length !== activeFemales.length) {
+        var n = Math.min(activeMales.length, activeFemales.length);
+        if (activeMales.length > n) { resting = activeMales.slice(n).concat(resting); activeMales = activeMales.slice(0, n); }
+        if (activeFemales.length > n) { resting = activeFemales.slice(n).concat(resting); activeFemales = activeFemales.slice(0, n); }
+      }
+      var courts = [];
+      for (var c = 0; c < state.courts; c++) {
+        var mGroup = activeMales.slice(c * 2, c * 2 + 2);
+        var fGroup = activeFemales.slice(c * 2, c * 2 + 2);
+        if (mGroup.length < 2 || fGroup.length < 2) break;
+        courts.push({ teamA: [mGroup[0], fGroup[1]], teamB: [mGroup[1], fGroup[0]] });
+      }
+      return {
+        matches: courts.map(function (ct, idx) {
+          return { court: idx + 1, teamA: ct.teamA, teamB: ct.teamB, scoreA: 0, scoreB: 0 };
+        }),
+        resting: resting
+      };
+    };
+    buildMixicanoRound = window.buildMixicanoRound;
+  }
+
+  // --- Perkuat Next: selalu regen unscored dari klasemen live (poin 4) ---
+  function isSD162() {
+    try {
+      return typeof isStandingsDriven === 'function'
+        ? isStandingsDriven()
+        : (typeof isMexicano === 'function' && isMexicano()) ||
+          (typeof isMixicano === 'function' && isMixicano());
+    } catch (e) { return false; }
+  }
+
+  function regenerateLiveFrom(fromIdx) {
+    if (!isSD162() || !state || !state.rounds) return;
+    if (fromIdx < 0) return;
+    // Trim contiguous unscored from fromIdx
+    var end = state.rounds.length;
+    for (var i = fromIdx; i < state.rounds.length; i++) {
+      if (typeof roundFullyScored === 'function' && roundFullyScored(state.rounds[i])) {
+        end = i;
+        break;
+      }
+    }
+    var keep = state.rounds.slice(0, fromIdx);
+    var need = end - fromIdx;
+    // Also keep fully-scored rounds after gap? Only regen prefix of unscored
+    var tail = state.rounds.slice(end);
+    state.rounds = keep;
+    for (var j = 0; j < need; j++) {
+      if (typeof generateRound === 'function') generateRound(state.rounds.length);
+    }
+    state.rounds = state.rounds.concat(tail);
+  }
+
+  if (typeof handleRoundAction === 'function') {
+    var _hra162 = handleRoundAction;
+    window.handleRoundAction = function (action) {
+      if ((action === 'next' || action === 'add') && isSD162() && state && !state.ended) {
+        var cur = state.currentRoundIdx;
+        var round = state.rounds && state.rounds[cur];
+        if (typeof roundFullyScored === 'function' && round && !roundFullyScored(round)) {
+          var missing = typeof unscoredCourts === 'function' ? unscoredCourts(round) : [];
+          if (typeof showToast === 'function') {
+            showToast(missing.length
+              ? 'Skor belum lengkap: ' + missing.join(', ')
+              : 'Input skor dulu sebelum lanjut');
+          }
+          return;
+        }
+        // Setelah skor lengkap: regenerate next+ dari klasemen LIVE
+        // (bukan pakai pregenerate random/basi)
+        if (action === 'next') {
+          var nextIdx = cur + 1;
+          if (nextIdx < state.rounds.length) {
+            regenerateLiveFrom(nextIdx);
+          }
+          // jika di ujung, generateRound di _hra162 akan pakai standings live
+        }
+      }
+      return _hra162.apply(this, arguments);
+    };
+    handleRoundAction = window.handleRoundAction;
+  }
+
+  // Setelah commit skor, regen future unscored supaya UI next sudah klasemen-aware
+  if (typeof regenerateUnscoredFutureRounds === 'function') {
+    var _reg162 = regenerateUnscoredFutureRounds;
+    window.regenerateUnscoredFutureRounds = function () {
+      if (isSD162()) {
+        var first = -1;
+        for (var i = 0; i < state.rounds.length; i++) {
+          var r = state.rounds[i];
+          var hasScore = r && r.matches && r.matches.some(function (m) {
+            return m.scoreA > 0 || m.scoreB > 0;
+          });
+          if (!hasScore) { first = i; break; }
+        }
+        if (first >= 0) regenerateLiveFrom(first);
+        return;
+      }
+      return _reg162.apply(this, arguments);
+    };
+    regenerateUnscoredFutureRounds = window.regenerateUnscoredFutureRounds;
+  }
+})();
+</script>
 
 </body>
 </html>
