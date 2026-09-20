@@ -3836,23 +3836,33 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
 
 </head>
 <body>
-<!-- v0.73.163: proxy STATIS di first paint — Safari 26 sample fixed solid di tepi atas.
-     Warna = header cream (#f5f0e6 / dark #121609), admin & nonton SAMA. Bukan putih sistem. -->
-<div id="iosChromeColorProxy" aria-hidden="true" style="position:fixed;top:0;left:0;right:0;width:100%;height:max(12px,env(safe-area-inset-top,0px));min-height:12px;background-color:#f5f0e6;background:#f5f0e6;z-index:2147483646;pointer-events:none;border:none;margin:0;padding:0;-webkit-backdrop-filter:none;backdrop-filter:none;"></div>
+<!-- v0.73.166: proxy first-paint. Viewer (?room=) = HIJAU ribbon #526627.
+     Admin = cream #f5f0e6. Warna di-set SEBELUM paint supaya status bar gak putih. -->
+<div id="iosChromeColorProxy" aria-hidden="true" style="position:fixed;top:0;left:0;right:0;width:100%;height:max(12px,env(safe-area-inset-top,0px));min-height:12px;z-index:2147483646;pointer-events:none;border:none;margin:0;padding:0;-webkit-backdrop-filter:none;backdrop-filter:none;"></div>
 <script>
-/* early: solid html/body bg + dark restore sebelum first paint */
 (function(){
   try {
     var dark = false;
     try { dark = localStorage.getItem('ptDarkMode') === '1'; } catch(e) {}
     if (dark) document.documentElement.classList.add('dark');
-    var c = dark ? '#121609' : '#f5f0e6';
-    document.documentElement.style.backgroundColor = c;
-    document.documentElement.style.background = c;
+    var viewer = false;
+    try {
+      var q = new URLSearchParams(window.location.search);
+      viewer = !!(q.get('room') || q.get('view') === '1' || q.get('viewer') === '1');
+    } catch(e) {}
+    if (viewer) document.documentElement.classList.add('viewer-url');
+    // VIEWER status bar = hijau ribbon; ADMIN = cream header
+    var c = viewer ? '#526627' : (dark ? '#121609' : '#f5f0e6');
+    var page = dark ? '#121609' : '#f5f0e6';
+    document.documentElement.style.backgroundColor = page;
+    document.documentElement.style.background = page;
     var meta = document.getElementById('themeColorMeta');
     if (meta) meta.setAttribute('content', c);
     var p = document.getElementById('iosChromeColorProxy');
-    if (p) { p.style.backgroundColor = c; p.style.background = c; }
+    if (p) {
+      p.style.backgroundColor = c;
+      p.style.background = c;
+    }
   } catch(e) {}
 })();
 </script>
@@ -4202,7 +4212,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.165</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.166</div>
     </div>
   </div>
 
@@ -34469,6 +34479,182 @@ html.dark body.viewer-mode header {
       new MutationObserver(function () { apply(); })
         .observe(document.body, { attributes: true, attributeFilter: ['class'] });
     }
+  } catch (e) {}
+})();
+</script>
+
+<style id="codex-revision-v073166-css">
+/* ============================================================
+   v0.73.166 -- VIEWER status bar = HIJAU #526627 (bukan abu/putih)
+
+   Akar: proxy statis di-hardcode cream #f5f0e6 + z-index max, menutup
+   safe-area. Di mode nonton (?room=) yang harusnya hijau, tetap cream
+   → status bar keliatan abu/putih. Ribbon hijau di BAWAH proxy.
+
+   Fix:
+   1. First-paint script: kalau ?room= → proxy + theme-color = #526627
+   2. CSS: html.viewer-url / body.viewer-mode → proxy hijau !important
+   3. Ribbon tetap padding-top sat, hijau solid
+   4. Podium open: proxy cream (banner hidden, konten cream)
+   5. Admin: tetap cream, no change
+   ============================================================ */
+
+/* Proxy default size */
+#iosChromeColorProxy {
+  position: fixed !important;
+  top: 0 !important; left: 0 !important; right: 0 !important;
+  width: 100% !important;
+  height: max(12px, env(safe-area-inset-top, 0px)) !important;
+  min-height: 12px !important;
+  z-index: 2147483646 !important;
+  pointer-events: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  opacity: 1 !important;
+  display: block !important;
+  visibility: visible !important;
+  border: none !important; margin: 0 !important; padding: 0 !important;
+}
+
+/* ADMIN cream */
+html:not(.dark):not(.viewer-url) #iosChromeColorProxy,
+html:not(.dark) body:not(.viewer-mode) #iosChromeColorProxy {
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+}
+html.dark:not(.viewer-url) #iosChromeColorProxy,
+html.dark body:not(.viewer-mode) #iosChromeColorProxy {
+  background: #121609 !important;
+  background-color: #121609 !important;
+}
+
+/* VIEWER = HIJAU RIBBON — ini yang bikin status bar hijau */
+html.viewer-url #iosChromeColorProxy,
+html.viewer-url body #iosChromeColorProxy,
+body.viewer-mode #iosChromeColorProxy,
+html body.viewer-mode #iosChromeColorProxy,
+.viewer-url #iosChromeColorProxy {
+  background: #526627 !important;
+  background-color: #526627 !important;
+}
+
+/* Ribbon hijau full ke safe-area */
+html.viewer-url .beta-banner,
+body.viewer-mode .beta-banner,
+.viewer-url .beta-banner {
+  background: #526627 !important;
+  background-color: #526627 !important;
+  padding-top: env(safe-area-inset-top, 0px) !important;
+  min-height: calc(26px + env(safe-area-inset-top, 0px)) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  margin: 0 !important;
+}
+
+/* Podium: banner hilang → status bar ikut cream podium */
+body:has(.podium-backdrop.show) #iosChromeColorProxy,
+html.viewer-url body:has(.podium-backdrop.show) #iosChromeColorProxy,
+body.viewer-mode:has(.podium-backdrop.show) #iosChromeColorProxy {
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+}
+html.dark body:has(.podium-backdrop.show) #iosChromeColorProxy {
+  background: #121609 !important;
+  background-color: #121609 !important;
+}
+</style>
+<script id="codex-revision-v073166-js">
+(function () {
+  var CREAM = '#f5f0e6';
+  var DARK = '#121609';
+  var GREEN = '#526627';
+
+  function isViewer() {
+    try {
+      if (document.documentElement.classList.contains('viewer-url')) return true;
+      if (document.body && document.body.classList.contains('viewer-mode')) return true;
+      if (document.body && document.body.classList.contains('viewer-url')) return true;
+      var q = new URLSearchParams(location.search);
+      if (q.get('room') || q.get('view') === '1' || q.get('viewer') === '1') return true;
+    } catch (e) {}
+    return false;
+  }
+
+  function podiumOpen() {
+    try {
+      var p = document.querySelector('.podium-backdrop.show');
+      return !!p;
+    } catch (e) { return false; }
+  }
+
+  function apply() {
+    var dark = document.documentElement.classList.contains('dark');
+    var viewer = isViewer();
+    var col;
+    if (podiumOpen()) {
+      col = dark ? DARK : CREAM;
+    } else if (viewer) {
+      col = GREEN;
+    } else {
+      col = dark ? DARK : CREAM;
+    }
+
+    var el = document.getElementById('iosChromeColorProxy');
+    if (!el && document.body) {
+      el = document.createElement('div');
+      el.id = 'iosChromeColorProxy';
+      document.body.insertBefore(el, document.body.firstChild);
+    }
+    if (el) {
+      el.style.setProperty('background', col, 'important');
+      el.style.setProperty('background-color', col, 'important');
+    }
+
+    var meta = document.getElementById('themeColorMeta');
+    if (meta) {
+      meta.setAttribute('content', col === GREEN ? '#526626' : col);
+      meta.setAttribute('content', col);
+    }
+
+    // Force ribbon green + sat pad in viewer
+    if (viewer && !podiumOpen()) {
+      document.querySelectorAll('.beta-banner, #betaBanner').forEach(function (b) {
+        b.style.setProperty('background', GREEN, 'important');
+        b.style.setProperty('background-color', GREEN, 'important');
+        b.style.setProperty('padding-top', 'env(safe-area-inset-top, 0px)', 'important');
+        b.style.setProperty('min-height', 'calc(26px + env(safe-area-inset-top, 0px))', 'important');
+        b.style.setProperty('display', 'flex', 'important');
+      });
+    }
+  }
+
+  window.__ptSyncChromeProxy = apply;
+  var prev = window.__ptSyncThemeColor;
+  window.__ptSyncThemeColor = function () {
+    if (typeof prev === 'function') try { prev.apply(this, arguments); } catch (e) {}
+    apply();
+  };
+
+  apply();
+  document.addEventListener('DOMContentLoaded', apply);
+  window.addEventListener('load', function () {
+    apply();
+    [100, 300, 800, 1500].forEach(function (t) { setTimeout(apply, t); });
+  });
+
+  // Re-apply when viewer-mode class appears / podium toggles
+  try {
+    var obs = new MutationObserver(function () { apply(); });
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    document.addEventListener('DOMContentLoaded', function () {
+      if (document.body) {
+        obs.observe(document.body, { attributes: true, attributeFilter: ['class'], subtree: true });
+      }
+      var pod = document.getElementById('podiumModal') || document.querySelector('.podium-backdrop');
+      if (pod) obs.observe(pod, { attributes: true, attributeFilter: ['class'] });
+    });
   } catch (e) {}
 })();
 </script>
