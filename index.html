@@ -4202,7 +4202,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.163</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.164</div>
     </div>
   </div>
 
@@ -34057,6 +34057,176 @@ html.dark .viewer-url #iosChromeColorProxy {
   window.addEventListener('orientationchange', function () { setTimeout(apply, 200); });
   try {
     new MutationObserver(function () { apply(); setTimeout(apply, 300); })
+      .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  } catch (e) {}
+})();
+</script>
+
+<style id="codex-revision-v073164-css">
+/* ============================================================
+   v0.73.164 -- Safe-area = header cream BENERAN (bukan mint page)
+
+   Bukti device v0.73.163: status bar masih mint (#eef3e2→#f2f5e9 dari
+   gradient html), header cream #f5f0e6 — seam terlihat.
+
+   Akar: Safari 26 sample elemen fixed/sticky SOLID di tepi atas.
+   Proxy cream kalah / gak ke-sample; yang menang = gradient mint di html.
+
+   Fix:
+   1. Header SOLID #f5f0e6, TANPA backdrop-filter (blur bikin Safari
+      gagal sample — WebKit #319479).
+   2. Header sticky + padding-top: env(safe-area-inset-top) supaya
+      cream header MENGECAT area di bawah status bar.
+   3. html/body background SOLID #f5f0e6 (override gradient mint
+      #eef3e2→#f2f5e9) — fallback sampling.
+   4. Proxy + theme-color tetap #f5f0e6.
+   5. Viewer: sama cream (bukan hijau ribbon) per brief user.
+   ============================================================ */
+
+/* Kill mint page gradient — solid cream = header */
+html:not(.dark),
+html:not(.dark) body {
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+  background-image: none !important;
+}
+html.dark,
+html.dark body {
+  background: #121609 !important;
+  background-color: #121609 !important;
+  background-image: none !important;
+}
+
+/* Header = solid cream, extends under status bar, sampleable by Safari */
+html:not(.dark) header,
+html:not(.dark) body header,
+html:not(.dark) body.viewer-mode header,
+html:not(.dark).viewer-url header {
+  position: sticky !important;
+  top: 0 !important;
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+  background-image: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  /* extend cream into safe-area so status bar samples THIS */
+  padding-top: max(10px, env(safe-area-inset-top, 0px)) !important;
+  z-index: 100 !important;
+}
+html.dark header,
+html.dark body header,
+html.dark body.viewer-mode header {
+  position: sticky !important;
+  top: 0 !important;
+  background: #121609 !important;
+  background-color: #121609 !important;
+  background-image: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  padding-top: max(10px, env(safe-area-inset-top, 0px)) !important;
+  z-index: 100 !important;
+}
+
+/* Proxy must match header exactly */
+#iosChromeColorProxy {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  height: max(12px, env(safe-area-inset-top, 0px)) !important;
+  min-height: 12px !important;
+  z-index: 2147483646 !important;
+  pointer-events: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+  opacity: 1 !important;
+  display: block !important;
+  visibility: visible !important;
+}
+html.dark #iosChromeColorProxy,
+html.dark body.viewer-mode #iosChromeColorProxy,
+html.dark.viewer-url #iosChromeColorProxy {
+  background: #121609 !important;
+  background-color: #121609 !important;
+}
+html:not(.dark) body.viewer-mode #iosChromeColorProxy,
+html:not(.dark).viewer-url #iosChromeColorProxy,
+html:not(.dark) .viewer-url #iosChromeColorProxy {
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+}
+
+/* Viewer ribbon: JANGAN extend ke safe-area (biar cream yang ke-sample).
+   Safe-area cream; ribbon hijau mulai DI BAWAH inset. */
+html:not(.dark) body.viewer-mode .beta-banner,
+html:not(.dark).viewer-url .beta-banner,
+html:not(.dark) .viewer-url .beta-banner {
+  padding-top: 0 !important;
+  min-height: 26px !important;
+}
+/* Spacer di atas ribbon = safe area cream (ikut body/html) —
+   status bar sample cream, ribbon hijau di bawahnya. */
+</style>
+<script id="codex-revision-v073164-js">
+(function () {
+  var LIGHT = '#f5f0e6';
+  var DARK = '#121609';
+  function c() {
+    return document.documentElement.classList.contains('dark') ? DARK : LIGHT;
+  }
+  function apply() {
+    var col = c();
+    var el = document.getElementById('iosChromeColorProxy');
+    if (!el && document.body) {
+      el = document.createElement('div');
+      el.id = 'iosChromeColorProxy';
+      document.body.insertBefore(el, document.body.firstChild);
+    }
+    if (el) {
+      el.style.setProperty('background', col, 'important');
+      el.style.setProperty('background-color', col, 'important');
+    }
+    try {
+      document.documentElement.style.setProperty('background', col, 'important');
+      document.documentElement.style.setProperty('background-color', col, 'important');
+      document.documentElement.style.setProperty('background-image', 'none', 'important');
+      if (document.body) {
+        document.body.style.setProperty('background', col, 'important');
+        document.body.style.setProperty('background-color', col, 'important');
+        document.body.style.setProperty('background-image', 'none', 'important');
+      }
+    } catch (e) {}
+    var meta = document.getElementById('themeColorMeta');
+    if (meta) {
+      meta.setAttribute('content', col === LIGHT ? '#f5f0e5' : '#121608');
+      meta.setAttribute('content', col);
+    }
+    // solidify header
+    document.querySelectorAll('header').forEach(function (h) {
+      h.style.setProperty('background', col, 'important');
+      h.style.setProperty('background-color', col, 'important');
+      h.style.setProperty('background-image', 'none', 'important');
+      h.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+      h.style.setProperty('backdrop-filter', 'none', 'important');
+    });
+  }
+  window.__ptSyncChromeProxy = apply;
+  var prev = window.__ptSyncThemeColor;
+  window.__ptSyncThemeColor = function () {
+    if (typeof prev === 'function') try { prev.apply(this, arguments); } catch (e) {}
+    apply();
+  };
+  apply();
+  window.addEventListener('load', function () {
+    apply();
+    setTimeout(apply, 200);
+    setTimeout(apply, 800);
+  });
+  try {
+    new MutationObserver(function () { apply(); })
       .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
   } catch (e) {}
 })();
