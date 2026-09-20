@@ -4229,7 +4229,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.177</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.178</div>
     </div>
   </div>
 
@@ -33684,12 +33684,20 @@ body:not(.format-club-sparing) #sparingScoreHeader {
     }
   }
 
+  // v0.73.178 FIX FREEZE: classList.add() pada token yang SUDAH ADA tetap
+  // nulis ulang atribut class => MutationObserver (observe html[class] di bawah)
+  // ke-trigger lagi => markViewer() dipanggil lagi => loop microtask tanpa ujung,
+  // tab viewer (?room=) freeze total. Guard contains() bikin idempotent: cuma
+  // nulis kalau class BELUM ada, jadi observer gak pernah nge-trigger dirinya sendiri.
   function markViewer() {
     try {
       var q = new URLSearchParams(location.search);
       if (q.get('room') || q.get('view') === '1') {
-        document.documentElement.classList.add('viewer-url');
-        if (document.body) document.body.classList.add('viewer-mode');
+        var h = document.documentElement;
+        if (!h.classList.contains('viewer-url')) h.classList.add('viewer-url');
+        if (document.body && !document.body.classList.contains('viewer-mode')) {
+          document.body.classList.add('viewer-mode');
+        }
       }
     } catch (e) {}
   }
