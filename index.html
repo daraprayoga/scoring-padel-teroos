@@ -4212,7 +4212,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.168</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.169</div>
     </div>
   </div>
 
@@ -35172,6 +35172,131 @@ body.viewer-mode .beta-banner {
       var pod = document.querySelector('.podium-backdrop');
       if (pod) obs.observe(pod, { attributes: true, attributeFilter: ['class'] });
     });
+  } catch (e) {}
+})();
+</script>
+
+<style id="codex-revision-v073169-css">
+/* ============================================================
+   v0.73.169 -- Viewer: white space di atas logo KEGODEAN → rapikan
+
+   Screenshot: gap cream besar antara status bar & logo padel.teroos
+   (ribbon sudah scroll away / padding-top: sat penuh ~47–59px + ekstra).
+
+   Fix:
+   - Header viewer: padding-top diperkecil (bukan full sat + extra)
+   - top:0, padding-top ≈ sat - 18px (logo naik, tetap aman dari notch)
+   - Override rule lama max(8px, sat) / max(10px, sat) / sat+26px
+   - Ribbon MODE NONTON tetap full di atas page (tinggi 32px, teks utuh)
+   ============================================================ */
+
+/* Rapatkan header viewer — jangan full safe-area padding */
+html.viewer-url header,
+html.viewer-url body header,
+body.viewer-mode header,
+.viewer-url body header,
+html body.viewer-mode header {
+  position: sticky !important;
+  top: 0 !important;
+  /* sat-18px: naikkan logo, tetap di bawah status bar icons */
+  padding-top: max(6px, calc(env(safe-area-inset-top, 0px) - 18px)) !important;
+  padding-bottom: 8px !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  height: auto !important;
+  box-sizing: border-box !important;
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 640px) {
+  html.viewer-url header,
+  body.viewer-mode header,
+  .viewer-url body header {
+    padding-top: max(6px, calc(env(safe-area-inset-top, 0px) - 18px)) !important;
+    padding-bottom: 8px !important;
+    max-height: none !important;
+  }
+}
+
+/* Admin tetap butuh full sat (tidak diubah agresif) */
+html:not(.dark) body:not(.viewer-mode) header {
+  padding-top: max(10px, env(safe-area-inset-top, 0px)) !important;
+}
+
+/* Ribbon viewer: pastikan muncul & tidak menambah gap gila */
+html.viewer-url .beta-banner,
+body.viewer-mode .beta-banner,
+.viewer-url .beta-banner {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #526627 !important;
+  background-color: #526627 !important;
+  padding: 7px 12px !important;
+  min-height: 30px !important;
+  height: auto !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  /* no padding-top:sat — biar gak double gap */
+  overflow: visible !important;
+}
+
+/* Proxy: jangan bikin band ekstra di bawah status bar */
+html.viewer-url #iosChromeColorProxy,
+body.viewer-mode #iosChromeColorProxy {
+  height: env(safe-area-inset-top, 0px) !important;
+  min-height: 0 !important;
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+}
+</style>
+<script id="codex-revision-v073169-js">
+(function () {
+  function isViewer() {
+    try {
+      if (document.documentElement.classList.contains('viewer-url')) return true;
+      if (document.body && document.body.classList.contains('viewer-mode')) return true;
+      var q = new URLSearchParams(location.search);
+      return !!(q.get('room') || q.get('view') === '1');
+    } catch (e) { return false; }
+  }
+  function apply() {
+    if (!isViewer()) return;
+    if (document.querySelector('.podium-backdrop.show')) return;
+
+    document.querySelectorAll('header').forEach(function (h) {
+      h.style.setProperty('padding-top', 'max(6px, calc(env(safe-area-inset-top, 0px) - 18px))', 'important');
+      h.style.setProperty('padding-bottom', '8px', 'important');
+      h.style.setProperty('background', '#f5f0e6', 'important');
+      h.style.setProperty('background-color', '#f5f0e6', 'important');
+      h.style.setProperty('border-bottom', 'none', 'important');
+      h.style.setProperty('box-shadow', 'none', 'important');
+    });
+
+    document.querySelectorAll('.beta-banner, #betaBanner').forEach(function (b) {
+      b.style.setProperty('display', 'flex', 'important');
+      b.style.setProperty('padding', '7px 12px', 'important');
+      b.style.setProperty('min-height', '30px', 'important');
+      b.style.setProperty('padding-top', '7px', 'important');
+      b.style.setProperty('background', '#526627', 'important');
+      b.style.setProperty('background-color', '#526627', 'important');
+    });
+  }
+  apply();
+  document.addEventListener('DOMContentLoaded', apply);
+  window.addEventListener('load', function () {
+    apply();
+    setTimeout(apply, 300);
+  });
+  try {
+    new MutationObserver(apply).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
   } catch (e) {}
 })();
 </script>
