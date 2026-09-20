@@ -4212,7 +4212,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.171</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.173</div>
     </div>
   </div>
 
@@ -35699,6 +35699,306 @@ body.viewer-mode {
 
   // Disable previous chrome proxy syncers
   window.__ptSyncChromeProxy = function () { nukeProxy(); };
+})();
+</script>
+
+<style id="codex-revision-v073172-css">
+/* ============================================================
+   v0.73.172 -- Kembalikan ribbon MODE NONTON
+
+   Hilang karena:
+   - body:not(.viewer-mode) #betaBanner { display:none } — body.viewer-mode
+     baru di-set SETELAH Firebase async, sementara html.viewer-url sudah ada
+   - revisi podium/strip sempat force height:0 / display:none
+
+   Fix: html.viewer-url SAJA cukup untuk tampilkan ribbon (tanpa nunggu
+   body.viewer-mode). Force display:flex + hijau + teks.
+   ============================================================ */
+
+/* SHOW ribbon for viewer — override body:not(.viewer-mode) hide */
+html.viewer-url #betaBanner,
+html.viewer-url .beta-banner,
+html.viewer-url body #betaBanner,
+html.viewer-url body .beta-banner,
+body.viewer-mode #betaBanner,
+body.viewer-mode .beta-banner,
+.viewer-url #betaBanner,
+.viewer-url .beta-banner {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 30px !important;
+  padding: 7px 12px !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  background: #526627 !important;
+  background-color: #526627 !important;
+  border: none !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  position: relative !important;
+  z-index: 1001 !important;
+  pointer-events: auto !important;
+}
+
+/* Text color on ribbon */
+html.viewer-url #betaBanner,
+body.viewer-mode #betaBanner,
+html.viewer-url .beta-banner,
+body.viewer-mode .beta-banner {
+  color: #f5f0e6 !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 1.2px !important;
+  text-transform: uppercase !important;
+}
+
+/* Keep hidden on podium only */
+body:has(.podium-backdrop.show) #betaBanner,
+body:has(.podium-backdrop.show) .beta-banner,
+html.viewer-url body:has(.podium-backdrop.show) #betaBanner {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  opacity: 0 !important;
+}
+
+/* Admin remains hidden */
+body:not(.viewer-mode):not(.viewer-url) #betaBanner {
+  /* don't fight — original rule handles admin */
+}
+html:not(.viewer-url) body:not(.viewer-mode) #betaBanner {
+  display: none !important;
+}
+</style>
+<script id="codex-revision-v073172-js">
+(function () {
+  function isViewer() {
+    try {
+      if (document.documentElement.classList.contains('viewer-url')) return true;
+      if (document.body && document.body.classList.contains('viewer-mode')) return true;
+      var q = new URLSearchParams(location.search);
+      return !!(q.get('room') || q.get('view') === '1');
+    } catch (e) { return false; }
+  }
+
+  function restoreRibbon() {
+    if (!isViewer()) return;
+    if (document.querySelector('.podium-backdrop.show')) return;
+
+    var b = document.getElementById('betaBanner');
+    if (!b) return;
+
+    b.style.setProperty('display', 'flex', 'important');
+    b.style.setProperty('visibility', 'visible', 'important');
+    b.style.setProperty('opacity', '1', 'important');
+    b.style.setProperty('height', 'auto', 'important');
+    b.style.setProperty('min-height', '30px', 'important');
+    b.style.setProperty('max-height', 'none', 'important');
+    b.style.setProperty('padding', '7px 12px', 'important');
+    b.style.setProperty('margin', '0', 'important');
+    b.style.setProperty('background', '#526627', 'important');
+    b.style.setProperty('background-color', '#526627', 'important');
+    b.style.setProperty('align-items', 'center', 'important');
+    b.style.setProperty('justify-content', 'center', 'important');
+    b.style.setProperty('overflow', 'visible', 'important');
+
+    // Ensure MODE NONTON label exists
+    var hasLabel = false;
+    b.childNodes.forEach(function (n) {
+      if (n.nodeType === 1 && n.textContent && n.textContent.indexOf('MODE NONTON') >= 0) hasLabel = true;
+    });
+    var ticker = b.querySelector('.beta-ticker');
+    if (ticker) ticker.style.setProperty('display', 'none', 'important');
+
+    if (!hasLabel) {
+      var label = document.createElement('div');
+      label.setAttribute('data-viewer-ribbon-label', '1');
+      label.style.cssText = 'width:100%;text-align:center;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#f5f0e6;white-space:nowrap;';
+      label.textContent = 'MODE NONTON · VIEW ONLY';
+      b.appendChild(label);
+    }
+  }
+
+  function boot() {
+    // Mark viewer-url early
+    try {
+      var q = new URLSearchParams(location.search);
+      if (q.get('room') || q.get('view') === '1') {
+        document.documentElement.classList.add('viewer-url');
+      }
+    } catch (e) {}
+    restoreRibbon();
+  }
+
+  boot();
+  document.addEventListener('DOMContentLoaded', function () {
+    boot();
+    restoreRibbon();
+  });
+  window.addEventListener('load', function () {
+    restoreRibbon();
+    setTimeout(restoreRibbon, 100);
+    setTimeout(restoreRibbon, 500);
+    setTimeout(restoreRibbon, 1500);
+  });
+
+  try {
+    new MutationObserver(function () { restoreRibbon(); })
+      .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    document.addEventListener('DOMContentLoaded', function () {
+      if (document.body) {
+        new MutationObserver(function () { restoreRibbon(); })
+          .observe(document.body, { attributes: true, attributeFilter: ['class'] });
+      }
+    });
+  } catch (e) {}
+})();
+</script>
+
+<style id="codex-revision-v073173-css">
+/* ============================================================
+   v0.73.173 -- Hilangkan GETAR/jitter pas scroll up ke atas (viewer)
+
+   Akar: v0.73.171 pasang scroll listener + setInterval yang
+   setProperty padding/background header TIAP scroll frame →
+   layout thrash + iOS rubber-band bergetar di top.
+
+   Fix:
+   1. JANGAN sentuh style header di scroll event
+   2. Header sticky stabil pure-CSS, nilai fixed
+   3. overscroll-behavior contain di container scroll
+   4. Ribbon + header tetap tampil tanpa JS loop
+   ============================================================ */
+
+/* Stabil sticky header — pure CSS, no JS fight */
+html.viewer-url header,
+body.viewer-mode header,
+.viewer-url header {
+  position: sticky !important;
+  top: 0 !important;
+  padding-top: 4px !important;
+  padding-bottom: 6px !important;
+  margin: 0 !important;
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+  background-image: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  z-index: 1000 !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+
+/* Kurangi rubber-band fight di iOS */
+html.viewer-url,
+html.viewer-url body,
+body.viewer-mode {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ribbon stabil */
+html.viewer-url #betaBanner,
+html.viewer-url .beta-banner,
+body.viewer-mode #betaBanner,
+body.viewer-mode .beta-banner {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #526627 !important;
+  background-color: #526627 !important;
+  padding: 7px 12px !important;
+  min-height: 30px !important;
+  height: auto !important;
+  margin: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  position: relative !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+</style>
+<script id="codex-revision-v073173-js">
+(function () {
+  /* Matikan scroll/interval fighters dari revisi sebelumnya yang bikin jitter */
+  try {
+    // Replace aggressive syncers with no-ops
+    window.__ptSyncChromeProxy = function () {};
+  } catch (e) {}
+
+  function isViewer() {
+    try {
+      if (document.documentElement.classList.contains('viewer-url')) return true;
+      if (document.body && document.body.classList.contains('viewer-mode')) return true;
+      var q = new URLSearchParams(location.search);
+      return !!(q.get('room') || q.get('view') === '1');
+    } catch (e) { return false; }
+  }
+
+  function onceSetupRibbon() {
+    if (!isViewer()) return;
+    if (document.querySelector('.podium-backdrop.show')) return;
+    var b = document.getElementById('betaBanner');
+    if (!b) return;
+    // Only set once if missing label — jangan loop di scroll
+    if (b.getAttribute('data-ribbon-ready') === '1') return;
+    b.style.display = 'flex';
+    b.style.background = '#526627';
+    b.style.backgroundColor = '#526627';
+    var ticker = b.querySelector('.beta-ticker');
+    if (ticker) ticker.style.display = 'none';
+    var has = false;
+    for (var i = 0; i < b.children.length; i++) {
+      if ((b.children[i].textContent || '').indexOf('MODE NONTON') >= 0) has = true;
+    }
+    if (!has) {
+      var label = document.createElement('div');
+      label.style.cssText = 'width:100%;text-align:center;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#f5f0e6;white-space:nowrap;';
+      label.textContent = 'MODE NONTON · VIEW ONLY';
+      b.appendChild(label);
+    }
+    b.setAttribute('data-ribbon-ready', '1');
+  }
+
+  // SEKALI saja — tidak di scroll, tidak di interval
+  function boot() {
+    try {
+      var q = new URLSearchParams(location.search);
+      if (q.get('room') || q.get('view') === '1') {
+        document.documentElement.classList.add('viewer-url');
+      }
+    } catch (e) {}
+    onceSetupRibbon();
+  }
+
+  boot();
+  document.addEventListener('DOMContentLoaded', boot);
+  window.addEventListener('load', function () {
+    boot();
+    setTimeout(boot, 400);
+  });
+
+  // Hanya re-run saat class berubah (viewer-mode muncul), BUKAN scroll
+  try {
+    new MutationObserver(function () { onceSetupRibbon(); })
+      .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    document.addEventListener('DOMContentLoaded', function () {
+      if (document.body) {
+        new MutationObserver(function () { onceSetupRibbon(); })
+          .observe(document.body, { attributes: true, attributeFilter: ['class'] });
+      }
+    });
+  } catch (e) {}
 })();
 </script>
 </body>
