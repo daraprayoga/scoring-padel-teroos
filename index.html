@@ -3851,9 +3851,9 @@ body:has(.podium-backdrop.show) #viewerModeBanner { display:none !important; }
       viewer = !!(q.get('room') || q.get('view') === '1' || q.get('viewer') === '1');
     } catch(e) {}
     if (viewer) document.documentElement.classList.add('viewer-url');
-    // VIEWER status bar = hijau ribbon; ADMIN = cream header
-    var c = viewer ? '#526627' : (dark ? '#121609' : '#f5f0e6');
-    var page = dark ? '#121609' : '#f5f0e6';
+    // Status bar = cream header di SEMUA mode (admin + nonton). Ribbon hijau terpisah di bawah.
+    var c = dark ? '#121609' : '#f5f0e6';
+    var page = c;
     document.documentElement.style.backgroundColor = page;
     document.documentElement.style.background = page;
     var meta = document.getElementById('themeColorMeta');
@@ -4212,7 +4212,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.166</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.168</div>
     </div>
   </div>
 
@@ -34653,6 +34653,523 @@ html.dark body:has(.podium-backdrop.show) #iosChromeColorProxy {
         obs.observe(document.body, { attributes: true, attributeFilter: ['class'], subtree: true });
       }
       var pod = document.getElementById('podiumModal') || document.querySelector('.podium-backdrop');
+      if (pod) obs.observe(pod, { attributes: true, attributeFilter: ['class'] });
+    });
+  } catch (e) {}
+})();
+</script>
+
+<style id="codex-revision-v073167-css">
+/* ============================================================
+   v0.73.167 -- Mode nonton: 4 fix dari screenshot user
+
+   1. PODIUM: strip di bawah status bar HILANG
+      → proxy cream, banner hidden, no green residual
+   2. RIBBON "MODE NONTON": tulisan UTUH, ribbon cukup tinggi
+      → min-height ~28px + padding, overflow visible, font legible
+      → JANGAN padding-top:sat yang bikin ribbon "kecil" / teks kepotong
+   3. STATUS BAR: light cream = header (#f5f0e6), BUKAN abu/mint/hijau
+   4. BACKGROUND: sama admin #f5f0e6, bukan cokelat/mint gradient
+   ============================================================ */
+
+/* --- Page bg = admin cream, kill mint/brown gradients --- */
+html:not(.dark),
+html:not(.dark) body,
+html.viewer-url:not(.dark),
+html:not(.dark) body.viewer-mode {
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+  background-image: none !important;
+}
+html.dark,
+html.dark body {
+  background: #121609 !important;
+  background-color: #121609 !important;
+  background-image: none !important;
+}
+
+/* --- Proxy / status bar = CREAM (match header) always --- */
+#iosChromeColorProxy {
+  position: fixed !important;
+  top: 0 !important; left: 0 !important; right: 0 !important;
+  width: 100% !important;
+  height: max(12px, env(safe-area-inset-top, 0px)) !important;
+  min-height: 12px !important;
+  z-index: 2147483646 !important;
+  pointer-events: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  opacity: 1 !important;
+  display: block !important;
+  visibility: visible !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+}
+html.dark #iosChromeColorProxy {
+  background: #121609 !important;
+  background-color: #121609 !important;
+}
+/* OVERRIDE semua rule sebelumnya yang maksa hijau di viewer */
+html.viewer-url #iosChromeColorProxy,
+body.viewer-mode #iosChromeColorProxy,
+html.viewer-url body #iosChromeColorProxy,
+.viewer-url #iosChromeColorProxy,
+html.viewer-url body.viewer-mode #iosChromeColorProxy {
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+}
+html.dark.viewer-url #iosChromeColorProxy,
+html.dark body.viewer-mode #iosChromeColorProxy {
+  background: #121609 !important;
+  background-color: #121609 !important;
+}
+
+/* --- Header cream, no hairline --- */
+html:not(.dark) header,
+html:not(.dark) body.viewer-mode header,
+html.viewer-url header {
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+/* Admin: header extends under status bar */
+html:not(.dark) body:not(.viewer-mode) header {
+  padding-top: max(10px, env(safe-area-inset-top, 0px)) !important;
+}
+/* Viewer: header normal pad — ribbon di atasnya handle spacing */
+html:not(.dark) body.viewer-mode header,
+html.viewer-url header {
+  padding-top: 10px !important;
+}
+
+/* --- MODE NONTON ribbon: tinggi cukup, teks UTUH --- */
+html.viewer-url .beta-banner,
+body.viewer-mode .beta-banner,
+.viewer-url .beta-banner,
+html.viewer-url body.viewer-mode .beta-banner {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #526627 !important;
+  background-color: #526627 !important;
+  /* JANGAN padding-top:sat — itu bikin teks kepotong / ribbon "kecil" */
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+  min-height: 32px !important;
+  height: auto !important;
+  margin: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  overflow: visible !important;
+  position: relative !important;
+  z-index: 1001 !important;
+}
+html.viewer-url .beta-banner .beta-ticker,
+body.viewer-mode .beta-banner .beta-ticker,
+html.viewer-url .beta-banner .beta-ticker span,
+body.viewer-mode .beta-banner .beta-ticker span {
+  color: #f5f0e6 !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 1.2px !important;
+  line-height: 1.3 !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+/* Safe-area di viewer: spacer cream di atas ribbon (status bar sample cream) */
+html.viewer-url body,
+body.viewer-mode {
+  /* body already cream */
+}
+/* Optional: padding on body top is NOT needed — proxy paints cream under status bar */
+
+/* --- PODIUM: no strip --- */
+body:has(.podium-backdrop.show) #iosChromeColorProxy,
+html.viewer-url body:has(.podium-backdrop.show) #iosChromeColorProxy,
+body.viewer-mode:has(.podium-backdrop.show) #iosChromeColorProxy {
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+}
+html.dark body:has(.podium-backdrop.show) #iosChromeColorProxy {
+  background: #121609 !important;
+  background-color: #121609 !important;
+}
+body:has(.podium-backdrop.show) .beta-banner,
+body:has(.podium-backdrop.show) #betaBanner,
+html.viewer-url body:has(.podium-backdrop.show) .beta-banner {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  border: none !important;
+  background: transparent !important;
+}
+.podium-backdrop,
+.podium-backdrop.show {
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+}
+/* Podium extends under status bar with cream — no colored strip */
+.podium-backdrop.show {
+  padding-top: 0 !important;
+}
+</style>
+<script id="codex-revision-v073167-js">
+(function () {
+  var CREAM = '#f5f0e6';
+  var DARK = '#121609';
+  var GREEN = '#526627';
+
+  function isViewer() {
+    try {
+      if (document.documentElement.classList.contains('viewer-url')) return true;
+      if (document.body && document.body.classList.contains('viewer-mode')) return true;
+      var q = new URLSearchParams(location.search);
+      if (q.get('room') || q.get('view') === '1' || q.get('viewer') === '1') return true;
+    } catch (e) {}
+    return false;
+  }
+  function podiumOpen() {
+    try { return !!document.querySelector('.podium-backdrop.show'); } catch (e) { return false; }
+  }
+
+  function apply() {
+    var dark = document.documentElement.classList.contains('dark');
+    // Status bar ALWAYS cream/dark — match header (user image 3)
+    var col = dark ? DARK : CREAM;
+
+    var el = document.getElementById('iosChromeColorProxy');
+    if (!el && document.body) {
+      el = document.createElement('div');
+      el.id = 'iosChromeColorProxy';
+      document.body.insertBefore(el, document.body.firstChild);
+    }
+    if (el) {
+      el.style.setProperty('background', col, 'important');
+      el.style.setProperty('background-color', col, 'important');
+    }
+
+    var meta = document.getElementById('themeColorMeta');
+    if (meta) {
+      meta.setAttribute('content', col === CREAM ? '#f5f0e5' : '#121608');
+      meta.setAttribute('content', col);
+    }
+
+    try {
+      document.documentElement.style.setProperty('background', col, 'important');
+      document.documentElement.style.setProperty('background-color', col, 'important');
+      document.documentElement.style.setProperty('background-image', 'none', 'important');
+      if (document.body) {
+        document.body.style.setProperty('background', col, 'important');
+        document.body.style.setProperty('background-color', col, 'important');
+        document.body.style.setProperty('background-image', 'none', 'important');
+      }
+    } catch (e) {}
+
+    var viewer = isViewer();
+    var pod = podiumOpen();
+
+    document.querySelectorAll('.beta-banner, #betaBanner').forEach(function (b) {
+      if (pod) {
+        b.style.setProperty('display', 'none', 'important');
+        b.style.setProperty('height', '0', 'important');
+        b.style.setProperty('min-height', '0', 'important');
+        b.style.setProperty('padding', '0', 'important');
+        b.style.setProperty('background', 'transparent', 'important');
+        return;
+      }
+      if (viewer) {
+        b.style.setProperty('display', 'flex', 'important');
+        b.style.setProperty('align-items', 'center', 'important');
+        b.style.setProperty('background', GREEN, 'important');
+        b.style.setProperty('background-color', GREEN, 'important');
+        b.style.setProperty('padding-top', '8px', 'important');
+        b.style.setProperty('padding-bottom', '8px', 'important');
+        b.style.setProperty('min-height', '32px', 'important');
+        b.style.setProperty('height', 'auto', 'important');
+        b.style.setProperty('overflow', 'visible', 'important');
+        b.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+        b.style.setProperty('backdrop-filter', 'none', 'important');
+      }
+    });
+
+    document.querySelectorAll('header').forEach(function (h) {
+      h.style.setProperty('background', col, 'important');
+      h.style.setProperty('background-color', col, 'important');
+      h.style.setProperty('border-bottom', 'none', 'important');
+      h.style.setProperty('box-shadow', 'none', 'important');
+      h.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+      h.style.setProperty('backdrop-filter', 'none', 'important');
+    });
+
+    // Podium solid cream
+    if (pod) {
+      document.querySelectorAll('.podium-backdrop').forEach(function (p) {
+        p.style.setProperty('background', col, 'important');
+        p.style.setProperty('background-color', col, 'important');
+      });
+    }
+  }
+
+  window.__ptSyncChromeProxy = apply;
+  var prev = window.__ptSyncThemeColor;
+  window.__ptSyncThemeColor = function () {
+    if (typeof prev === 'function') try { prev.apply(this, arguments); } catch (e) {}
+    apply();
+  };
+
+  apply();
+  document.addEventListener('DOMContentLoaded', apply);
+  window.addEventListener('load', function () {
+    apply();
+    [100, 400, 1000].forEach(function (t) { setTimeout(apply, t); });
+  });
+  try {
+    var obs = new MutationObserver(function () { apply(); });
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    document.addEventListener('DOMContentLoaded', function () {
+      if (document.body) obs.observe(document.body, { attributes: true, attributeFilter: ['class'], subtree: true });
+      var pod = document.querySelector('.podium-backdrop');
+      if (pod) obs.observe(pod, { attributes: true, attributeFilter: ['class'] });
+    });
+  } catch (e) {}
+})();
+</script>
+
+<style id="codex-revision-v073168-css">
+/* ============================================================
+   v0.73.168 -- Hilangkan STRIP di bawah status bar (podium + nonton)
+                + background scroll = cream #f5f0e6 (bukan cokelat)
+
+   Image 1-2: strip beige di bawah status bar putih = sisa proxy /
+   safe-area band yang beda visual dari konten. User: harusnya GAK ADA.
+
+   Image 3 vs 4: pas scroll bg jadi cokelat gelap. Force solid #f5f0e6
+   di html/body/main/scroll containers, matikan gradient & surface coklat.
+   ============================================================ */
+
+/* === 1. KILL THE STRIP ===
+   Proxy jangan bikin band terlihat di bawah opaque status bar.
+   Di podium: sembunyikan proxy total. Di page: proxy = exact page color,
+   height hanya di area status bar (tidak "nyembul" jadi strip). */
+body:has(.podium-backdrop.show) #iosChromeColorProxy,
+html.viewer-url body:has(.podium-backdrop.show) #iosChromeColorProxy,
+body.viewer-mode:has(.podium-backdrop.show) #iosChromeColorProxy,
+body:has(.podium-backdrop.show) #iosChromeColorProxy {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  opacity: 0 !important;
+  background: transparent !important;
+}
+
+/* Podium full-bleed cream dari top:0 — no extra band */
+.podium-backdrop,
+.podium-backdrop.show {
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+  background-image: none !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  /* content di bawah status bar, bg tetap cream continuous */
+  padding-top: env(safe-area-inset-top, 0px) !important;
+}
+.podium-backdrop::before,
+.podium-backdrop::after {
+  display: none !important; /* kill decorative gradients that tint brown */
+}
+
+/* Banner benar-benar hilang di podium — zero residual strip */
+body:has(.podium-backdrop.show) .beta-banner,
+body:has(.podium-backdrop.show) #betaBanner,
+html.viewer-url body:has(.podium-backdrop.show) .beta-banner,
+body.viewer-mode:has(.podium-backdrop.show) .beta-banner {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body:has(.podium-backdrop.show) header {
+  display: none !important;
+}
+
+/* === 2. BACKGROUND LOCK #f5f0e6 (no brown on scroll) === */
+html,
+html:not(.dark),
+html.viewer-url,
+html body,
+html:not(.dark) body,
+html.viewer-url body,
+body.viewer-mode,
+#app, #root, main, .view, .sb-root, .scoreboard-view,
+.standing-table, .sb-standings-wrap, .sb-left-panel, .sb-right-panel,
+.sb-landscape-wrapper, .overview-wrap, #scoreboardView, #standingsView {
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+  background-image: none !important;
+}
+html.dark,
+html.dark body {
+  background: #121609 !important;
+  background-color: #121609 !important;
+  background-image: none !important;
+}
+
+/* Kill known mint/brown page gradients from older revisions */
+html:not(.dark),
+html:not(.dark) body {
+  background-image: none !important;
+}
+
+/* Surface tokens that look brown when large areas show — keep cards as-is,
+   but page chrome stays cream */
+html:not(.dark) {
+  --primary: #f5f0e6 !important;
+  --primary-light: #f5f0e6 !important;
+  --primary-dark: #f0ebe0 !important;
+  --v73-page: #f5f0e6 !important;
+}
+
+/* === 3. Viewer normal page: proxy cream, no strip below status bar ===
+   Proxy height = safe-area only; same color as body so no visible seam. */
+html:not(.dark) #iosChromeColorProxy,
+html.viewer-url #iosChromeColorProxy,
+body.viewer-mode #iosChromeColorProxy {
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+  /* stay under status bar only — don't create a second band */
+  height: env(safe-area-inset-top, 0px) !important;
+  min-height: 0 !important;
+  max-height: env(safe-area-inset-top, 0px) !important;
+}
+
+/* MODE NONTON ribbon: full text, no sat-padding (avoids double band) */
+html.viewer-url .beta-banner,
+body.viewer-mode .beta-banner {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #526627 !important;
+  background-color: #526627 !important;
+  padding: 8px 12px !important;
+  min-height: 32px !important;
+  height: auto !important;
+  margin: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+</style>
+<script id="codex-revision-v073168-js">
+(function () {
+  var CREAM = '#f5f0e6';
+  var DARK = '#121609';
+
+  function podiumOpen() {
+    try { return !!document.querySelector('.podium-backdrop.show'); } catch (e) { return false; }
+  }
+
+  function apply() {
+    var dark = document.documentElement.classList.contains('dark');
+    var col = dark ? DARK : CREAM;
+    var pod = podiumOpen();
+
+    var el = document.getElementById('iosChromeColorProxy');
+    if (el) {
+      if (pod) {
+        el.style.setProperty('display', 'none', 'important');
+        el.style.setProperty('height', '0', 'important');
+        el.style.setProperty('opacity', '0', 'important');
+      } else {
+        el.style.setProperty('display', 'block', 'important');
+        el.style.setProperty('opacity', '1', 'important');
+        el.style.setProperty('background', col, 'important');
+        el.style.setProperty('background-color', col, 'important');
+        el.style.setProperty('height', 'env(safe-area-inset-top, 0px)', 'important');
+        el.style.setProperty('min-height', '0', 'important');
+      }
+    }
+
+    var meta = document.getElementById('themeColorMeta');
+    if (meta) {
+      meta.setAttribute('content', col);
+    }
+
+    // Lock page bg — no brown
+    try {
+      document.documentElement.style.setProperty('background', col, 'important');
+      document.documentElement.style.setProperty('background-color', col, 'important');
+      document.documentElement.style.setProperty('background-image', 'none', 'important');
+      if (document.body) {
+        document.body.style.setProperty('background', col, 'important');
+        document.body.style.setProperty('background-color', col, 'important');
+        document.body.style.setProperty('background-image', 'none', 'important');
+      }
+    } catch (e) {}
+
+    // Podium: no strip, solid cream, hide banner
+    document.querySelectorAll('.podium-backdrop').forEach(function (p) {
+      p.style.setProperty('background', col, 'important');
+      p.style.setProperty('background-color', col, 'important');
+      p.style.setProperty('background-image', 'none', 'important');
+    });
+    if (pod) {
+      document.querySelectorAll('.beta-banner, #betaBanner').forEach(function (b) {
+        b.style.setProperty('display', 'none', 'important');
+        b.style.setProperty('height', '0', 'important');
+        b.style.setProperty('min-height', '0', 'important');
+        b.style.setProperty('padding', '0', 'important');
+        b.style.setProperty('opacity', '0', 'important');
+        b.style.setProperty('background', 'transparent', 'important');
+      });
+    }
+  }
+
+  window.__ptSyncChromeProxy = apply;
+  var prev = window.__ptSyncThemeColor;
+  window.__ptSyncThemeColor = function () {
+    if (typeof prev === 'function') try { prev.apply(this, arguments); } catch (e) {}
+    apply();
+  };
+
+  apply();
+  document.addEventListener('DOMContentLoaded', apply);
+  window.addEventListener('load', function () {
+    apply();
+    [100, 500, 1200].forEach(function (t) { setTimeout(apply, t); });
+  });
+  window.addEventListener('scroll', function () { apply(); }, { passive: true });
+
+  try {
+    var obs = new MutationObserver(function () { apply(); });
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    document.addEventListener('DOMContentLoaded', function () {
+      if (document.body) obs.observe(document.body, { attributes: true, attributeFilter: ['class'], subtree: true });
+      var pod = document.querySelector('.podium-backdrop');
       if (pod) obs.observe(pod, { attributes: true, attributeFilter: ['class'] });
     });
   } catch (e) {}
