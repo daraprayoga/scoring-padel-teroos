@@ -4202,7 +4202,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.164</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.165</div>
     </div>
   </div>
 
@@ -34228,6 +34228,247 @@ html:not(.dark) .viewer-url .beta-banner {
   try {
     new MutationObserver(function () { apply(); })
       .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  } catch (e) {}
+})();
+</script>
+
+<style id="codex-revision-v073165-css">
+/* ============================================================
+   v0.73.165 -- Viewer: hilangkan gap putih di atas ribbon hijau.
+                Admin: hilangkan hairline di bawah status bar.
+
+   Screenshot user:
+   1) MODE NONTON: lingkaran putih/cream di ANTARA status bar & ribbon
+      hijau = GAK PROPER. Fix: ribbon hijau extend ke safe-area +
+      status-bar chrome = hijau #526627 (bukan cream) supaya nyambung.
+   2) Admin: hampir oke, cuma garis tipis — cabut border/shadow header.
+   ============================================================ */
+
+/* --- ADMIN: solid cream, no hairline --- */
+html:not(.dark) body:not(.viewer-mode) header {
+  position: sticky !important;
+  top: 0 !important;
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+  background-image: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  padding-top: max(10px, env(safe-area-inset-top, 0px)) !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  z-index: 100 !important;
+}
+html.dark body:not(.viewer-mode) header {
+  position: sticky !important;
+  top: 0 !important;
+  background: #121609 !important;
+  background-color: #121609 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  padding-top: max(10px, env(safe-area-inset-top, 0px)) !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+/* Admin page bg cream (no mint gradient) */
+html:not(.dark) body:not(.viewer-mode) {
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+  background-image: none !important;
+}
+html.dark body:not(.viewer-mode) {
+  background: #121609 !important;
+  background-color: #121609 !important;
+  background-image: none !important;
+}
+
+/* Admin proxy = cream */
+html:not(.dark) body:not(.viewer-mode) #iosChromeColorProxy {
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+}
+html.dark body:not(.viewer-mode) #iosChromeColorProxy {
+  background: #121609 !important;
+  background-color: #121609 !important;
+}
+
+/* --- VIEWER: ribbon hijau FULL ke tepi atas (no gap) --- */
+/* Status bar chrome = hijau ribbon supaya nyambung, bukan cream/putih */
+html:not(.dark) body.viewer-mode #iosChromeColorProxy,
+html:not(.dark).viewer-url #iosChromeColorProxy,
+html:not(.dark) .viewer-url #iosChromeColorProxy,
+html:not(.dark) body.viewer-mode ~ #iosChromeColorProxy {
+  background: #526627 !important;
+  background-color: #526627 !important;
+}
+html.dark body.viewer-mode #iosChromeColorProxy,
+html.dark.viewer-url #iosChromeColorProxy {
+  background: #526627 !important;
+  background-color: #526627 !important;
+}
+
+/* Ribbon: extend hijau ke safe-area — ini yang nutup gap */
+html:not(.dark) body.viewer-mode .beta-banner,
+html:not(.dark).viewer-url .beta-banner,
+html:not(.dark) .viewer-url .beta-banner,
+body.viewer-mode .beta-banner,
+.viewer-url .beta-banner {
+  background: #526627 !important;
+  background-color: #526627 !important;
+  padding-top: env(safe-area-inset-top, 0px) !important;
+  min-height: calc(26px + env(safe-area-inset-top, 0px)) !important;
+  margin: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Viewer header: cream, TANPA extra safe-area padding (ribbon sudah handle) */
+html:not(.dark) body.viewer-mode header,
+html:not(.dark).viewer-url header {
+  padding-top: 10px !important;
+  background: #f5f0e6 !important;
+  background-color: #f5f0e6 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+html.dark body.viewer-mode header {
+  padding-top: 10px !important;
+  background: #121609 !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Proxy always full-bleed top strip */
+#iosChromeColorProxy {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  height: max(12px, env(safe-area-inset-top, 0px)) !important;
+  min-height: 12px !important;
+  z-index: 2147483646 !important;
+  pointer-events: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  opacity: 1 !important;
+  display: block !important;
+  visibility: visible !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+</style>
+<script id="codex-revision-v073165-js">
+(function () {
+  var CREAM = '#f5f0e6';
+  var DARK = '#121609';
+  var GREEN = '#526627'; /* ribbon + viewer status bar */
+
+  function isViewer() {
+    return document.body && (
+      document.body.classList.contains('viewer-mode') ||
+      document.documentElement.classList.contains('viewer-url') ||
+      document.body.classList.contains('viewer-url') ||
+      /[?&]view=1\b/.test(location.search) ||
+      /[?&]viewer=1\b/.test(location.search)
+    );
+  }
+
+  function apply() {
+    var dark = document.documentElement.classList.contains('dark');
+    var viewer = isViewer();
+    var col = viewer ? GREEN : (dark ? DARK : CREAM);
+
+    var el = document.getElementById('iosChromeColorProxy');
+    if (!el && document.body) {
+      el = document.createElement('div');
+      el.id = 'iosChromeColorProxy';
+      document.body.insertBefore(el, document.body.firstChild);
+    }
+    if (el) {
+      el.style.setProperty('background', col, 'important');
+      el.style.setProperty('background-color', col, 'important');
+    }
+
+    var meta = document.getElementById('themeColorMeta');
+    if (meta) {
+      // poke re-sample
+      meta.setAttribute('content', col === GREEN ? '#526626' : (col === CREAM ? '#f5f0e5' : '#121608'));
+      meta.setAttribute('content', col);
+    }
+
+    // html/body bg: admin cream, viewer boleh cream page (ribbon nutup top)
+    var page = dark ? DARK : CREAM;
+    try {
+      document.documentElement.style.setProperty('background', page, 'important');
+      document.documentElement.style.setProperty('background-color', page, 'important');
+      document.documentElement.style.setProperty('background-image', 'none', 'important');
+      if (document.body) {
+        document.body.style.setProperty('background', page, 'important');
+        document.body.style.setProperty('background-color', page, 'important');
+        document.body.style.setProperty('background-image', 'none', 'important');
+      }
+    } catch (e) {}
+
+    // ribbon solid green + safe-area pad when viewer
+    document.querySelectorAll('.beta-banner').forEach(function (b) {
+      if (viewer) {
+        b.style.setProperty('background', GREEN, 'important');
+        b.style.setProperty('background-color', GREEN, 'important');
+        b.style.setProperty('padding-top', 'env(safe-area-inset-top, 0px)', 'important');
+        b.style.setProperty('min-height', 'calc(26px + env(safe-area-inset-top, 0px))', 'important');
+        b.style.setProperty('margin', '0', 'important');
+        b.style.setProperty('border', 'none', 'important');
+        b.style.setProperty('box-shadow', 'none', 'important');
+      }
+    });
+
+    // header: no hairline
+    document.querySelectorAll('header').forEach(function (h) {
+      h.style.setProperty('border-bottom', 'none', 'important');
+      h.style.setProperty('box-shadow', 'none', 'important');
+      h.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+      h.style.setProperty('backdrop-filter', 'none', 'important');
+      if (!viewer) {
+        h.style.setProperty('background', dark ? DARK : CREAM, 'important');
+        h.style.setProperty('background-color', dark ? DARK : CREAM, 'important');
+        h.style.setProperty('padding-top', 'max(10px, env(safe-area-inset-top, 0px))', 'important');
+      } else {
+        h.style.setProperty('padding-top', '10px', 'important');
+        h.style.setProperty('background', dark ? DARK : CREAM, 'important');
+      }
+    });
+  }
+
+  window.__ptSyncChromeProxy = apply;
+  var prev = window.__ptSyncThemeColor;
+  window.__ptSyncThemeColor = function () {
+    if (typeof prev === 'function') try { prev.apply(this, arguments); } catch (e) {}
+    apply();
+  };
+
+  apply();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', apply);
+  }
+  window.addEventListener('load', function () {
+    apply();
+    setTimeout(apply, 150);
+    setTimeout(apply, 500);
+    setTimeout(apply, 1200);
+  });
+  try {
+    new MutationObserver(function () { apply(); setTimeout(apply, 100); })
+      .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    if (document.body) {
+      new MutationObserver(function () { apply(); })
+        .observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    }
   } catch (e) {}
 })();
 </script>
