@@ -4237,7 +4237,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.179</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.180</div>
     </div>
   </div>
 
@@ -21255,7 +21255,9 @@ html.dark #roundPillNav,
   function arm(){
     clearStickyInline();
     // Override measureAndApply-like handlers: clear on every scroll/render
-    window.addEventListener('scroll', clearStickyInline, { passive: true, capture: true });
+    // v0.73.180: listener scroll DICABUT. Jalan di SETIAP event scroll (capture, jadi nangkep scroll
+    // container mana pun) dan nulis style inline ke .sb-topbar tiap kali. Handler yang dia lawan
+    // (v0.73.20/21) sudah gak ada, CSS !important udah maksa relative. Render/resize/timeout tetap.
     window.addEventListener('stateRendered', clearStickyInline);
     window.addEventListener('resize', clearStickyInline);
   }
@@ -21338,7 +21340,8 @@ html.dark #roundPillNav,
   window.addEventListener('stateRendered', wipe);
   window.addEventListener('resize', wipe);
   // intercept scroll handlers from older revisions that re-stick
-  window.addEventListener('scroll', wipe, { passive: true, capture: true });
+  // v0.73.180: listener scroll DICABUT (sama alasan clearStickyInline di v073.23): tiap event scroll
+  // dia removeProperty x3 + setProperty x2 ke .sb-topbar/#roundPillNav = style recalc tiap frame scroll.
   setTimeout(wipe, 0);
   setTimeout(wipe, 200);
   setTimeout(wipe, 600);
@@ -34168,6 +34171,35 @@ body:not(.format-club-sparing) #sparingScoreHeader {
   } catch (e) {}
 })();
 </script>
+
+
+<style id="codex-revision-v073180-css">
+/* ============================================================
+   v0.73.180 -- MODE NONTON: scroll berat/seret
+
+   Terukur (Chromium, CPU 4x, tab Skor): frame rata-rata 33ms (30fps)
+   dengan 54 dari 65 frame lewat 33ms.
+
+   1) 2 listener scroll lama (v0.73.23 clearStickyInline, v0.73.24 wipe)
+      dicabut di script-nya: style recalc + tulis style inline di SETIAP
+      event scroll, buat ngelawan handler yang sudah gak ada.
+   2) backdrop-filter dibuang dari .sb-court-card dan .sb-topbar KHUSUS
+      mode nonton. Keduanya duduk di atas background polos: yang di-blur
+      cuma warna rata, jadi hasil visual identik (diff 0 piksel, light dan
+      dark, sudah diukur), tapi tiap kartu tadi bayar blur 26px + saturate
+      tiap frame scroll. Yang TETAP blur: bottomNav (konten lewat di
+      bawahnya, blur-nya beneran kelihatan).
+   ============================================================ */
+/* specificity sengaja dinaikkan (:not) -- ada rule lama html:not(.dark) body.viewer-mode
+   .sb-court-card {backdrop-filter:blur(26px)...!important} (0,3,2) yang harus dikalahin */
+html.viewer-url:not(.pt-blur) body.viewer-mode .sb-court-card,
+html.viewer-url:not(.pt-blur) body.viewer-mode .sb-topbar,
+html:not(.pt-blur) body.viewer-mode .sb-court-card,
+html:not(.pt-blur) body.viewer-mode .sb-topbar {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+</style>
 
 </body>
 </html>
