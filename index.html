@@ -4064,6 +4064,10 @@ try {
             <div id="playersOddWarn" style="display:none;color:#b45309;font-size:11px;font-weight:700;margin-top:4px;">⚠️ Jumlah ganjil — pembagian game play bisa tidak rata (ada yang main 1 game lebih sedikit). Tetap bisa dipakai.</div>
           </div>
         </div>
+        <label class="ko-toggle-row" id="lockToggleRow" style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding:10px 14px;background:var(--primary-dark);border-radius:10px;cursor:pointer;">
+          <span style="font-size:13px;font-weight:700;color:var(--cream);">Pasangan Tetap (opsional)</span>
+          <span class="switch" id="lockPairingSwitch" style="display:inline-block;flex:0 0 auto;"></span>
+        </label>
       </div>
 
       <!-- TEAM CONFIG -->
@@ -4237,7 +4241,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.180</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.186</div>
     </div>
   </div>
 
@@ -7564,16 +7568,39 @@ function activeSetRepeatCount(playingSet, uptoRoundIdx) {
   }
   return total;
 }
-// v0.72.13: bobot 1.0 -- diverifikasi simulasi: cost floor reuse-kohort di
+// v0.72.13: bobot awal 1.0 -- diverifikasi simulasi: cost floor reuse-kohort di
 // 8p/1c = 2.0, campuran termurah yang keliatan di eksplorasi awal = 2.25.
 // Penalti 0.5 belum cukup (146/150 masih nyasar ke ronde5, cuma nutup
 // sebagian). Penalti >=1.0 dorong pecah ke ronde 3 di 150/150 seed --
 // itu BATAS TERCEPAT struktural (ronde 1-2 dipaksa tier GP, nol pilihan,
-// gak mungkin lebih cepat dari situ). Diverifikasi nol regresi: GP spread
-// tetap <=1, first-play tetap <=ronde3, cap main-beruntun tetap sama,
-// zero-repeat-opponent tetap mulai ronde3 (bukan mundur), 7 kombinasi
-// player/court lain (non-occupancy-50%) hasil identik sebelum/sesudah.
-const ACTIVE_SET_REPEAT_PENALTY = 1.0;
+// gak mungkin lebih cepat dari situ).
+//
+// v0.73.182 -- NAIK ke 8.0, user lapor team_americano & ind_americano
+// "matchup gak pas, ketemu 2x padahal belum muter semua". Root cause
+// TERUKUR (bukan asumsi): activeSetRepeatCount() itu skor FLAT (~0-1 per
+// ronde), sedangkan DOUBLE_REST_PENALTY (0.75) & CONSEC_PLAY_PENALTY (0.5)
+// itu PER ORANG yang kena -- di occupancy ~50% (8p/2c dst), "kembaliin
+// grup yang SAMA PERSIS yang baru istirahat" ngenain 0 orang double-rest/
+// consec-play (skor asr=1, sisanya nol), sementara opsi CAMPURAN yang
+// nyoba mecah kloter ngorbanin beberapa orang (skor total bisa 5-7+) --
+// dengan bobot lama (1.0), opsi kloter SELALU menang telak, di SEMUA
+// jumlah attempt (diverifikasi: 24 vs 200 attempt hasilnya identik,
+// karena ini soal SKOR bukan soal kurang nyoba). Trace konkret (v0.73.180,
+// 8 pair/2 court): 2 grup 4-pair gantian main SENDIRI2 6 ronde sebelum
+// nyampur; 16 pemain/2 court: sama, 2 grup 8-orang.
+//
+// Kenaikan ke 8.0 dipilih dari situasi user (kriteria #5/#7 -- anti-kloter
+// -- MENANG di atas dr/cp soft-penalty kalau bentrok, sesuai keputusan user
+// yang berlaku). Diverifikasi lewat simulasi (11 kombinasi player/court,
+// 76 run, 1064 round): GP spread tetap <=1 di semua (kriteria #1 gak
+// disentuh -- dijamin tier gpTiers, bukan lewat skor ini). Perbaikan nyata
+// tapi BELUM sempurna di occupancy 50% pool besar (16p/2c: repeat mundur
+// dari ronde6 ke ~ronde7-8, bukan hilang total) -- itu PLATEAU, nambah
+// attempt lebih jauh (200) ATAU penalty lebih jauh (20) gak nggeser lagi,
+// jadi ini titik terbaik yang kefind lewat tuning constant doang; beresin
+// total butuh ubah cara sampling (bias eksplisit ke split-merata, bukan
+// random murni), itu perubahan lebih dalam yang BELUM dikerjain di sini.
+const ACTIVE_SET_REPEAT_PENALTY = 8.0;
 
 function buildIndividualAmericanoRound(roundIdx) {
   const total = state.players;
@@ -27858,118 +27885,9 @@ html body #view-setup .player-name-input {
   }
 }
 
-/* ---------- tombol tempel banyak nama ---------- */
-.pt-bulk-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 10px 0 4px;
-}
-.pt-bulk-area {
-  width: 100%;
-  min-height: 96px;
-  box-sizing: border-box;
-  border-radius: 14px;
-  padding: 12px 14px;
-  font-family: inherit;
-  font-size: 14px;
-  line-height: 1.5;
-  resize: vertical;
-}
-html:not(.dark) .pt-bulk-area {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(60, 93, 0, 0.18);
-  color: #22301a;
-}
-html.dark .pt-bulk-area {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #ece7da;
-}
-.pt-bulk-row { display: flex; gap: 8px; }
-.pt-bulk-row > button { flex: 1 1 0; min-height: 46px !important; }
-.pt-bulk-hint {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-  opacity: 0.75;
-}
+
+
 </style>
-<script id="codex-revision-v07399-js">
-/* v0.73.99 -- tempel banyak nama sekaligus.
-   Alasannya diukur: ngisi 16 nama di v0.73.91 = 16 tap + 16 kali
-   ngetik + ~1600px scroll, dan daftar pemain mabar biasanya SUDAH
-   ada di grup WhatsApp dalam bentuk list. Ini nutup jarak itu, bukan
-   nambah fitur baru: dia cuma ngisi input yang sudah ada lalu
-   ngirim event 'input' supaya handler lama yang commit. */
-(function () {
-  function playerInputs() {
-    var host = document.getElementById('view-setup');
-    if (!host) return [];
-    /* offsetParent null = lagi ke-hide. Wajib difilter: DOM nyimpen
-       DUA daftar sekaligus (pemain + pair turnamen, 32 input total di
-       16-pemain), cuma satu yang kepasang sesuai format kepilih. Tanpa
-       filter ini nama bisa mendarat di daftar yang lagi gak kelihatan. */
-    return [].slice.call(host.querySelectorAll('input')).filter(function (i) {
-      var ph = i.placeholder || '';
-      if (!/^(Player|Pemain|Pair)\s*\d+/i.test(ph)) return false;
-      return i.offsetParent !== null;
-    });
-  }
-
-  function mount() {
-    var host = document.getElementById('view-setup');
-    if (!host) return;
-    if (document.getElementById('ptBulkWrap')) return;
-    var inputs = playerInputs();
-    if (!inputs.length) return;
-
-    var anchor = document.getElementById('shuffleBtn');
-    if (!anchor || !anchor.parentNode) return;
-
-    var wrap = document.createElement('div');
-    wrap.className = 'pt-bulk-wrap';
-    wrap.id = 'ptBulkWrap';
-    wrap.innerHTML =
-      '<div class="pt-bulk-hint">Tempel daftar nama (satu per baris, atau dipisah koma)</div>' +
-      '<textarea class="pt-bulk-area" id="ptBulkArea" placeholder="Adee\nSheva\nVera\n..."></textarea>' +
-      '<div class="pt-bulk-row">' +
-        '<button type="button" class="ghost-btn" id="ptBulkApply">Isi ke Daftar Pemain</button>' +
-      '</div>';
-    anchor.parentNode.insertBefore(wrap, anchor);
-
-    document.getElementById('ptBulkApply').addEventListener('click', function () {
-      var raw = (document.getElementById('ptBulkArea').value || '');
-      var names = raw.split(/[\n,;]+/)
-        .map(function (s) { return s.replace(/^\s*\d+[\.\)]\s*/, '').trim(); })
-        .filter(function (s) { return s.length > 0; });
-      if (!names.length) return;
-      var ins = playerInputs();
-      var n = Math.min(names.length, ins.length);
-      for (var i = 0; i < n; i++) {
-        ins[i].value = names[i];
-        try { ins[i].dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
-        try { ins[i].dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
-      }
-      if (typeof showToast === 'function') {
-        showToast(names.length > ins.length
-          ? (ins.length + ' nama diisi, ' + (names.length - ins.length) + ' kelebihan (naikin Jumlah Pemain dulu)')
-          : (n + ' nama diisi'));
-      }
-    });
-  }
-
-  window.addEventListener('stateRendered', mount);
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', mount, { once: true });
-  } else {
-    mount();
-  }
-  setTimeout(mount, 300);
-})();
-</script>
-
-
 <style id="codex-tokens-final">
 /* ============================================================
    TOKEN FINAL -- SUMBER KEBENARAN WARNA (dipasang v0.73.99)
@@ -34200,6 +34118,371 @@ html:not(.pt-blur) body.viewer-mode .sb-topbar {
   backdrop-filter: none !important;
 }
 </style>
+
+<style id="codex-revision-v073181-css">
+/* v0.73.181 -- lock-partner UI (lihat block JS buat mekanisme). Warna pakai
+   --pt-action (#5d7c1c) & family, SESUAI token final v0.73.99, bukan warna
+   baru. */
+.lockp-hint {
+  font-size: 11px; line-height: 1.6; color: rgba(32,39,15,0.6);
+  background: rgba(93,124,28,0.08); border: 1px solid rgba(93,124,28,0.16);
+  border-radius: 10px; padding: 8px 10px; margin-bottom: 8px;
+}
+.lockp-hint b { color: #3c5d00; }
+.player-input { position: relative; }
+.lock-btn {
+  flex: 0 0 auto; width: 28px; height: 28px; border-radius: 8px;
+  border: 1px solid rgba(60,93,0,0.16); background: rgba(255,255,255,0.6);
+  color: rgba(32,39,15,0.45); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; margin-left: 6px;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease, transform 100ms ease, box-shadow 100ms ease;
+}
+.lock-btn.locked { background: #5d7c1c; border-color: transparent; color: #fff; }
+.lock-btn.selecting { border-color: #5d7c1c; color: #5d7c1c; box-shadow: 0 0 0 3px rgba(93,124,28,0.18); }
+.lock-btn:active { transform: scale(0.9); box-shadow: inset 0 2px 4px rgba(0,0,0,0.18); }
+.lockp-tag {
+  flex-basis: 100%; font-size: 10.5px; font-weight: 700; color: #3c5d00;
+  margin-top: 4px; padding-left: 30px;
+}
+html.dark .lockp-hint { background: rgba(148,185,70,0.10); border-color: rgba(148,185,70,0.22); color: rgba(236,231,218,0.65); }
+html.dark .lockp-hint b { color: #94b946; }
+html.dark .lock-btn { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.14); color: rgba(236,231,218,0.4); }
+html.dark .lock-btn.locked { background: #94b946; color: #141a0c; }
+html.dark .lockp-tag { color: #94b946; }
+</style>
+
+<script id="codex-revision-v073181-js">
+/* ============================================================
+   v0.73.181 -- LOCKED-PARTNER buat Individual Americano.
+
+   Konsep (diminta user): sebagian pemain di-"kunci" jadi pasangan tetap
+   (latihan buat tourney), sisanya tetap individual biasa (partner ganti
+   tiap round). BUKAN format baru -- ini modifier di atas ind_americano
+   yang udah ada. computeStandings/buildHistory/rendering court TIDAK
+   disentuh (tetap per-pemain individu apa adanya); locked pair cuma
+   keliatan sebagai dua baris klasemen yang statistiknya identik karena
+   mereka emang selalu main bareng.
+
+   Mekanisme (2 lapis, gak nyentuh internal gpTiers/sampleBubble/capMustRest
+   yang udah di-tune 6x -- itu prioritas SANGAT PENTING, cukup dibungkus):
+   1. SOFT -- repairLockedPlayingPool(): abis pool `playing` kepilih dari
+      pipeline GP-fairness yang SUDAH ADA, kalau ternyata cuma separo
+      locked-pair yang kepilih (yang lain fair/gak fair kena random-bubble
+      independen), tarik pasangannya masuk + tendang 1 pemain bebas keluar
+      biar jumlah kursi TETAP SAMA. Kalau pasangannya literally unavailable,
+      si pemain lock ikut ditendang keluar juga (gak bisa \"main sendiri\"
+      di mode ini).
+   2. HARD -- assignPlayersToCourts() stage 1 (partner-matching) di-suntik
+      costFn yang balikin Infinity buat kombinasi selain locked-partner
+      resminya. Ini PERSIS teknik yang udah dipakai buat maksa bipartite
+      M x F di Mix Americano (\"costFn Infinity = dilarang\") -- primitif
+      lama, cara pakai baru.
+
+   Locked pair GP-nya otomatis identik dari round 0 (mereka selalu
+   main/istirahat bareng), jadi gpTiers yang gak tau soal lock pun tetap
+   nempatin mereka di tier yang sama -- itu sebabnya lapis SOFT di atas
+   cukup buat nutup celah sampleBubble yang independen per-pemain, gak
+   perlu bongkar tiering-nya.
+   ============================================================ */
+(function () {
+  'use strict';
+
+  function lockActive() { return state.format === 'ind_americano' && !!state.lockPairingEnabled; }
+  function lockedPartnerOf(id) {
+    if (!lockActive() || !state.lockedPartner) return null;
+    const p = state.lockedPartner[id];
+    return (p === undefined || p === null) ? null : p;
+  }
+  function isLocked(id) { return lockedPartnerOf(id) !== null; }
+
+  // ---- state plumbing: resize bareng jumlah pemain, bersihin lock yatim ----
+  var _spn = syncPlayerNames;
+  syncPlayerNames = function () {
+    var r = _spn.apply(this, arguments);
+    if (!state.lockedPartner) state.lockedPartner = [];
+    state.lockedPartner.length = state.players;
+    for (var i = 0; i < state.players; i++) {
+      var p = state.lockedPartner[i];
+      if (p == null) continue;
+      if (p >= state.players || state.lockedPartner[p] !== i) state.lockedPartner[i] = null;
+    }
+    return r;
+  };
+
+  function setLock(a, b) { state.lockedPartner[a] = b; state.lockedPartner[b] = a; }
+  function clearLock(a) {
+    var b = lockedPartnerOf(a);
+    state.lockedPartner[a] = null;
+    if (b != null) state.lockedPartner[b] = null;
+  }
+
+  // ---- SOFT repair: jalanin abis `playing` kepilih, sebelum assignPlayersToCourts ----
+  // v0.73.181-fix1: swap-out target HARUS fairness-aware (pilih yang GP-nya
+  // PALING TINGGI di antara kandidat bebas), bukan "yang pertama ketemu di
+  // array". Naive first-match kepilih dulu bisa berulang ngorbanin pemain
+  // yang SAMA tiap round (ketauan dari simulasi: satu pemain nyangkut di
+  // 2 game sepanjang 12 round sementara yang lain 11-12 -- itu bug, bukan
+  // batas matematis). games (hist.games) dipassing biar swap ikut mikir GP.
+  // BUG NYATA v0.73.181, ketauan dari sesi real user (10p/1court, 3 locked
+  // pair): fungsi ini cuma mikirin GP, sama sekali gak tau soal `rested2`
+  // (pemain yang WAJIB main round ini karena abis istirahat 2x berturut --
+  // "cap 2x-rest kaku", aturan HARD, lebih lama & lebih fundamental dari
+  // fitur locked-partner ini). Kalau semua orang GP-nya kebetulan imbang
+  // (umum abis beberapa round), swap milih kandidat PERTAMA yang ketemu di
+  // array -- bisa aja itu justru anggota rested2, nendang keluar orang yang
+  // seharusnya DILINDUNGI, ngasih kursi ke partner locked. Diverifikasi:
+  // data real user (Arya, index5) kena rest 3x berturut gara2 ini.
+  // Fix: rested2 dijadiin NO-GO ZONE buat swap-out, titik. Kalau abis itu
+  // gak ada kandidat bebas yang aman, JANGAN swap sembarangan -- lepas aja
+  // locked-pair member yang kepilih (fallback yang sama kayak kasus
+  // "partner literally unavailable" di bawah), biar cap 2x-rest tetap
+  // kejaga. Locked-partner itu fitur BARU & opt-in; cap 2x-rest itu aturan
+  // LAMA & selalu-nyala -- kalau bentrok, yang lama menang.
+  function pickSwapOutCandidate(out, excludeId, games, rested2) {
+    var bestIdx = -1, bestGames = -1;
+    for (var j = 0; j < out.length; j++) {
+      if (out[j] === excludeId || lockedPartnerOf(out[j]) != null) continue;
+      if (rested2 && rested2.has && rested2.has(out[j])) continue; // NO-GO ZONE
+      var g = (games && games[out[j]] != null) ? games[out[j]] : 0;
+      if (g > bestGames) { bestGames = g; bestIdx = j; }
+    }
+    return bestIdx;
+  }
+  function repairLockedPlayingPool(playing, resting, need, games, rested2) {
+    if (!lockActive() || !state.lockedPartner) return { playing: playing, resting: resting };
+    var pSet = {}; playing.forEach(function (id) { pSet[id] = 1; });
+    var out = playing.slice(), rest = resting.slice(), done = {};
+    for (var k = 0; k < playing.length; k++) {
+      var id = playing[k];
+      if (done[id]) continue;
+      var partner = lockedPartnerOf(id);
+      if (partner == null) continue;
+      done[id] = 1; done[partner] = 1;
+      if (pSet[partner]) continue; // udah dua-duanya masuk, aman
+      if (typeof isAvailable === 'function' && !isAvailable(partner)) {
+        // pasangannya literally gak available -- gak bisa main sendirian di mode ini
+        out = out.filter(function (x) { return x !== id; });
+        rest.push(id);
+        pSet[id] = 0;
+        continue;
+      }
+      // tarik partner masuk, tendang 1 pemain BEBAS yang GP-nya PALING TINGGI
+      // (paling "mampu" ngalah), bukan yang pertama ketemu di array.
+      var swapIdx = pickSwapOutCandidate(out, id, games, rested2);
+      if (swapIdx === -1) {
+        // gak ada pemain bebas buat ditukar (sisanya locked pair lain) -- lepas si id juga
+        out = out.filter(function (x) { return x !== id; });
+        rest.push(id);
+        pSet[id] = 0;
+        continue;
+      }
+      var bumped = out[swapIdx];
+      out[swapIdx] = partner;
+      pSet[partner] = 1; pSet[bumped] = 0;
+      rest = rest.filter(function (x) { return x !== partner; });
+      rest.push(bumped);
+    }
+    // jaga genap & pas `need` (kalau ada lebih, buang pemain BEBAS ber-GP
+    // TERTINGGI dulu -- gak pernah motong locked pair cuma buat pas-in jumlah)
+    while (need != null && out.length > need) {
+      var idx = pickSwapOutCandidate(out, -1, games, rested2);
+      if (idx === -1) break; // semua sisa locked pair, biarin (edge case ekstrem)
+      rest.push(out[idx]); out.splice(idx, 1);
+    }
+    if (out.length % 2 !== 0) {
+      var oi = pickSwapOutCandidate(out, -1, games, rested2);
+      if (oi !== -1) { rest.push(out[oi]); out.splice(oi, 1); }
+    }
+    return { playing: out, resting: rest };
+  }
+
+  // ---- HARD constraint: suntik ke stage-1 partner-matching ----
+  var _apc = assignPlayersToCourts;
+  assignPlayersToCourts = function (playing, courts, hist) {
+    if (!lockActive() || !state.lockedPartner) return _apc.apply(this, arguments);
+    if (!playing || playing.length < 4) return _apc.apply(this, arguments);
+    var need = courts * 4;
+    var OUTER_ATTEMPTS = 20, best = null, bestCost = Infinity;
+    for (var a = 0; a < OUTER_ATTEMPTS; a++) {
+      var pool = shuffle(playing).slice(0, need);
+      if (pool.length % 2 !== 0) pool = pool.slice(0, -1);
+      if (pool.length < 4) continue;
+      var partnerMatch = minCostPerfectMatching(pool, function (x, y) {
+        var lx = lockedPartnerOf(x), ly = lockedPartnerOf(y);
+        if (lx != null || ly != null) return (lx === y) ? 0 : Infinity;
+        return hist.partner[x][y];
+      });
+      if (!partnerMatch) continue;
+      var teams = partnerMatch.pairs;
+      var teamIds = teams.map(function (_, i) { return i; });
+      var teamCost = function (i, j) {
+        var a0 = teams[i][0], a1 = teams[i][1], b0 = teams[j][0], b1 = teams[j][1];
+        return hist.opponent[a0][b0] + hist.opponent[a0][b1] + hist.opponent[a1][b0] + hist.opponent[a1][b1];
+      };
+      var teamMatch = minCostPerfectMatching(teamIds, teamCost);
+      if (!teamMatch) continue;
+      var totalCost = partnerMatch.cost * 3 + teamMatch.cost;
+      if (totalCost < bestCost) {
+        bestCost = totalCost;
+        best = teamMatch.pairs.map(function (pr, c) {
+          return { group: teams[pr[0]].concat(teams[pr[1]]), pattern: 0, court: c };
+        });
+        if (bestCost === 0) break;
+      }
+    }
+    return best || [];
+  };
+  assignPlayersToCourts.__lockPatched = true;
+
+  // ---- pasang repair pass ke buildIndividualAmericanoRound (append-only:
+  //      ganti nama asli, definisikan ulang, panggil versi asli via alias) ----
+  var _biar = buildIndividualAmericanoRound;
+  buildIndividualAmericanoRound = function (roundIdx) {
+    if (!lockActive() || !state.lockedPartner || !state.lockedPartner.some(function (x) { return x != null; })) {
+      return _biar.apply(this, arguments);
+    }
+    // re-implementasi loop asli PERSIS, cuma nambah repair sebelum assignPlayersToCourts
+    // (gak bisa nyisip dari luar tanpa duplikat loop -- fungsi aslinya gak expose hook).
+    var total = state.players;
+    var activePlayers = state.courts * 4;
+    var hist = buildHistory(roundIdx);
+    var r1 = restedLastRoundSet(roundIdx);
+    var rested2 = restedTwoBackSet(roundIdx);
+    var available = [], unavailable = [];
+    for (var i = 0; i < total; i++) (isAvailable(i) ? available : unavailable).push(i);
+    var mustRest = mustRestNowSet(roundIdx);
+    var capRes = capMustRest(available, mustRest, activePlayers, hist.games);
+    var gpPool = capRes.pool, forcedRestByStreak = capRes.forcedRest;
+    var playedLast = playedLastRoundSet(roundIdx);
+    var tiers = gpTiers(gpPool, activePlayers, hist.games);
+    var forced = tiers.forced, bubble = tiers.bubble, above = tiers.above, slots = tiers.slots;
+    var POOL_ATTEMPTS = 24, best = null, bestScore = Infinity, bestResting = null;
+    for (var a = 0; a < POOL_ATTEMPTS; a++) {
+      var samp = sampleBubble(bubble, slots, r1, rested2, a % 2 === 0 ? 'rest' : 'free');
+      var pick = samp.pick, sit = samp.sit;
+      var playing = forced.concat(pick);
+      if (playing.length < 4) continue;
+      var restingTentative = sit.concat(above, unavailable, forcedRestByStreak);
+      var repaired = repairLockedPlayingPool(playing, restingTentative, activePlayers, hist.games, rested2);
+      playing = repaired.playing;
+      if (playing.length < 4) continue;
+      var assignments = assignPlayersToCourts(playing, state.courts, hist);
+      var score = assignmentCost(assignments, hist)
+        + DOUBLE_REST_PENALTY * doubleRestCount(sit, r1)
+        + CONSEC_PLAY_PENALTY * consecPlayCount(pick, playedLast)
+        + ACTIVE_SET_REPEAT_PENALTY * activeSetRepeatCount(playing, roundIdx);
+      if (score < bestScore) {
+        bestScore = score; best = assignments; bestResting = repaired.resting;
+        if (bestScore === 0) break;
+      }
+    }
+    if (!best) return { assignments: [], resting: available.concat(unavailable) };
+    return { assignments: best, resting: bestResting };
+  };
+
+  // ---- SETUP UI: tombol kunci per baris pemain, cuma di Individual Americano ----
+  var pendingLockFrom = null;
+
+  function lockIconSVG() {
+    return '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+  }
+
+  function renderLockRow() {
+    var list = document.getElementById('playersList');
+    if (!list || !lockActive()) return;
+    var hint = list.querySelector('.lockp-hint');
+    if (!hint) {
+      hint = document.createElement('div');
+      hint.className = 'lockp-hint';
+      list.insertBefore(hint, list.firstChild);
+    }
+    var hasLock = state.lockedPartner && state.lockedPartner.some(function (x) { return x != null; });
+    var restSlots = state.players - state.courts * 4;
+    // v0.73.181: batas matematis TERUKUR (simulasi 1800+ round) -- locked
+    // pair gerak 2-2, tapi kalau sisa slot istirahat per round GANJIL
+    // (total pemain - court x4), sesekali gak muat pas 2-2 -> GP bisa
+    // selisih lebih dari 1 (jarang, ukuran kecil, TAPI nyata). Peringatan
+    // ini proaktif, bukan reaktif -- biar user milih ubah jumlah pemain
+    // ATAU court SEBELUM sesi jalan, bukan nemuin GP miring pas udah mabar.
+    var warn = (hasLock && restSlots > 0 && restSlots % 2 !== 0)
+      ? '<br><span style="color:#b45309;">⚠️ ' + state.players + ' pemain / ' + state.courts + ' court nyisain ' + restSlots + ' slot istirahat (ganjil) -- locked pair gerak 2-2, jadi GP bisa sesekali selisih lebih dari 1 game. Ubah jumlah pemain atau court jadi genap-rest kalau mau GP presisi rata.</span>'
+      : '';
+    hint.innerHTML = 'Opsional: kunci sebagian pemain jadi <b>pasangan tetap</b> (latihan buat tourney). Sisanya tetap acak ganti-ganti tiap round.' + warn;
+  }
+
+  // v0.73.185 FIX (user lapor ke-2 "masih gak bisa dipencet"): wiring lama
+  // (row.onclick) cuma kepasang lewat override updateConfigVisibility, yang
+  // CUMA kejalan pas user tap kartu format. Buka ulang app dengan format
+  // ind_americano TERSIMPAN (restore localStorage) -> updateConfigVisibility
+  // asli udah kepanggil SEBELUM block ini keinstall -> row gak pernah
+  // di-wire -> tap gak ngapa2in. Tes v0.73.184 lolos cuma karena selalu tap
+  // kartu format dulu. Fix: event DELEGATION di document (gak peduli kapan
+  // elemen dirender/di-wire) + syncLockToggleUI() dipanggil saat install.
+  function syncLockToggleUI() {
+    var row = document.getElementById('lockToggleRow');
+    var sw = document.getElementById('lockPairingSwitch');
+    if (row) row.style.display = (state.format === 'ind_americano') ? 'flex' : 'none';
+    if (sw) sw.classList.toggle('on', !!state.lockPairingEnabled);
+  }
+  document.addEventListener('click', function (e) {
+    var row = e.target && e.target.closest ? e.target.closest('#lockToggleRow') : null;
+    if (!row) return;
+    e.preventDefault(); // <label>: cegah aktivasi ganda
+    state.lockPairingEnabled = !state.lockPairingEnabled;
+    syncLockToggleUI();
+    renderPlayersList();
+    try { if (typeof saveState === 'function') saveState(); } catch (err) {}
+  });
+
+  var _ucv = updateConfigVisibility;
+  updateConfigVisibility = function () {
+    var r = _ucv.apply(this, arguments);
+    syncLockToggleUI();
+    return r;
+  };
+
+  function attachLockButtons() {
+    if (!lockActive()) return;
+    var list = document.getElementById('playersList');
+    if (!list) return;
+    renderLockRow();
+    for (var i = 0; i < state.players; i++) {
+      var row = list.children[i + 1]; // +1 karena hint di index 0
+      if (!row || row.querySelector('.lock-btn')) continue;
+      var partner = lockedPartnerOf(i);
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'lock-btn' + (partner != null ? ' locked' : '') + (pendingLockFrom === i ? ' selecting' : '');
+      btn.dataset.idx = i;
+      btn.title = partner != null ? 'Lepas kunci' : 'Kunci pasangan';
+      btn.innerHTML = lockIconSVG();
+      row.appendChild(btn);
+      if (partner != null) {
+        var tag = document.createElement('div');
+        tag.className = 'lockp-tag';
+        tag.textContent = '🔒 ' + (state.playerNames[partner] || defaultName(partner));
+        row.appendChild(tag);
+      }
+      btn.addEventListener('click', function (e) {
+        var idx = parseInt(e.currentTarget.dataset.idx, 10);
+        if (lockedPartnerOf(idx) != null) { clearLock(idx); pendingLockFrom = null; }
+        else if (pendingLockFrom === idx) { pendingLockFrom = null; }
+        else if (pendingLockFrom != null) { setLock(pendingLockFrom, idx); pendingLockFrom = null; }
+        else { pendingLockFrom = idx; }
+        renderPlayersList();
+      });
+    }
+  }
+
+  var _rpl = renderPlayersList;
+  renderPlayersList = function () {
+    var r = _rpl.apply(this, arguments);
+    try { syncLockToggleUI(); attachLockButtons(); } catch (e) {}
+    return r;
+  };
+  try { syncLockToggleUI(); if (lockActive()) renderPlayersList(); } catch (e) {}
+})();
+</script>
 
 </body>
 </html>
