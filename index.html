@@ -4241,7 +4241,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.191</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.192</div>
     </div>
   </div>
 
@@ -34936,5 +34936,34 @@ body.fs-active.viewer-mode header { margin-top: 8px !important; }
   };
 })();
 </script>
+
+<style id="codex-revision-v073192-css">
+/* v0.73.192 (1): bulatan hijau pemenang kepotong di bawah.
+   Akar: ring 2px (box-shadow) di .sb-winner-dot.win nempel ke tepi bawah
+   .sb-team yang overflow:hidden -> ring kepangkas rata. Fix: margin-bawah 3px
+   (> ring 2px) di dot. Dot selalu ada di DOM di dua sisi (v0.70.56), jadi
+   tinggi kedua sisi tetap sama, gak goyang. */
+html body .sb-winner-dot { margin-bottom: 3px !important; }
+
+/* v0.73.192 (2): tombol "Hapus Round" tulisannya merah (status destruktif). */
+html body button[data-action="delete"],
+html body button[data-action="delete"] * {
+  color: #a03838 !important;
+  -webkit-text-fill-color: #a03838 !important;
+}
+html.dark body button[data-action="delete"],
+html.dark body button[data-action="delete"] * {
+  color: #e57373 !important;
+  -webkit-text-fill-color: #e57373 !important;
+}
+
+/* v0.73.192 (3): nama tim yang KALAH diredupin dikit. Tim menang = yang
+   dot-nya .win; tim kalah = sisi lain di kartu yang sudah punya pemenang.
+   Seri / belum ada skor: gak ada yang diredupin. Ikut live update
+   (refreshCourtCard cuma toggle class .win). Admin + mode nonton. */
+.sb-court-card:has(.sb-winner-dot.win) .sb-team:not(:has(.sb-winner-dot.win)) .sb-player {
+  opacity: 0.6;
+}
+</style>
 </body>
 </html>
