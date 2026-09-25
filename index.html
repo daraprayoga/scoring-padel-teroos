@@ -4241,7 +4241,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.186</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.188</div>
     </div>
   </div>
 
@@ -4438,12 +4438,14 @@ try {
       <h3><svg class="icn" width="15" height="15" style="vertical-align:-2px;margin-right:6px;"><use href="#i-users"/></svg>Player Status</h3>
       <button class="ghost-btn" data-close>✕ Close</button>
     </div>
-    <p class="modal-sub">Tap a player to toggle status. <strong>Late</strong> and <strong>Left</strong> players are auto-skipped. Schedule regenerates automatically.</p>
+    <p class="modal-sub">Tap a player to toggle status. <strong>Late</strong>, <strong>Rest</strong>, and <strong>Left</strong> players are auto-skipped. Schedule regenerates automatically.</p>
     <div class="status-legend">
       <span class="status-chip status-available">●</span> Available
       <span class="status-chip status-late">●</span> Late
+      <span class="status-chip status-rest">●</span> Rest
       <span class="status-chip status-left">●</span> Left
     </div>
+    <div id="restConsequenceNote" style="display:none;margin:2px 0 10px;padding:8px 10px;border-radius:8px;background:rgba(91,122,158,0.10);border:1px solid var(--rest,#5b7a9e);font-size:11px;font-weight:600;line-height:1.45;color:var(--rest,#5b7a9e);">⚠️ Ada pemain yang lagi <strong>Rest</strong>. Jumlah game (GP) tiap pemain berpotensi jadi gak rata sesi ini karena ini pilihan pemain sendiri, bukan rotasi normal.</div>
     <div class="status-list" id="statusList"></div>
   </div>
 </div>
@@ -4473,7 +4475,7 @@ const state = {
   currentRoundIdx: 0,
   redactMode: true,
   sortBy: 'wins', // 'wins' | 'diff' | 'winrate'
-  playerStatus: [], // per-player status: 'available' | 'late' | 'left'
+  playerStatus: [], // per-player status: 'available' | 'late' | 'rest' | 'left'
   playerGenders: [], // per-player group: 'M' | 'F' (internal keys — NEVER rename;
                      // dipakai builder mix, Firebase sync, localStorage. Sejak
                      // v0.71.10 maknanya "kubu A"/"kubu B", labelnya ikut
@@ -34481,6 +34483,234 @@ html.dark .lockp-tag { color: #94b946; }
     return r;
   };
   try { syncLockToggleUI(); if (lockActive()) renderPlayersList(); } catch (e) {}
+})();
+</script>
+
+<style id="codex-revision-v073187-css">
+/* v0.73.187: warna baru "Rest" (voluntary rest, beda dari Late/Left).
+   Palet app ini sengaja dibatasi hijau/gold/merah (lihat catatan di
+   codex-revision-v073114-ish soal "warna aksen MERAH direservasi buat
+   status/error"), tapi 3 status lama (Available=hijau, Late=gold,
+   Left=merah) udah kepake abis -- gak ada slot buat status ke-4 tanpa
+   hue baru. Pilih biru-abu redup (--rest) biar tetep flat/non-glossy
+   (sesuai constitution desain: no gradient plastik, no glow) dan gak
+   bentrok makna sama gold (nunggu/telat) atau merah (keluar/error).
+   Ditaruh di block PALING AKHIR biar menang cascade vs style block lama
+   (banyak !important, menang lewat source-order pas specificity sama --
+   pola yang sama kayak semua override .status-player-card sebelumnya). */
+:root { --rest: #5b7a9e; --rest-bright: #6f90b3; }
+html.dark { --rest: #7fa8cc; --rest-bright: #93b9d9; }
+.status-chip.status-rest { color: var(--rest); }
+.status-player-card.is-rest { border-color: var(--rest); background: rgba(91,122,158,0.08); }
+.status-player-card.is-rest .status-player-state { color: var(--rest); }
+html.dark .status-player-card.is-rest {
+  border-color: rgba(127,168,204,0.45) !important;
+  background: rgba(127,168,204,0.10) !important;
+}
+</style>
+<script id="codex-revision-v073187-js">
+(function () {
+  // v0.73.187: tambah status "Rest" (voluntary -- player minta istirahat
+  // karena capek) di samping Available/Late/Left yang udah ada.
+  //
+  // isAvailable() (~6474) sudah generik: cuma cek `=== 'available'`,
+  // jadi status baru 'rest' OTOMATIS ke-treat sebagai "gak main" di
+  // SEMUA jalur pairing (Americano individu/tim, Mexicano, KOTH,
+  // Sparing) tanpa nyentuh satupun fungsi pairing/fairness -- gak ada
+  // resiko regresi ke kriteria RUN TEST yang udah divalidasi.
+  //
+  // Yang perlu di-append di sini cuma 2 hal:
+  // 1) Siklus tap status di modal Player Status: dulu 3-state
+  //    (available -> late -> left -> available), sekarang 4-state
+  //    (available -> late -> rest -> left -> available). Rest ditaruh
+  //    di antara late & left karena semantiknya "sementara" kayak late
+  //    (bakal balik main lagi), beda dari left yang "keluar buat sesi
+  //    ini".
+  // 2) Notifikasi konsekuensi: Late/Left itu situasional/pasif (macet
+  //    di jalan, pulang duluan), tapi Rest itu PILIHAN pemain sendiri
+  //    di tengah sesi -- user (Oka) eksplisit minta ada notif soal GP
+  //    (games played) yang berpotensi jadi gak rata gara-gara ini.
+  //    Dikasih 2 lapis: (a) toast sekali muncul pas status di-set ke
+  //    'rest', (b) note persisten di dalam modal Player Status selama
+  //    MASIH ADA yang berstatus rest (bukan cuma sekali lewat), biar
+  //    kebaca lagi kalau modal dibuka ulang nanti.
+
+  function anyResting() {
+    return !!(state.playerStatus && state.playerStatus.some(function (s) { return s === 'rest'; }));
+  }
+
+  function syncRestNote() {
+    var note = document.getElementById('restConsequenceNote');
+    if (note) note.style.display = anyResting() ? 'block' : 'none';
+  }
+
+  function labelOfStatus(s) {
+    return s === 'available' ? '● Available'
+      : s === 'late' ? '● Late'
+      : s === 'rest' ? '● Rest'
+      : '● Left';
+  }
+
+  // Override total (bukan cuma wrap) -- versi lama (~10250) di-declare
+  // pakai `function renderPlayerStatus(){}` di top level, jadi
+  // reassignment ini kepakein otomatis oleh SEMUA caller lama (listener
+  // openStatusBtn ~10280, dan pemanggilan diri sendiri di dalam handler
+  // klik), persis pola override generateRound/formatLabel di block KOTH.
+  renderPlayerStatus = function () {
+    var list = document.getElementById('statusList');
+    list.innerHTML = '';
+    var count = isTeam() ? state.pairs : state.players;
+    for (var i = 0; i < count; i++) {
+      (function (idx) {
+        var status = state.playerStatus[idx] || 'available';
+        var card = document.createElement('div');
+        card.className = 'status-player-card is-' + status;
+        card.dataset.id = idx;
+        card.innerHTML =
+          '<div class="status-player-name">' + escapeHtml(entityName(idx)) + '</div>' +
+          '<div class="status-player-state">' + labelOfStatus(status) + '</div>';
+        card.addEventListener('click', function () {
+          var cur = state.playerStatus[idx] || 'available';
+          var order = ['available', 'late', 'rest', 'left'];
+          var next = order[(order.indexOf(cur) + 1) % order.length];
+          state.playerStatus[idx] = next;
+          if (next === 'rest') {
+            try { showToast('⚠️ ' + entityName(idx) + ' istirahat — GP bisa jadi gak rata sesi ini.'); } catch (e) {}
+          }
+          renderPlayerStatus();
+          regenerateUnscoredFutureRounds();
+          renderAll();
+        });
+        list.appendChild(card);
+      })(i);
+    }
+    syncRestNote();
+  };
+})();
+</script>
+
+<script id="codex-revision-v073188-js">
+(function () {
+  // v0.73.188: FIX bug ditemukan RUN TEST v0.73.187 -- warmup Mexicano
+  // (v0.73.119/120, MEXICANO_WARMUP_ROUNDS=4) TERNYATA cuma bener-bener
+  // hist-aware (anti-repeat) di `ind_mexicano`. Dua saudaranya diam-diam
+  // gak pernah consult hist.partner/hist.opponent buat NENTUIN PASANGAN:
+  //   - `team_mexicano` warmup: buildTeamMatches(pool.playing) -- pool
+  //     cuma di-shuffle(), dipasangin URUT, nol referensi hist.
+  //   - `mixicano` warmup: shuffle acak per gender + pola silang TETAP
+  //     ([M0,F1] vs [M1,F0]) -- hist cuma dipakai gpTiers (siapa main),
+  //     bukan buat siapa-lawan-siapa.
+  // Dibuktikan lewat simulasi (occupancy 80%, 4 round warmup, 8 trial):
+  // team_mexicano 9 opponent-repeat, mixicano malah 58 (2v2 = 4 opponent-
+  // link/match vs team cuma 1). ind_mexicano 0, karena dia REUSE
+  // assignPlayersToCourts (exact matching asli), bukan cuma shuffle.
+  // Detail penuh + tabel bukti: CLAUDE.md § RUN TEST v0.73.187.
+  //
+  // FIX: override LAPIS KEDUA di atas block v0.73.119 (append-only,
+  // BUKAN edit block itu). "Siapa main" (gpTiers/capMustRest/
+  // selectPlayingPool dari v0.73.119) TIDAK disentuh -- yang diganti
+  // CUMA cara masangin siapa-lawan-siapa begitu udah tau siapa yang aktif,
+  // lewat minCostPerfectMatching yang udah battle-tested (mekanisme
+  // PERSIS sama kayak assignPlayersToCourts buat individual & inti
+  // matching buildMixAmericanoRound buat cross-gender). Gate warmup
+  // ("scoredRoundsCount < 4") DIDUPLIKASI di sini apa adanya (bukan
+  // reuse var di closure v0.73.119, itu scoped lokal ke IIFE itu, gak
+  // bisa diakses dari luar) -- kalau MEXICANO_WARMUP_ROUNDS di v0.73.120
+  // pernah diubah dari 4, angka di sini WAJIB ikut diubah juga.
+
+  var MEXICANO_WARMUP_ROUNDS_188 = 4; // harus sama persis dengan v0.73.120
+
+  function scoredRoundsCount188() {
+    return state.rounds.filter(function (r) {
+      return r && r.matches && r.matches.some(function (m) { return m.scoreA > 0 || m.scoreB > 0; });
+    }).length;
+  }
+  function inWarmup188() {
+    return scoredRoundsCount188() < MEXICANO_WARMUP_ROUNDS_188;
+  }
+
+  // ---- Team Mexicano: opponent-matching exact, bukan shuffle+pasang urut ----
+  if (typeof buildTeamMexicanoMatches === 'function') {
+    var _tmm188 = buildTeamMexicanoMatches;
+    window.buildTeamMexicanoMatches = function (roundIdx) {
+      if (!inWarmup188()) return _tmm188.apply(this, arguments);
+      var hist = buildHistory(roundIdx);
+      var total = state.pairs;
+      var activePairs = state.courts * 2;
+      var pool = selectPlayingPool(total, activePairs, hist.games, restedLastRoundSet(roundIdx));
+      var playing = (pool && pool.playing) ? pool.playing : [];
+      var baseResting = (pool && pool.resting) ? pool.resting : [];
+      if (playing.length < 2) return { matches: buildTeamMatches(playing), resting: baseResting };
+      var extra = [];
+      var usable = playing;
+      if (playing.length % 2 !== 0) { extra = [playing[playing.length - 1]]; usable = playing.slice(0, -1); }
+      var m = minCostPerfectMatching(usable, function (a, b) { return sparingPairCost(a, b, hist); });
+      if (!m) return { matches: buildTeamMatches(playing), resting: baseResting };
+      return { matches: buildTeamMatches(m.pairs.flat()), resting: baseResting.concat(extra) };
+    };
+    buildTeamMexicanoMatches = window.buildTeamMexicanoMatches;
+  }
+
+  // ---- Mixicano: partner (cross-gender) + opponent matching exact ----
+  if (typeof buildMixicanoRound === 'function') {
+    var _mxr188 = buildMixicanoRound;
+    window.buildMixicanoRound = function (roundIdx) {
+      if (!inWarmup188()) return _mxr188.apply(this, arguments);
+      var hist = buildHistory(roundIdx);
+      var total = state.players;
+      var males = [], females = [], unavailable = [];
+      for (var i = 0; i < total; i++) {
+        if (!isAvailable(i)) { unavailable.push(i); continue; }
+        if (state.playerGenders[i] === 'M') males.push(i);
+        else if (state.playerGenders[i] === 'F') females.push(i);
+      }
+      var needPerGender = state.courts * 2;
+      var rested2x = restedTwoBackSet(roundIdx);
+      var tiersM = gpTiers(males, needPerGender, hist.games);
+      var tiersF = gpTiers(females, needPerGender, hist.games);
+      var pickGender = function (tiers) {
+        var sorted = tiers.bubble.slice().sort(function (a, b) {
+          var ra = rested2x.has(a) ? 0 : 1, rb = rested2x.has(b) ? 0 : 1;
+          if (ra !== rb) return ra - rb;
+          return Math.random() - 0.5; // sama kayak v0.73.119: acak, bukan rank
+        });
+        var pick = sorted.slice(0, tiers.slots);
+        var sit = sorted.slice(tiers.slots);
+        return { active: tiers.forced.concat(pick), sit: sit.concat(tiers.above) };
+      };
+      var pM = pickGender(tiersM), pF = pickGender(tiersF);
+      var activeMales = pM.active, activeFemales = pF.active;
+      var resting = pM.sit.concat(pF.sit, unavailable);
+
+      if (activeMales.length !== activeFemales.length) {
+        var n = Math.min(activeMales.length, activeFemales.length);
+        if (activeMales.length > n) { resting = activeMales.slice(n).concat(resting); activeMales = activeMales.slice(0, n); }
+        if (activeFemales.length > n) { resting = activeFemales.slice(n).concat(resting); activeFemales = activeFemales.slice(0, n); }
+      }
+      if (activeMales.length < 2) return { courts: [], resting: resting.concat(activeMales, activeFemales) };
+
+      var combined = activeMales.concat(activeFemales);
+      var maleSet = {};
+      activeMales.forEach(function (id) { maleSet[id] = true; });
+      var partnerMatch = minCostPerfectMatching(combined, function (a, b) {
+        if (!!maleSet[a] === !!maleSet[b]) return Infinity; // paksa cross-gender
+        return hist.partner[a][b];
+      });
+      if (!partnerMatch) return _mxr188.apply(this, arguments); // fallback, harusnya gak pernah kejadian (M count === F count)
+
+      var teams = partnerMatch.pairs.map(function (pr) { return maleSet[pr[0]] ? pr : [pr[1], pr[0]]; });
+      var teamIds = teams.map(function (_, i) { return i; });
+      var teamMatch = minCostPerfectMatching(teamIds, function (i, j) {
+        var m1 = teams[i][0], f1 = teams[i][1], m2 = teams[j][0], f2 = teams[j][1];
+        return hist.opponent[m1][m2] + hist.opponent[m1][f2] + hist.opponent[f1][m2] + hist.opponent[f1][f2];
+      });
+      if (!teamMatch) return _mxr188.apply(this, arguments);
+
+      var courts = teamMatch.pairs.map(function (pr) { return { teamA: teams[pr[0]], teamB: teams[pr[1]] }; });
+      return { courts: courts, resting: resting };
+    };
+    buildMixicanoRound = window.buildMixicanoRound;
+  }
 })();
 </script>
 
