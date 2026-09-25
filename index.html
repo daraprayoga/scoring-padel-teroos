@@ -4241,7 +4241,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.190</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.189</div>
     </div>
   </div>
 
@@ -4340,6 +4340,7 @@ try {
               <div class="switch on" id="blurSwitch"></div>
             </div>
           </div>
+          <div id="redactExplainNote" class="redact-explain-note" style="display:none;"></div>
           <table class="standing-table" id="standingTable">
             <thead>
               <tr>
@@ -33363,8 +33364,7 @@ html:not(.dark) #podiumCatFilterRow .podium-cat-btn.podium-cat-btn-active {
     document.querySelectorAll('header').forEach(function (h) {
       h.style.setProperty('padding-top', '8px', 'important');
       h.style.setProperty('padding-bottom', '8px', 'important');
-      // v0.73.189: dark-aware (dulu selalu cream -> teks terang gak kebaca di dark)
-      h.style.setProperty('background', document.documentElement.classList.contains('dark') ? '#121609' : '#f5f0e6', 'important');
+      h.style.setProperty('background', '#f5f0e6', 'important');
       h.style.setProperty('border-bottom', 'none', 'important');
       h.style.setProperty('box-shadow', 'none', 'important');
     });
@@ -34715,147 +34715,109 @@ html.dark .status-player-card.is-rest {
 })();
 </script>
 
-
 <style id="codex-revision-v073189-css">
-/* v0.73.189 (1): header mode nonton di DARK kebaca lagi.
-   Akar: v0.73.16x maksa `body.viewer-mode header { background:#f5f0e6 !important }`
-   tanpa varian dark, sementara teks/logo header di dark itu terang
-   (cream/putih) -> terang di atas cream = gak kebaca. Fix: di dark,
-   header viewer solid #121609 (sama token safe-area/`html.dark`, lihat
-   CLAUDE.md § Warna). Light mode TIDAK disentuh. */
-html.dark.viewer-url body header,
-html.dark body.viewer-mode header,
-html.dark body.viewer-url header {
-  background: #121609 !important;
-  background-color: #121609 !important;
-  background-image: none !important;
-  color: #ece7da !important;
+/* v0.73.189: notif kenapa klasemen disensor -- user minta ("pas mau
+   dipencet uncensor harusnya ada notif dong kenapa disensor"). Note
+   persisten kecil di bawah toggle Sensor, muncul selama tabel masih
+   diredact (viewer terkunci ATAU admin nyalain Sensor manual). */
+.redact-explain-note {
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--gold);
+  background: rgba(201, 169, 97, 0.08);
+  border: 1px solid rgba(201, 169, 97, 0.25);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin: 0 0 10px;
 }
-html.dark body.viewer-mode header .brand,
-html.dark body.viewer-mode header .header-actions { color: #ece7da !important; }
-
-/* v0.73.189: layar "Menunggu data..." viewer juga ikut dark (dulu cream 0.97 di dark). */
-html.dark #viewerWaitOverlay { background: rgba(18,22,9,0.97) !important; }
-html.dark #viewerWaitOverlay > div:nth-child(2) { color: #a9c46a !important; }
-html.dark #viewerWaitOverlay > div:nth-child(3) { color: #8fa65a !important; }
-
-/* v0.73.189 (2): scrollbar hijau dicabut di laptop/desktop (pointer halus).
-   Tetap bisa scroll (wheel/trackpad/keyboard); cuma batang visualnya hilang.
-   HP/tablet (pointer kasar) gak kena -- overlay scrollbar native mereka
-   memang gak makan tempat. */
-@media (hover: hover) and (pointer: fine) {
-  html, body, * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
-  html::-webkit-scrollbar, body::-webkit-scrollbar, *::-webkit-scrollbar {
-    display: none !important; width: 0 !important; height: 0 !important; background: transparent !important;
-  }
+html.dark .redact-explain-note {
+  color: var(--gold);
+  background: rgba(212, 178, 106, 0.10);
+  border-color: rgba(212, 178, 106, 0.3);
 }
 </style>
 <script id="codex-revision-v073189-js">
 (function () {
-  // v0.73.189: re-sync warna inline header viewer pas toggle dark/light
-  // (inline !important dari v0.73.170 gak bisa ditimpa CSS, jadi ikut tema di sini).
-  function sync() {
-    if (!document.documentElement.classList.contains('viewer-url') &&
-        !(document.body && document.body.classList.contains('viewer-mode'))) return;
-    var col = document.documentElement.classList.contains('dark') ? '#121609' : '#f5f0e6';
-    document.querySelectorAll('header').forEach(function (h) {
-      if (h.style.getPropertyValue('background') !== col) h.style.setProperty('background', col, 'important');
-    });
-  }
-  try {
-    new MutationObserver(sync).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-  } catch (e) {}
-  window.addEventListener('load', function () { sync(); setTimeout(sync, 1000); });
-})();
-</script>
+  // v0.73.189: user lapor "mode nonton klasemen kan disensor, pas mau
+  // dipencet uncensor harusnya ada notif dong kenapa disensor" -- CLAUDE.md
+  // (log v0.73.158) KLAIM ada notice banner "Klasemen kebuka setelah game
+  // berakhir" pas terkunci, tapi digrep di source SEKARANG itu TIDAK ADA
+  // (drift dokumentasi vs kode, entah kapan hilang). Toggle Sensor
+  // (`#blurToggle`, listener asli ~9218) juga gak pernah punya guard
+  // IS_VIEWER sama sekali -- pas viewer nge-tap-nya SELAMA masih
+  // viewerLocked (pra-End), `state.redactMode` lokal keflip tapi
+  // `effectiveRedact = viewerLocked || state.redactMode` (~8934) TETAP
+  // true karena viewerLocked menang -- jadi tap itu 100% silent no-op,
+  // nol perubahan visual, nol penjelasan. Kalaupun viewer kepancing
+  // tapping berkali-kali, cuma nge-toggle state internal yang gak pernah
+  // kepakai selama masih locked.
+  //
+  // FIX 2 lapis (append-only, dua hal beda TAPI SATU SUMBER PESAN biar
+  // konsisten -- lihat reasonText() di bawah, dipakai keduanya):
+  // 1) applyRedactMode() di-override total (dipanggil dari 3 tempat:
+  //    renderOverview ~8715, toggle handler ~9221 lama, viewer init
+  //    ~10726 -- reassignment global cukup, semua caller pakai bare
+  //    identifier). Nambah isi #redactExplainNote (element baru di HTML,
+  //    persis di bawah toggle Sensor) setiap kali redact state berubah --
+  //    JADI notice-nya PERSISTEN, kebaca bahkan tanpa nge-tap apa pun.
+  // 2) Listener toggle Sensor lama diganti (clone+replace node, cara
+  //    paling aman buat "hapus semua listener lama" tanpa nyimpen
+  //    referensi ke closure aslinya) -- listener baru: kalau lagi
+  //    viewerLocked, JANGAN ubah state.redactMode sama sekali (toh gak
+  //    akan kepakai, nyimpen state percuma cuma bikin bingung kalau
+  //    session ke-end nanti tiba-tiba "kebuka" padahal viewer gak minta),
+  //    tampilin showToast() pakai pesan yang SAMA kayak notice persisten.
+  //    Kalau BUKAN viewerLocked (admin, atau viewer pasca-End), perilaku
+  //    toggle PERSIS seperti sebelumnya, nol perubahan.
 
-<style id="codex-revision-v073190-css">
-/* v0.73.190 (1): mode nonton fullscreen -- kasih napas antara ribbon MODE NONTON
-   dan pill header. Sebelumnya v0.73.16x maksa header margin:0 jadi pill nempel
-   ke ribbon (0px). Cuma di fs-active, portrait/non-fullscreen gak diubah. */
-body.fs-active.viewer-mode header { margin-top: 8px !important; }
-
-/* v0.73.190 (2): Story Studio -- opsi posisi konten (Bawah = default lama, Atas = baru).
-   Mode Atas: blok utama (podium / 3 baris / tabel klasemen) naik ke atas frame
-   (mulai 230px, di bawah area profil IG), judul + logo pindah ke bawah, scrim
-   gelap ikut pindah ke atas. Semua di dalam wrapper .ss-pos-wrap.pos-top yang
-   cuma dipasang kalau opsi Atas dipilih -> mode Bawah 100% identik sebelumnya. */
-.ss-pos-wrap { position: absolute; inset: 0; }
-.ss-pos-wrap .ss-scrim-pos { position: absolute; top: 0; left: 0; right: 0; height: 900px;
-  background: linear-gradient(180deg, rgba(27,33,13,0.95) 0%, rgba(27,33,13,0.55) 55%, transparent 100%); }
-.ss-pos-wrap.tpl-2 .ss-scrim-pos { height: 1400px; }
-.ss-pos-wrap.pos-top .ss-scrim-top { display: none; }
-.ss-pos-wrap.pos-top .ss-scrim-bot { height: 460px; }
-/* Podium */
-.ss-pos-wrap.pos-top .t1-podium { bottom: auto; top: 230px; }
-.ss-pos-wrap.pos-top .t1-title { top: auto; bottom: 100px; }
-.ss-pos-wrap.pos-top .t1-logo { top: auto; bottom: 108px; }
-.ss-pos-wrap.pos-top .t1-club-result { top: 640px; }
-/* Top 3 */
-.ss-pos-wrap.pos-top .t2-rows { bottom: auto; top: 230px; }
-.ss-pos-wrap.pos-top .t2-title { top: auto; bottom: 170px; }
-/* Klasemen */
-.ss-pos-wrap.pos-top .t3-card { bottom: auto; top: 230px; }
-.ss-pos-wrap.pos-top .t3-logo { top: auto; bottom: 100px; }
-
-.ss-pos-picker { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 4px 16px; flex-shrink: 0; }
-.ss-pos-picker .ss-pos-label { font-size: 12px; color: #8a9a7a; font-weight: 700; letter-spacing: 0.5px; margin-right: 4px; }
-.ss-pos-picker button { padding: 6px 16px; border-radius: 999px; border: 1px solid rgba(82,102,39,0.35);
-  background: rgba(245,240,230,0.9); color: #526627; font-size: 13px; font-weight: 700; cursor: pointer; }
-.ss-pos-picker button.active { background: #526627; color: #f5f0e6; border-color: #526627; }
-</style>
-<script id="codex-revision-v073190-js">
-(function () {
-  // Posisi konten story: false = bawah (default lama), true = atas.
-  window._ssPosTop = false;
-
-  // Bungkus render tiap template (array nyimpen referensi fungsi, jadi patch entri-nya).
-  if (typeof STORY_TEMPLATES !== 'undefined') {
-    STORY_TEMPLATES.forEach(function (t, i) {
-      if (t._posWrapped) return;
-      var orig = t.render;
-      t.render = function () {
-        var h = orig.apply(this, arguments);
-        if (!window._ssPosTop) return h;
-        return '<div class="ss-pos-wrap pos-top tpl-' + i + '"><div class="ss-scrim-pos"></div>' + h + '</div>';
-      };
-      t._posWrapped = true;
-    });
+  function reasonText(viewerLocked) {
+    return viewerLocked
+      ? '🔒 Klasemen disensor selama game berlangsung — kebuka otomatis begitu game di-End.'
+      : '🔒 Sensor aktif dari admin. Matiin toggle Sensor di atas buat lihat angkanya.';
   }
 
-  // Sisipin picker Bawah/Atas ke studio (buildStudio dipanggil by-name tiap openStudio).
-  if (typeof buildStudio === 'function') {
-    var _origBuild = buildStudio;
-    window.buildStudio = buildStudio = function () {
-      var r = _origBuild.apply(this, arguments);
-      var studio = document.getElementById('storyStudio');
-      if (studio && !document.getElementById('ssPosPicker')) {
-        var box = document.createElement('div');
-        box.className = 'ss-pos-picker';
-        box.id = 'ssPosPicker';
-        box.innerHTML = '<span class="ss-pos-label">POSISI</span>' +
-          '<button type="button" data-pos="bottom">Bawah</button>' +
-          '<button type="button" data-pos="top">Atas</button>';
-        var hint = studio.querySelector('.studio-hint');
-        studio.insertBefore(box, hint || null);
-        box.addEventListener('click', function (e) {
-          var b = e.target.closest('button[data-pos]');
-          if (!b) return;
-          window._ssPosTop = b.getAttribute('data-pos') === 'top';
-          sync();
-          if (typeof renderStudio === 'function') renderStudio();
-        });
+  applyRedactMode = function () {
+    var overview = document.getElementById('view-overview');
+    var viewerLocked = document.body.classList.contains('viewer-mode') && !state.ended;
+    var effectiveRedact = viewerLocked || state.redactMode;
+    overview.classList.toggle('redacted', effectiveRedact);
+    overview.classList.toggle('viewer-standings-locked', viewerLocked);
+
+    var note = document.getElementById('redactExplainNote');
+    if (note) {
+      if (effectiveRedact) {
+        note.textContent = reasonText(viewerLocked);
+        note.style.display = '';
+      } else {
+        note.style.display = 'none';
       }
-      sync();
-      return r;
-    };
-  }
-  function sync() {
-    document.querySelectorAll('#ssPosPicker button').forEach(function (b) {
-      b.classList.toggle('active', (b.getAttribute('data-pos') === 'top') === !!window._ssPosTop);
+    }
+  };
+
+  var oldToggle = document.getElementById('blurToggle');
+  if (oldToggle) {
+    var newToggle = oldToggle.cloneNode(true); // buang listener lama sekalian
+    oldToggle.parentNode.replaceChild(newToggle, oldToggle);
+    newToggle.addEventListener('click', function () {
+      var viewerLocked = document.body.classList.contains('viewer-mode') && !state.ended;
+      if (viewerLocked) {
+        try { showToast(reasonText(true)); } catch (e) {}
+        return; // sengaja gak ubah state.redactMode -- percuma, efeknya ketutup viewerLocked
+      }
+      state.redactMode = !state.redactMode;
+      var sw = document.getElementById('blurSwitch');
+      if (sw) sw.classList.toggle('on', state.redactMode);
+      applyRedactMode();
     });
   }
+
+  // Render pertama (restore localStorage / snapshot viewer) bisa kejadian
+  // SEBELUM block ini kepasang -- pola gotcha yang sama kayak KOTH/lock-
+  // toggle. Panggil sekali di akhir biar note langsung bener dari awal.
+  try { applyRedactMode(); } catch (e) {}
 })();
 </script>
+
 </body>
 </html>
