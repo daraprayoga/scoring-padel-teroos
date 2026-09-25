@@ -4241,7 +4241,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.188</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.190</div>
     </div>
   </div>
 
@@ -33363,7 +33363,8 @@ html:not(.dark) #podiumCatFilterRow .podium-cat-btn.podium-cat-btn-active {
     document.querySelectorAll('header').forEach(function (h) {
       h.style.setProperty('padding-top', '8px', 'important');
       h.style.setProperty('padding-bottom', '8px', 'important');
-      h.style.setProperty('background', '#f5f0e6', 'important');
+      // v0.73.189: dark-aware (dulu selalu cream -> teks terang gak kebaca di dark)
+      h.style.setProperty('background', document.documentElement.classList.contains('dark') ? '#121609' : '#f5f0e6', 'important');
       h.style.setProperty('border-bottom', 'none', 'important');
       h.style.setProperty('box-shadow', 'none', 'important');
     });
@@ -34714,5 +34715,147 @@ html.dark .status-player-card.is-rest {
 })();
 </script>
 
+
+<style id="codex-revision-v073189-css">
+/* v0.73.189 (1): header mode nonton di DARK kebaca lagi.
+   Akar: v0.73.16x maksa `body.viewer-mode header { background:#f5f0e6 !important }`
+   tanpa varian dark, sementara teks/logo header di dark itu terang
+   (cream/putih) -> terang di atas cream = gak kebaca. Fix: di dark,
+   header viewer solid #121609 (sama token safe-area/`html.dark`, lihat
+   CLAUDE.md § Warna). Light mode TIDAK disentuh. */
+html.dark.viewer-url body header,
+html.dark body.viewer-mode header,
+html.dark body.viewer-url header {
+  background: #121609 !important;
+  background-color: #121609 !important;
+  background-image: none !important;
+  color: #ece7da !important;
+}
+html.dark body.viewer-mode header .brand,
+html.dark body.viewer-mode header .header-actions { color: #ece7da !important; }
+
+/* v0.73.189: layar "Menunggu data..." viewer juga ikut dark (dulu cream 0.97 di dark). */
+html.dark #viewerWaitOverlay { background: rgba(18,22,9,0.97) !important; }
+html.dark #viewerWaitOverlay > div:nth-child(2) { color: #a9c46a !important; }
+html.dark #viewerWaitOverlay > div:nth-child(3) { color: #8fa65a !important; }
+
+/* v0.73.189 (2): scrollbar hijau dicabut di laptop/desktop (pointer halus).
+   Tetap bisa scroll (wheel/trackpad/keyboard); cuma batang visualnya hilang.
+   HP/tablet (pointer kasar) gak kena -- overlay scrollbar native mereka
+   memang gak makan tempat. */
+@media (hover: hover) and (pointer: fine) {
+  html, body, * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+  html::-webkit-scrollbar, body::-webkit-scrollbar, *::-webkit-scrollbar {
+    display: none !important; width: 0 !important; height: 0 !important; background: transparent !important;
+  }
+}
+</style>
+<script id="codex-revision-v073189-js">
+(function () {
+  // v0.73.189: re-sync warna inline header viewer pas toggle dark/light
+  // (inline !important dari v0.73.170 gak bisa ditimpa CSS, jadi ikut tema di sini).
+  function sync() {
+    if (!document.documentElement.classList.contains('viewer-url') &&
+        !(document.body && document.body.classList.contains('viewer-mode'))) return;
+    var col = document.documentElement.classList.contains('dark') ? '#121609' : '#f5f0e6';
+    document.querySelectorAll('header').forEach(function (h) {
+      if (h.style.getPropertyValue('background') !== col) h.style.setProperty('background', col, 'important');
+    });
+  }
+  try {
+    new MutationObserver(sync).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  } catch (e) {}
+  window.addEventListener('load', function () { sync(); setTimeout(sync, 1000); });
+})();
+</script>
+
+<style id="codex-revision-v073190-css">
+/* v0.73.190 (1): mode nonton fullscreen -- kasih napas antara ribbon MODE NONTON
+   dan pill header. Sebelumnya v0.73.16x maksa header margin:0 jadi pill nempel
+   ke ribbon (0px). Cuma di fs-active, portrait/non-fullscreen gak diubah. */
+body.fs-active.viewer-mode header { margin-top: 8px !important; }
+
+/* v0.73.190 (2): Story Studio -- opsi posisi konten (Bawah = default lama, Atas = baru).
+   Mode Atas: blok utama (podium / 3 baris / tabel klasemen) naik ke atas frame
+   (mulai 230px, di bawah area profil IG), judul + logo pindah ke bawah, scrim
+   gelap ikut pindah ke atas. Semua di dalam wrapper .ss-pos-wrap.pos-top yang
+   cuma dipasang kalau opsi Atas dipilih -> mode Bawah 100% identik sebelumnya. */
+.ss-pos-wrap { position: absolute; inset: 0; }
+.ss-pos-wrap .ss-scrim-pos { position: absolute; top: 0; left: 0; right: 0; height: 900px;
+  background: linear-gradient(180deg, rgba(27,33,13,0.95) 0%, rgba(27,33,13,0.55) 55%, transparent 100%); }
+.ss-pos-wrap.tpl-2 .ss-scrim-pos { height: 1400px; }
+.ss-pos-wrap.pos-top .ss-scrim-top { display: none; }
+.ss-pos-wrap.pos-top .ss-scrim-bot { height: 460px; }
+/* Podium */
+.ss-pos-wrap.pos-top .t1-podium { bottom: auto; top: 230px; }
+.ss-pos-wrap.pos-top .t1-title { top: auto; bottom: 100px; }
+.ss-pos-wrap.pos-top .t1-logo { top: auto; bottom: 108px; }
+.ss-pos-wrap.pos-top .t1-club-result { top: 640px; }
+/* Top 3 */
+.ss-pos-wrap.pos-top .t2-rows { bottom: auto; top: 230px; }
+.ss-pos-wrap.pos-top .t2-title { top: auto; bottom: 170px; }
+/* Klasemen */
+.ss-pos-wrap.pos-top .t3-card { bottom: auto; top: 230px; }
+.ss-pos-wrap.pos-top .t3-logo { top: auto; bottom: 100px; }
+
+.ss-pos-picker { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 4px 16px; flex-shrink: 0; }
+.ss-pos-picker .ss-pos-label { font-size: 12px; color: #8a9a7a; font-weight: 700; letter-spacing: 0.5px; margin-right: 4px; }
+.ss-pos-picker button { padding: 6px 16px; border-radius: 999px; border: 1px solid rgba(82,102,39,0.35);
+  background: rgba(245,240,230,0.9); color: #526627; font-size: 13px; font-weight: 700; cursor: pointer; }
+.ss-pos-picker button.active { background: #526627; color: #f5f0e6; border-color: #526627; }
+</style>
+<script id="codex-revision-v073190-js">
+(function () {
+  // Posisi konten story: false = bawah (default lama), true = atas.
+  window._ssPosTop = false;
+
+  // Bungkus render tiap template (array nyimpen referensi fungsi, jadi patch entri-nya).
+  if (typeof STORY_TEMPLATES !== 'undefined') {
+    STORY_TEMPLATES.forEach(function (t, i) {
+      if (t._posWrapped) return;
+      var orig = t.render;
+      t.render = function () {
+        var h = orig.apply(this, arguments);
+        if (!window._ssPosTop) return h;
+        return '<div class="ss-pos-wrap pos-top tpl-' + i + '"><div class="ss-scrim-pos"></div>' + h + '</div>';
+      };
+      t._posWrapped = true;
+    });
+  }
+
+  // Sisipin picker Bawah/Atas ke studio (buildStudio dipanggil by-name tiap openStudio).
+  if (typeof buildStudio === 'function') {
+    var _origBuild = buildStudio;
+    window.buildStudio = buildStudio = function () {
+      var r = _origBuild.apply(this, arguments);
+      var studio = document.getElementById('storyStudio');
+      if (studio && !document.getElementById('ssPosPicker')) {
+        var box = document.createElement('div');
+        box.className = 'ss-pos-picker';
+        box.id = 'ssPosPicker';
+        box.innerHTML = '<span class="ss-pos-label">POSISI</span>' +
+          '<button type="button" data-pos="bottom">Bawah</button>' +
+          '<button type="button" data-pos="top">Atas</button>';
+        var hint = studio.querySelector('.studio-hint');
+        studio.insertBefore(box, hint || null);
+        box.addEventListener('click', function (e) {
+          var b = e.target.closest('button[data-pos]');
+          if (!b) return;
+          window._ssPosTop = b.getAttribute('data-pos') === 'top';
+          sync();
+          if (typeof renderStudio === 'function') renderStudio();
+        });
+      }
+      sync();
+      return r;
+    };
+  }
+  function sync() {
+    document.querySelectorAll('#ssPosPicker button').forEach(function (b) {
+      b.classList.toggle('active', (b.getAttribute('data-pos') === 'top') === !!window._ssPosTop);
+    });
+  }
+})();
+</script>
 </body>
 </html>
