@@ -4241,7 +4241,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.192</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.193</div>
     </div>
   </div>
 
@@ -34963,6 +34963,24 @@ html.dark body button[data-action="delete"] * {
    (refreshCourtCard cuma toggle class .win). Admin + mode nonton. */
 .sb-court-card:has(.sb-winner-dot.win) .sb-team:not(:has(.sb-winner-dot.win)) .sb-player {
   opacity: 0.6;
+}
+</style>
+
+<style id="codex-revision-v073193-css">
+/* v0.73.193: scroll mode nonton kaku, gak smooth/bouncy kayak admin.
+   Akar: v0.73.177 nyetel `overscroll-behavior-y: none` di html.viewer-url /
+   body.viewer-mode buat nutup "flash coklat" pas overscroll -- tapi itu
+   fix dari ERA SEBELUM background solid cream dipasang (rule tepat di
+   atasnya, "Page bg solid -- no brown flash on scroll"). Background
+   solid itu sendiri udah cukup nutup celahnya; overscroll-behavior:none
+   jadi efek samping yang gak diminta -- di Chrome/Android dia motong
+   rubber-band/glow, admin (gak ada rule ini) tetap bouncy normal.
+   Satu-satunya pemakaian overscroll-behavior di file ini (dicek: cuma
+   baris itu), jadi aman di-auto-kan lagi tanpa nyenggol containment
+   modal/scrim lain (mereka gak gantungan ke rule ini). */
+html.viewer-url,
+body.viewer-mode {
+  overscroll-behavior-y: auto !important;
 }
 </style>
 </body>
