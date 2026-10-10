@@ -4248,7 +4248,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.199</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.204</div>
     </div>
   </div>
 
@@ -35603,9 +35603,9 @@ html.dark .ptsig-done-item { background: rgba(148, 185, 70, 0.14); color: var(--
   }
 
   /* ---------- alur tanda tangan ---------- */
-  function openSign(kind, idx) {
-    var m = matchRef(kind, idx);
-    if (!m || IS_VIEWER) return;
+  function openSign(kind, idx, remote) {
+    var m = remote ? remote.m : matchRef(kind, idx);
+    if (!m || (IS_VIEWER && !remote)) return;
     var ss = scoreState(kind, m);
     if (ss !== 'ok') { toast(ss === 'tie' ? 'Skor seri, knockout harus ada pemenang' : 'Isi skor dulu'); return; }
     var sA = sc(m.scoreA), sB = sc(m.scoreB);
@@ -35622,6 +35622,7 @@ html.dark .ptsig-done-item { background: rgba(148, 185, 70, 0.14); color: var(--
     buildSteps();
     var ov = makeOverlay('Konfirmasi Hasil', ctxLabel(kind, m));
     var body = ov.querySelector('.ptsig-body'), acts = ov.querySelector('.ptsig-actions');
+    if (remote && remote.onCancel) ov._onCancel = remote.onCancel;
     body.classList.add('ptsig-split');
     ov._cleanup = function () { if (pad) pad.destroy(); };
     ov.querySelector('.ptsig-x').addEventListener('click', function () {
@@ -35662,8 +35663,8 @@ html.dark .ptsig-done-item { background: rgba(148, 185, 70, 0.14); color: var(--
       pad = makePad(body.querySelector('.ptsig-pad'), function (ok) { nextBtn.disabled = !ok; });
       body.querySelectorAll('[data-mode]').forEach(function (b) {
         b.addEventListener('click', function () {
-          mode = b.getAttribute('data-mode'); state.tourneySignMode = mode;
-          try { saveState(); } catch (e) {}
+          mode = b.getAttribute('data-mode'); if (!remote) state.tourneySignMode = mode;
+          if (!remote) { try { saveState(); } catch (e) {} }
           buildSteps(); cur = 0; draw();
         });
       });
@@ -35687,13 +35688,21 @@ html.dark .ptsig-done-item { background: rgba(148, 185, 70, 0.14); color: var(--
 
     function finish() {
       // jaga-jaga: skor berubah di tempat lain selama overlay kebuka
-      if (sc(m.scoreA) !== sA || sc(m.scoreB) !== sB) { alert('Skor berubah selama proses TTD. Ulangi.'); closeOverlay(); rerender(); return; }
+      if (!remote && (sc(m.scoreA) !== sA || sc(m.scoreB) !== sB)) { alert('Skor berubah selama proses TTD. Ulangi.'); closeOverlay(); rerender(); return; }
       var id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
       var room = curRoom(), at = Date.now();
       var side = function (s) { return captured.filter(function (c) { return c.side === s; }); };
       var rec = { room: room, at: at, sA: sA, sB: sB,
         A: side('A').map(function (c) { return { n: c.n, img: c.img }; }),
         B: side('B').map(function (c) { return { n: c.n, img: c.img }; }) };
+      if (remote) {
+        // device scorekeeper: gambar ke Firebase __sig, metadata ikut entry __court
+        var meta = { id: id, at: at, room: room, sA: sA, sB: sB, mode: mode,
+          A: rec.A.map(function (c) { return c.n; }), B: rec.B.map(function (c) { return c.n; }) };
+        closeOverlay();
+        try { remote.done(id, rec, meta); } catch (e) { console.warn('[sk] done', e); }
+        return;
+      }
       loadImgs();
       if (m.sig && m.sig.id && imgs[m.sig.id]) { delete imgs[m.sig.id]; fbDel(m.sig.room || room, m.sig.id); }
       imgs[id] = rec;
@@ -35872,6 +35881,8 @@ html.dark .ptsig-done-item { background: rgba(148, 185, 70, 0.14); color: var(--
     } finally { exporting = false; }
   }
   window._ptsigExportRekap = exportRekap;
+  window._ptOpenSign = openSign;
+  window._ptSigImg = function (rec) { loadImgs(); if (rec && rec.id) imgs[rec.id] = rec.rec; };
 
   // tombol back Android / Esc nutup overlay
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && openOv && !openOv.querySelector('.ptsig-pad.inked')) closeOverlay(); });
@@ -36026,6 +36037,10 @@ html.pt-tv, html.pt-tv body { overflow: hidden !important; background: #000 !imp
 .pttv-pn span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pttv-team.win .pttv-pn { font-weight: 900; }
 .pttv-team.lose { opacity: 0.5; }
+.pttv-pt { font-size: 30px; font-weight: 800; min-width: 44px; text-align: right; line-height: 1; opacity: .7; font-variant-numeric: tabular-nums; }
+.pttv-grid.c3 .pttv-pt { font-size: 26px; min-width: 38px; }
+.pttv-grid.c4 .pttv-pt { font-size: 22px; min-width: 32px; }
+.pttv-grid.solo .pttv-pt { font-size: 56px; min-width: 80px; }
 .pttv-sc { font-size: 62px; font-weight: 900; min-width: 72px; text-align: right; line-height: 1; font-variant-numeric: tabular-nums; }
 .pttv-w { font-size: 14px; font-weight: 900; background: #5d7c1c; color: #fff; border-radius: 6px; padding: 4px 8px; }
 .pttv-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-top: 2px solid rgba(32, 39, 15, 0.08); padding-top: 10px; flex: 0 0 auto; }
@@ -36174,7 +36189,7 @@ html.pt-tv, html.pt-tv body { overflow: hidden !important; background: #000 !imp
     if (sc(m.scoreB) > sc(m.scoreA)) return 'B';
     return null;
   }
-  function isLive(m) { return !!m && !m.done && !m.bye && (sc(m.scoreA) + sc(m.scoreB) > 0); }
+  function isLive(m) { return !!m && !m.done && !m.bye && (sc(m.scoreA) + sc(m.scoreB) + sc(m.pA) + sc(m.pB) > 0); }
   function groupMatchNo(m) {
     var n = 0, list = state.tourneyGroupMatches || [];
     for (var i = 0; i < list.length; i++) { if (list[i].group === m.group) n++; if (list[i] === m) return n; }
@@ -36234,7 +36249,7 @@ html.pt-tv, html.pt-tv body { overflow: hidden !important; background: #000 !imp
     return { stages: stages, third: third };
   }
   function phLabel(stages, k, i, side) {
-    if (k === 0) return 'TBD';
+    if (k === 0) { var pl = (typeof window._ptPlanLabel === 'function') ? window._ptPlanLabel(i, side) : null; return pl || 'TBD'; }
     var prev = stages[k - 1].key;
     return 'Pemenang ' + (SHORT[prev] || prev) + ' ' + (i * 2 + (side === 'A' ? 1 : 2));
   }
@@ -36292,8 +36307,9 @@ html.pt-tv, html.pt-tv body { overflow: hidden !important; background: #000 !imp
     }
     return { html: '<div class="ptb-wrap" style="width:' + W + 'px;height:' + total + 'px;"><svg width="' + W + '" height="' + total + '">' + paths + '</svg>' + html + '</div>', w: W, h: total };
   }
+  window._ptBracketPhoneHtml = function () { return bracketPhoneHtml(); };
   function bracketPhoneHtml() {
-    var note = isKoPhase() ? '' : '<div class="ptk-note">Bracket diundi otomatis begitu fase grup selesai: juara grup ketemu lolosan dari grup lain. ' + qualCount() + ' pair lolos.</div>';
+    var note = isKoPhase() ? '' : '<div class="ptk-note">Bagan sudah ditentukan dari undian grup. Nama pair terisi begitu fase grup selesai. ' + qualCount() + ' pair lolos.</div>';
     return note + '<div class="ptb-scroll">' + bracketHtml({ bw: 184, bh: 58, gx: 28, gy: 14, head: 26 }).html + '</div>';
   }
 
@@ -36359,7 +36375,7 @@ html.pt-tv, html.pt-tv body { overflow: hidden !important; background: #000 !imp
     }
     if (tools.querySelector('[data-pttv]')) return;
     tools.style.gap = '6px';
-    var b = document.createElement('button'); b.type = 'button'; b.className = 'ptsig-btn'; b.setAttribute('data-pttv', 'open'); b.textContent = 'Mode TV';
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'ptsig-btn'; b.setAttribute('data-pttv', 'open'); b.textContent = 'TV & Penonton';
     b.addEventListener('click', openTvSheet);
     tools.insertBefore(b, tools.firstChild);
   }
@@ -36493,7 +36509,7 @@ html.pt-tv, html.pt-tv body { overflow: hidden !important; background: #000 !imp
     function tog(key, label) { return '<div class="pttvs-tog' + (c[key] ? ' on' : '') + '" role="switch" aria-checked="' + !!c[key] + '" data-k="' + key + '"><span>' + label + '</span><span class="pttvs-sw"></span></div>'; }
     function draw() {
       var frame = lsGet(FRAME_KEY);
-      sheet.innerHTML = '<div class="pttvs-top"><div class="pttvs-title">Mode TV</div><button type="button" class="pttvs-x" aria-label="Tutup"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>'
+      sheet.innerHTML = '<div class="pttvs-top"><div class="pttvs-title">Mode TV &amp; penonton</div><button type="button" class="pttvs-x" aria-label="Tutup"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>'
         + '<div class="pttvs-body">'
         + '<div class="pttvs-card"><div class="pttvs-h">Link TV</div>'
         + '<div class="pttvs-p">Buka di browser TV, atau laptop yang nyambung ke TV. Skor ikut update live.</div>'
@@ -36511,6 +36527,9 @@ html.pt-tv, html.pt-tv body { overflow: hidden !important; background: #000 !imp
         + '<button type="button" class="ptsig-btn" data-a="template">Download template</button>'
         + (frame ? '<button type="button" class="ptsig-btn danger" data-a="rmframe">Hapus</button>' : '') + '</div>'
         + '<input type="file" accept="image/png,image/jpeg,image/webp" data-a="file" style="display:none"></div>'
+        + '<div class="pttvs-card"><div class="pttvs-h">Tampilan penonton (link nonton)</div>'
+        + '<div class="pttvs-p">Default: penonton bisa lihat semua skor, klasemen, dan bracket. Nyalain salah satu di bawah buat nyensor dari link nonton.</div>'
+        + tog('vwHideScores', 'Sembunyikan skor') + tog('vwHideStandings', 'Sembunyikan klasemen') + tog('vwHideBracket', 'Sembunyikan bracket') + '</div>'
         + '<div class="pttvs-card"><div class="pttvs-h">Yang tampil di TV (muter otomatis)</div>'
         + tog('courts', 'Court live + up next') + tog('standings', 'Klasemen grup') + tog('bracket', 'Bracket knockout') + tog('clock', 'Jam') + tog('qr', 'QR link nonton')
         + '<div class="pttvs-p" style="margin-top:4px;">Ganti halaman tiap</div>'
@@ -36602,13 +36621,13 @@ html.pt-tv, html.pt-tv body { overflow: hidden !important; background: #000 !imp
     if (!it) return '<div class="pttv-card"><div class="pttv-chead">' + name + '<div class="pttv-csub">&nbsp;</div></div><div class="pttv-st done">Selesai</div></div><div class="pttv-empty">Belum ada match lagi</div></div>';
     var m = it.m, a = sc(m.scoreA), b = sc(m.scoreB), live = isLive(m);
     var st = live ? '<div class="pttv-st live"><i></i>Live' + (m.liveAt ? ' ' + Math.max(1, Math.round((Date.now() - m.liveAt) / 60000)) + '\'' : '') + '</div>' : '<div class="pttv-st">Berikutnya</div>';
-    function team(id, s, o) {
+    function team(id, s, o, pt) {
       var win = live && s > o, lose = live && s < o;
       return '<div class="pttv-team' + (win ? ' win' : '') + (lose ? ' lose' : '') + '"><div class="pttv-pn">' + pairArr(id).map(function (n) { return '<span>' + esc(n) + '</span>'; }).join('') + '</div>'
-        + '<div class="pttv-sc">' + (live ? s : '') + '</div></div>';
+        + '<div class="pttv-sc">' + (live ? s : '') + '</div>' + '<div class="pttv-pt">' + (live && pt != null ? ['0', '15', '30', '40'][Math.max(0, Math.min(3, pt | 0))] : '') + '</div></div>';
     }
     return '<div class="pttv-card"><div class="pttv-chead">' + name + '<div class="pttv-csub">' + esc(subLabel(it)) + '</div></div>' + st + '</div>'
-      + '<div class="pttv-teams">' + team(pid(m.teamA), a, b) + team(pid(m.teamB), b, a) + '</div>'
+      + '<div class="pttv-teams">' + team(pid(m.teamA), a, b, m.pA || 0) + team(pid(m.teamB), b, a, m.pB || 0) + '</div>'
       + '<div class="pttv-foot"><div class="pttv-nx"><small>Up next</small>' + (list[1] ? nxLine(list[1]) : '<span>-</span>') + '</div>'
       + '<div class="pttv-nx"><small>Then</small>' + (list[2] ? nxLine(list[2]) : '<span>-</span>') + '</div></div></div>';
   }
@@ -36894,7 +36913,749 @@ html body #tourneyDrawView #tourneyRedrawBtn.ptdraw-busy svg { animation: ptdraw
 </script>
 
 
-<style id="codex-revision-v073199-css">
+<style id="codex-revision-v073201-css">
+/* ---- Mode Nonton: ribbon + header sejajar (layar lebar) ---- */
+@media (min-width: 640px) {
+  html.viewer-url #betaBanner, html.viewer-url .beta-banner,
+  body.viewer-mode #betaBanner, body.viewer-mode .beta-banner {
+    margin: 8px 12px 0 !important;
+    width: auto !important;
+    border-radius: 999px !important;
+    box-sizing: border-box !important;
+    min-height: 28px !important;
+    padding: 5px 12px !important;
+  }
+  html.viewer-url header, body.viewer-mode header {
+    margin: 8px 12px 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+    top: 8px !important;
+  }
+}
+/* ---- Sensor penonton (tourney) ---- */
+html.ptvw-no-sc #tgScoreView input, html.ptvw-no-sc #ptkKoScore input { visibility: hidden !important; }
+html.ptvw-no-sc #tgScoreView::before, html.ptvw-no-sc #ptkKoScore::before {
+  content: 'Skor disembunyikan panitia untuk sementara.';
+  display: block; margin: 0 0 10px; padding: 10px 14px; border-radius: 12px;
+  background: rgba(93,124,28,0.10); color: #3c5d00; font-size: 13px; font-weight: 700;
+}
+html.dark.ptvw-no-sc #tgScoreView::before, html.dark.ptvw-no-sc #ptkKoScore::before { color: #cfe0a3; background: rgba(148,185,70,0.14); }
+html.ptvw-no-st body #tourneyDrawView [data-ptk="stand"], html.ptvw-no-st #tgTabStandings, html.ptvw-no-st #tgStandingsView, html.ptvw-no-st #ptkKoStand { display: none !important; }
+html.ptvw-no-br body #tourneyDrawView [data-ptk="bracket"], html.ptvw-no-br #ptkBracketView, html.ptvw-no-br #ptkKoBracket { display: none !important; }
+</style>
+<script id="codex-revision-v073201-js">
+(function () {
+  'use strict';
+  var viewer = false;
+  try { viewer = (typeof IS_VIEWER !== 'undefined') && IS_VIEWER && new URLSearchParams(location.search).get('tv') !== '1'; } catch (e) {}
+  if (!viewer) return;
+  var last = '';
+  function apply() {
+    var c = (typeof state !== 'undefined' && state && state.tvConfig) || {};
+    var on = (typeof isTourney === 'function' && isTourney());
+    var v = { sc: on && !!c.vwHideScores, st: on && !!c.vwHideStandings, br: on && !!c.vwHideBracket };
+    var key = [v.sc, v.st, v.br].join();
+    var h = document.documentElement;
+    if (key !== last) {
+      last = key;
+      h.classList.toggle('ptvw-no-sc', v.sc);
+      h.classList.toggle('ptvw-no-st', v.st);
+      h.classList.toggle('ptvw-no-br', v.br);
+    }
+    // kalau tab aktif baru aja disensor, pindah ke tab Score
+    var hidden = [];
+    if (v.st) hidden.push('stand');
+    if (v.br) hidden.push('bracket');
+    if (hidden.length) {
+      var active = document.querySelector('#tourneyDrawView .sb-tab.active');
+      var k = active && active.getAttribute('data-ptk');
+      if (!k && active && active.id === 'tgTabStandings') k = 'stand';
+      if (k && hidden.indexOf(k) >= 0) {
+        var s = document.querySelector('#tourneyDrawView [data-ptk="score"], #tgTabScore');
+        if (s) s.click();
+      }
+    }
+  }
+  setInterval(apply, 800);
+  apply();
+})();
+</script>
+
+<style id="codex-revision-v073202b-css">
+/* ---- Viewer: backdrop fixed menjangkau area bawah (iPad Safari) ---- */
+html.viewer-url:not(.dark) { background: #ece5d4 !important; background-image: none !important; }
+html.viewer-url.dark { background: #0f1307 !important; background-image: none !important; }
+html.viewer-url body::before, body.viewer-mode::before { top: -80px !important; bottom: -260px !important; }
+
+/* ---- Round nav tourney = gaya mabar (topbar + prev/next) ---- */
+html body #tourneyDrawView .ptnav-top { margin: 0 0 12px; }
+html body #tourneyDrawView .ptnav-top .sb-tabs { margin: 0 !important; }
+#ptPlanCard { min-width: 0; max-width: 100%; overflow: hidden; box-sizing: border-box; }
+#ptPlanCard .ptb-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+#tourneyDrawView .setup-wrap > * { min-width: 0; max-width: 100%; }
+html body #tourneyDrawView .ptnav-top .sb-nav-btn.ptnav-dis { opacity: .4 !important; pointer-events: none !important; animation: none !important; box-shadow: none !important; }
+html.viewer-url #tourneyDrawView .ptnav-top .sb-nav-btn:not(.ptnav-dis),
+html.viewer-url #tourneyDrawView .ptnav-top .sb-tab { pointer-events: auto !important; opacity: 1 !important; cursor: pointer !important; }
+</style>
+<script id="codex-revision-v073202b-js">
+(function () {
+  'use strict';
+  var IS_V = false;
+  try { IS_V = (typeof IS_VIEWER !== 'undefined') && IS_VIEWER; } catch (e) {}
+
+  /* ============ 1. Plan bracket dari undian grup ============ */
+  function seedOrder(n) {
+    var s = [1];
+    while (s.length < n) { var t = s.length * 2, ns = []; s.forEach(function (x) { ns.push(x); ns.push(t + 1 - x); }); s = ns; }
+    return s;
+  }
+  function nextPow2(n) { var p = 1; while (p < n) p *= 2; return p; }
+  function planSeeds(rot) {
+    var G = (state.tourneyDraw || []).length;
+    if (G < 1) return null;
+    var T = Math.max(1, parseInt(state.qualTop, 10) || 1);
+    var B = Math.max(0, Math.min(G, parseInt(state.qualBest3rd, 10) || 0));
+    var seeds = [], g, r;
+    for (r = 0; r < T; r++) {
+      for (g = 0; g < G; g++) {
+        var gg = r === 0 ? g : (r === 1 ? (g + rot) % G : (G - 1 - g));
+        seeds.push({ g: gg, r: r });
+      }
+    }
+    for (var k = 0; k < B; k++) seeds.push({ third: k, r: T });
+    var total = 0;
+    try { total = tourneyQualTotal(); } catch (e) {}
+    if (total >= 2 && total < seeds.length) seeds = seeds.slice(0, total);
+    return seeds;
+  }
+  function pairsFor(seeds) {
+    var size = nextPow2(Math.max(2, seeds.length)), ord = seedOrder(size), pairs = [];
+    for (var i = 0; i < ord.length; i += 2) pairs.push([seeds[ord[i] - 1] || null, seeds[ord[i + 1] - 1] || null]);
+    return { size: size, pairs: pairs };
+  }
+  function clashes(pairs) {
+    var c = 0;
+    pairs.forEach(function (p) { if (p[0] && p[1] && p[0].g != null && p[0].g === p[1].g) c++; });
+    return c;
+  }
+  function plan() {
+    var G = (state.tourneyDraw || []).length;
+    if (G < 1) return null;
+    var best = null;
+    for (var rot = 0; rot < Math.max(1, G); rot++) {
+      var seeds = planSeeds(rot); if (!seeds) return null;
+      var pf = pairsFor(seeds), c = clashes(pf.pairs);
+      if (!best || c < best.c) best = { c: c, pf: pf, seeds: seeds };
+      if (c === 0) break;
+    }
+    return best ? best.pf : null;
+  }
+  var LET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  function slotLabel(s) {
+    if (!s) return 'BYE';
+    var T = Math.max(1, parseInt(state.qualTop, 10) || 1);
+    if (s.third != null) return 'Peringkat ' + (T + 1) + ' terbaik #' + (s.third + 1);
+    if (s.r === 0) return 'Juara Grup ' + LET[s.g];
+    if (s.r === 1) return 'Runner-up Grup ' + LET[s.g];
+    return 'Peringkat ' + (s.r + 1) + ' Grup ' + LET[s.g];
+  }
+  window._ptPlanLabel = function (i, side) {
+    try {
+      var pf = plan(); if (!pf || !pf.pairs[i]) return null;
+      return slotLabel(side === 'A' ? pf.pairs[i][0] : pf.pairs[i][1]);
+    } catch (e) { return null; }
+  };
+
+  // Generate KO sesuai plan (bukan acak lagi). Kalau plan gak cocok sama qualInfo, balik ke cara lama.
+  if (typeof generateKnockoutBracket === 'function') {
+    var _gen202 = generateKnockoutBracket;
+    window.generateKnockoutBracket = function () {
+      try {
+        var info = state.tourneyQualInfo || [];
+        var pf = plan();
+        var T = Math.max(1, parseInt(state.qualTop, 10) || 1);
+        var st = koStagesFor(info.length);
+        if (pf && info.length >= 2 && pf.size === st.size) {
+          var thirds = info.filter(function (q) { return q.rank >= T; });
+          var used = {}, ok = true;
+          var res = function (s) {
+            if (!s) return null;
+            var q = s.third != null ? thirds[s.third] : info.filter(function (x) { return x.group === s.g && x.rank === s.r; })[0];
+            if (!q) { ok = false; return null; }
+            used[q.id] = 1; return q.id;
+          };
+          var ids = pf.pairs.map(function (p) { return [res(p[0]), res(p[1])]; });
+          if (ok && Object.keys(used).length === info.length) {
+            var stage = st.stages[0];
+            var bracket = ids.map(function (p, mi) {
+              var done = (p[0] !== null) !== (p[1] !== null);
+              return { stage: stage, mi: mi, teamA: p[0], teamB: p[1], scoreA: 0, scoreB: 0, done: done, bye: done };
+            });
+            state.koBracket = bracket; state.koStageView = stage; state.koChampion = null; state.ko3rdWinner = null;
+            if (!state.courtNames) state.courtNames = [];
+            return bracket;
+          }
+        }
+      } catch (e) { console.warn('[v202] plan KO gagal, pakai acak', e); }
+      return _gen202.apply(this, arguments);
+    };
+    generateKnockoutBracket = window.generateKnockoutBracket;
+  }
+
+  /* ============ 2. Preview bracket di hasil kocok ============ */
+  function addPreview() {
+    var host = document.getElementById('tourneyDrawView');
+    if (!host || !host.querySelector('#tourneyStartGroupBtn') || host.querySelector('#ptPlanCard')) return;
+    if (typeof window._ptBracketPhoneHtml !== 'function') return;
+    var anchor = host.querySelector('.btn-row'); if (!anchor) return;
+    var card = document.createElement('div');
+    card.className = 'card'; card.id = 'ptPlanCard'; card.style.marginTop = '8px';
+    card.innerHTML = '<div class="card-title">Bracket Knockout</div>' + window._ptBracketPhoneHtml();
+    anchor.parentNode.insertBefore(card, anchor);
+  }
+  if (typeof showTourneyDrawResult === 'function') {
+    var _sd202 = showTourneyDrawResult;
+    window.showTourneyDrawResult = function () {
+      var r = _sd202.apply(this, arguments);
+      try { addPreview(); } catch (e) { console.warn('[v202] preview', e); }
+      return r;
+    };
+    showTourneyDrawResult = window.showTourneyDrawResult;
+  }
+
+  /* ============ 3. Round nav gaya mabar ============ */
+  var ICON_PREV = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>';
+  var ICON_NEXT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-left:4px;" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
+  function decorateNav() {
+    var host = document.getElementById('tourneyDrawView');
+    if (!host) return;
+    var page = host.querySelector('.sb-page');
+    if (!page || page.querySelector('.ptnav-top')) return;
+    var tabs = page.querySelector('.sb-tabs');
+    var isGroup = !!document.getElementById('tgScoreView');
+    var all = [].slice.call(host.querySelectorAll(isGroup ? '[data-tr]' : '[data-kostage]'));
+    var pills = all.filter(function (p) { return !p.classList.contains('ptk-locked') && p.style.opacity !== '0.4'; });
+    if (!pills.length) return;
+    var idx = 0;
+    pills.forEach(function (p, i) { if (p.classList.contains('active')) idx = i; });
+    var num, sub;
+    if (isGroup) { num = String(idx + 1); sub = 'of ' + pills.length + ' · Fase Grup'; }
+    else { var t = pills[idx].textContent.trim(); num = t; sub = '· Knockout'; }
+    var top = document.createElement('div');
+    top.className = 'sb-topbar ptnav-top';
+    top.innerHTML = '<div class="sb-round-info"><span class="sb-round-label">ROUND</span><span class="sb-round-num"></span><span class="sb-round-sub"></span></div>'
+      + '<div class="sb-round-nav"><button type="button" class="sb-nav-btn sb-nav-prev" aria-label="Round sebelumnya">' + ICON_PREV + '</button>'
+      + '<button type="button" class="sb-nav-btn sb-nav-next">Next Round ' + ICON_NEXT + '</button></div>';
+    top.querySelector('.sb-round-num').textContent = num;
+    top.querySelector('.sb-round-sub').textContent = sub;
+    var nav = top.querySelector('.sb-round-nav');
+    if (tabs) top.insertBefore(tabs, nav);
+    page.insertBefore(top, page.firstChild);
+    var prev = top.querySelector('.sb-nav-prev'), next = top.querySelector('.sb-nav-next');
+    if (idx <= 0) prev.classList.add('ptnav-dis');
+    if (idx >= pills.length - 1) next.classList.add('ptnav-dis');
+    prev.addEventListener('click', function () { if (idx > 0) pills[idx - 1].click(); });
+    next.addEventListener('click', function () { if (idx < pills.length - 1) pills[idx + 1].click(); });
+  }
+  ['renderTourneyGroupPhase', 'renderKnockout'].forEach(function (name) {
+    if (typeof window[name] !== 'function') return;
+    var orig = window[name];
+    window[name] = function () {
+      var r = orig.apply(this, arguments);
+      try { decorateNav(); } catch (e) { console.warn('[v202] nav', e); }
+      return r;
+    };
+    try { (0, eval)(name + ' = window.' + name); } catch (e) {}
+  });
+})();
+</script>
+
+<style id="codex-revision-v073203-css">
+#ptskSheet { position: fixed; inset: 0; z-index: 2147481000; display: flex; flex-direction: column;
+  background: var(--pt-paper, #fbf7f0); color: var(--pt-ink, #20270f); font-family: inherit;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+html.dark #ptskSheet { background: #121609; color: var(--pt-ink-dk, #ece7da); }
+#ptskSheet .pttvs-top { display: flex; align-items: center; gap: 12px; padding: 12px 16px 8px; }
+#ptskSheet .pttvs-title { font-size: 18px; font-weight: 800; flex: 1; }
+#ptskSheet .pttvs-x { appearance: none; -webkit-appearance: none; width: 44px; height: 44px; border-radius: 50%; border: 0; background: #fff;
+  color: inherit; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(32, 39, 15, 0.12); cursor: pointer; }
+html.dark #ptskSheet .pttvs-x { background: #1d2412; box-shadow: none; }
+#ptskSheet .pttvs-body { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 16px 24px; display: flex; flex-direction: column; gap: 14px; max-width: 640px; width: 100%; margin: 0 auto; box-sizing: border-box; }
+#ptskSheet .pttvs-card { background: #fff; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+html.dark #ptskSheet .pttvs-card { background: #1d2412; }
+#ptskSheet .pttvs-h { font-size: 11px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: var(--pt-action-ink, #3c5d00); }
+html.dark #ptskSheet .pttvs-h { color: var(--pt-action-dark, #94b946); }
+#ptskSheet .pttvs-p { font-size: 13px; line-height: 1.45; opacity: 0.82; }
+#ptskSheet .pttvs-link { font-size: 12px; font-weight: 700; word-break: break-all; padding: 10px 12px; border-radius: 10px; background: rgba(32, 39, 15, 0.05); user-select: all; -webkit-user-select: all; }
+html.dark #ptskSheet .pttvs-link { background: rgba(236, 231, 218, 0.07); }
+#ptskSheet .pttvs-row { display: flex; gap: 8px; flex-wrap: wrap; }
+#ptskSheet .pttvs-row .ptsig-btn { flex: 1 1 auto; }
+#ptskSheet .pttvs-prev { width: 100%; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: #5d7c1c; position: relative; }
+#ptskSheet .pttvs-prev img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#ptskSheet .pttvs-prev .pttvs-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 700; opacity: 0.85; text-align: center; padding: 10px; }
+#ptskSheet .pttvs-spec { font-size: 12px; line-height: 1.55; }
+#ptskSheet .pttvs-spec b { font-weight: 800; }
+#ptskSheet .pttvs-tog { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; font-size: 14px; font-weight: 700; cursor: pointer; }
+#ptskSheet .pttvs-tog + .pttvs-tog { border-top: 1px solid rgba(32, 39, 15, 0.08); }
+html.dark #ptskSheet .pttvs-tog + .pttvs-tog { border-top-color: rgba(236, 231, 218, 0.1); }
+#ptskSheet .pttvs-sw { width: 46px; height: 28px; border-radius: 999px; background: rgba(32, 39, 15, 0.18); position: relative; flex: 0 0 auto; transition: background .15s; }
+#ptskSheet .pttvs-sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); }
+#ptskSheet .pttvs-tog.on .pttvs-sw { background: var(--pt-action, #5d7c1c); }
+#ptskSheet .pttvs-tog.on .pttvs-sw::after { transform: translateX(18px); }
+#ptskSheet .pttvs-seg { display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(32, 39, 15, 0.06); }
+html.dark #ptskSheet .pttvs-seg { background: rgba(236, 231, 218, 0.08); }
+#ptskSheet .pttvs-seg div { flex: 1; text-align: center; border-radius: 999px; min-height: 36px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; opacity: 0.7; cursor: pointer; }
+#ptskSheet .pttvs-seg div.on { background: #fff; opacity: 1; font-weight: 800; box-shadow: 0 1px 3px rgba(32, 39, 15, 0.14); }
+html.dark #ptskSheet .pttvs-seg div.on { background: #2a331b; box-shadow: none; }
+#ptskSheet .ptsk-qr { display: none; justify-content: center; padding: 6px 0 2px; }
+#ptskSheet .ptsk-qr.on { display: flex; }
+#ptskSheet .ptsk-qr img { width: 180px; height: 180px; border-radius: 10px; background: #fff; padding: 8px; }
+#ptskSheet .ptsk-meta { font-size: 12px; opacity: .75; }
+#ptskSheet .ptsk-warn { font-size: 12px; line-height: 1.45; padding: 9px 11px; border-radius: 10px; background: rgba(201,169,97,.18); }
+
+/* ---- layar scorekeeper ---- */
+#ptsk { position: fixed; inset: 0; z-index: 2147480000; display: flex; flex-direction: column;
+  background: var(--pt-paper, #fbf7f0); color: var(--pt-ink, #20270f); font-family: inherit;
+  padding: env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px); }
+html.dark #ptsk { background: #121609; color: var(--pt-ink-dk, #ece7da); }
+#ptsk .sk-top { display: flex; align-items: center; gap: 10px; padding: 12px 16px 6px; }
+#ptsk .sk-court { font-size: 22px; font-weight: 900; flex: 1; min-width: 0; }
+#ptsk .sk-court small { display: block; font-size: 11px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; opacity: .6; }
+#ptsk .sk-net { font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; opacity: .8; }
+#ptsk .sk-net i { width: 9px; height: 9px; border-radius: 50%; background: #c0392b; display: inline-block; }
+#ptsk .sk-net.on i { background: #5d9c1c; }
+#ptsk .sk-body { flex: 1; min-height: 0; overflow-y: auto; padding: 6px 16px 18px; display: flex; flex-direction: column; gap: 12px; max-width: 760px; width: 100%; margin: 0 auto; box-sizing: border-box; }
+#ptsk .sk-ctx { font-size: 13px; font-weight: 800; opacity: .75; text-align: center; }
+#ptsk .sk-teams { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 640px) { #ptsk .sk-teams { grid-template-columns: 1fr 1fr; } }
+#ptsk .sk-team { background: #fff; border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 3px rgba(32,39,15,.1); }
+html.dark #ptsk .sk-team { background: #1d2412; box-shadow: none; }
+#ptsk .sk-names { font-size: 16px; font-weight: 800; line-height: 1.25; text-align: center; }
+#ptsk .sk-names span { display: block; }
+#ptsk .sk-scrow { display: flex; align-items: flex-end; justify-content: center; gap: 14px; }
+#ptsk .sk-pt { font-size: 38px; font-weight: 800; line-height: 1; padding-bottom: 12px; min-width: 52px; opacity: .7; font-variant-numeric: tabular-nums; }
+#ptsk .sk-pbtn { width: 100%; font-size: 22px; }
+#ptsk .sk-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+#ptsk .sk-tbtn { appearance: none; -webkit-appearance: none; border: 0; border-radius: 12px; min-height: 44px; min-width: 44px; padding: 0 12px; font: inherit; font-size: 17px; font-weight: 800; cursor: pointer; background: rgba(32,39,15,.08); color: inherit; touch-action: manipulation; }
+html.dark #ptsk .sk-tbtn { background: rgba(236,231,218,.1); }
+#ptsk .sk-tg { display: flex; align-items: center; gap: 6px; }
+#ptsk .sk-tools { display: grid; grid-template-columns: 1fr 1fr; }
+#ptsk .sk-tools > [data-act="undo"] { grid-column: 1 / -1; }
+#ptsk .sk-tg { justify-content: space-between; }
+#ptsk .sk-tl { font-size: 12px; font-weight: 800; opacity: .6; margin-left: 6px; }
+#ptsk .sk-gp { text-align: center; font-size: 13px; font-weight: 800; color: #8b5e1a; min-height: 16px; }
+#ptsk .sk-num { font-size: 88px; font-weight: 900; line-height: 1; text-align: center; font-variant-numeric: tabular-nums; }
+#ptsk .sk-btns { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
+#ptsk .sk-btn { appearance: none; -webkit-appearance: none; border: 0; border-radius: 16px; min-height: 64px; font: inherit; font-size: 34px; font-weight: 900; cursor: pointer;
+  background: rgba(32,39,15,.08); color: inherit; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+html.dark #ptsk .sk-btn { background: rgba(236,231,218,.1); }
+#ptsk .sk-btn.plus { background: var(--pt-action, #5d7c1c); color: #fff; }
+#ptsk .sk-btn:active { transform: scale(.97); }
+#ptsk .sk-fin { appearance: none; -webkit-appearance: none; border: 0; border-radius: 18px; min-height: 60px; font: inherit; font-size: 17px; font-weight: 900; cursor: pointer;
+  background: var(--pt-action, #5d7c1c); color: #fff; width: 100%; }
+#ptsk .sk-fin:disabled { opacity: .4; }
+#ptsk .sk-fin.ready { animation: skPulse 1.2s ease-in-out infinite; }
+@keyframes skPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(93,124,28,.5); } 50% { box-shadow: 0 0 0 10px rgba(93,124,28,0); } }
+#ptsk .sk-next { font-size: 13px; line-height: 1.5; padding: 10px 12px; border-radius: 12px; background: rgba(32,39,15,.05); }
+html.dark #ptsk .sk-next { background: rgba(236,231,218,.07); }
+#ptsk .sk-next b { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; opacity: .65; display: block; }
+#ptsk .sk-msg { margin: auto; text-align: center; padding: 24px; font-size: 16px; font-weight: 700; line-height: 1.5; max-width: 420px; }
+#ptsk .sk-msg small { display: block; font-weight: 600; opacity: .7; margin-top: 8px; font-size: 13px; }
+#ptsk .sk-flash { position: absolute; left: 16px; right: 16px; top: calc(60px + env(safe-area-inset-top,0px)); z-index: 3; text-align: center; padding: 11px 14px; border-radius: 14px;
+  background: #33500a; color: #fff; font-weight: 800; font-size: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+/* applyViewerUI mematikan semua button: scorekeeper & overlay TTD harus tetap hidup */
+#ptsk button, #ptsigOverlay button, #ptsigOverlay input, #ptsigOverlay label { pointer-events: auto !important; cursor: pointer !important; }
+#ptsk button:not(:disabled), #ptsigOverlay button:not(:disabled) { opacity: 1 !important; }
+</style>
+<script id="codex-revision-v073203-js">
+(function () {
+  'use strict';
+  if (typeof state === 'undefined') return;
+  var QS = new URLSearchParams(location.search);
+  var SK_TOK = QS.get('sk') || '';
+  var SK_COURT = parseInt(QS.get('court'), 10) || 0;
+  var IS_SK = !!(IS_VIEWER && SK_TOK && SK_COURT >= 1);
+  var LETTERS = 'ABCDEFGH';
+  var STAGE_ORDER = { R32: 0, R16: 1, QF: 2, SF: 3, '3P': 4, F: 5 };
+
+  /* ---------- helper ---------- */
+  function pid(t) { return Array.isArray(t) ? t[0] : t; }
+  function sc(v) { return parseInt(v, 10) || 0; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+  function toast(t) { try { showToast(t); } catch (e) {} }
+  function room() { try { return getRoomId(); } catch (e) { return state.roomId || ''; } }
+  function pairArr(pi) {
+    if (pi == null) return [];
+    var p = (state.tourneyPairNames || [])[pi] || [];
+    var o = [String(p[0] || '').trim(), String(p[1] || '').trim()].filter(Boolean);
+    return o.length ? o : ['Pair ' + (pi + 1)];
+  }
+  function courtName(i) { return (state.courtNames && state.courtNames[i]) || ('Court ' + (i + 1)); }
+  function nCourts() { return Math.max(1, Math.min(parseInt(state.courts, 10) || 1, 12)); }
+  function isKo() { return state.tourneyPhase === 'knockout' || state.tourneyPhase === 'done'; }
+  function tourneyOn() { try { return typeof isTourney === 'function' && isTourney() && state.started; } catch (e) { return false; } }
+  function rnd() { return Math.random().toString(36).slice(2, 6) + Math.random().toString(36).slice(2, 6); }
+  async function db() { try { if (!_fbDb && typeof initFirebase === 'function') await initFirebase(); return _fbDb || null; } catch (e) { return null; } }
+  function cPath() { return 'tournaments/' + room() + '__court'; }
+  function hhmm(ts) { var d = new Date(ts); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function stageLbl(st) { return st === '3P' ? 'Perebutan Juara 3' : (typeof koStageLabel === 'function' ? koStageLabel(st) : st); }
+  function matchAt(kind, idx) { return kind === 'g' ? (state.tourneyGroupMatches || [])[idx] : (state.koBracket || [])[idx]; }
+  function groupNo(m) {
+    var n = 0, list = state.tourneyGroupMatches || [];
+    for (var i = 0; i < list.length; i++) { if (list[i].group === m.group) n++; if (list[i] === m) return n; }
+    return n;
+  }
+  function targetOf(kind, m) {
+    if (kind === 'g') { var mm = /(\d+)/.exec(String(state.mode || '')); return /race/.test(String(state.mode || '')) && mm ? parseInt(mm[1], 10) : 0; }
+    return (state.koTargets && state.koTargets[m.stage === '3P' ? 'SF' : m.stage]) || 5;
+  }
+  var skEntries = {};   // isi node __court (admin & scorekeeper sama-sama dengerin)
+
+  /* ============================================================
+     ADMIN: token, sheet link per court, merge hasil
+     ============================================================ */
+  function ensureToken() {
+    var ch = false;
+    if (!state.skToken) { state.skToken = rnd(); ch = true; }
+    if (state.skSign === undefined) { state.skSign = true; ch = true; }
+    if (ch) { try { saveState(); } catch (e) {} }
+  }
+  function skUrl(ci) {
+    return location.origin + location.pathname + '?room=' + encodeURIComponent(room()) + '&sk=' + encodeURIComponent(state.skToken) + '&court=' + (ci + 1);
+  }
+  var sheet = null;
+  function closeSheet() { if (sheet) { sheet.remove(); sheet = null; document.documentElement.style.overflow = ''; } }
+  function courtStat(ci) {
+    var last = 0, n = 0;
+    Object.keys(skEntries).forEach(function (k) {
+      var e = skEntries[k]; if (!e || e.tok !== state.skToken || e.c !== ci) return;
+      last = Math.max(last, e.ts || 0); if (e.done) n++;
+    });
+    return last ? ('Aktif terakhir ' + hhmm(last) + ' · ' + n + ' match terkirim') : 'Belum ada aktivitas';
+  }
+  function openSheet() {
+    closeSheet(); ensureToken();
+    sheet = document.createElement('div'); sheet.id = 'ptskSheet';
+    document.documentElement.style.overflow = 'hidden';
+    document.body.appendChild(sheet);
+    var qrOpen = {};
+    function draw() {
+      var h = '<div class="pttvs-top"><div class="pttvs-title">Akses scorekeeper</div><button type="button" class="pttvs-x" aria-label="Tutup"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="pttvs-body">';
+      h += '<div class="pttvs-card"><div class="pttvs-p">Satu link per court. Kirim ke scorekeeper (WhatsApp atau QR). Mereka isi skor di device masing-masing dan minta TTD perwakilan pemain tiap selesai match. Hasil masuk ke device admin ini otomatis, jadi device admin harus tetap nyala dan online.</div>'
+        + '<div class="pttvs-tog' + (state.skSign !== false ? ' on' : '') + '" role="switch" data-a="sign"><span>Wajib TTD perwakilan pemain</span><span class="pttvs-sw"></span></div></div>';
+      for (var i = 0; i < nCourts(); i++) {
+        h += '<div class="pttvs-card"><div class="pttvs-h">' + esc(courtName(i)) + '</div>'
+          + '<div class="pttvs-link">' + esc(skUrl(i)) + '</div>'
+          + '<div class="pttvs-row"><button type="button" class="ptsig-btn solid" data-copy="' + i + '">Salin link</button>'
+          + '<button type="button" class="ptsig-btn" data-wa="' + i + '">WhatsApp</button>'
+          + '<button type="button" class="ptsig-btn" data-qr="' + i + '">' + (qrOpen[i] ? 'Tutup QR' : 'QR') + '</button></div>'
+          + '<div class="ptsk-qr' + (qrOpen[i] ? ' on' : '') + '">' + (qrOpen[i] ? '<img alt="QR ' + esc(courtName(i)) + '" src="https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=0&data=' + encodeURIComponent(skUrl(i)) + '">' : '') + '</div>'
+          + '<div class="ptsk-meta">' + esc(courtStat(i)) + '</div></div>';
+      }
+      h += '<div class="pttvs-card"><div class="pttvs-h">Keamanan</div>'
+        + '<div class="ptsk-warn">Link berisi kode akses. Siapa yang punya link bisa isi skor court itu. Kalau link bocor, reset: semua link lama langsung mati dan lo kirim link baru.</div>'
+        + '<div class="pttvs-row"><button type="button" class="ptsig-btn danger" data-a="reset">Reset semua link</button></div></div>';
+      h += '</div>';
+      sheet.innerHTML = h;
+      sheet.querySelector('.pttvs-x').addEventListener('click', closeSheet);
+      sheet.querySelector('[data-a="sign"]').addEventListener('click', function () { state.skSign = state.skSign === false; try { saveState(); } catch (e) {} draw(); });
+      sheet.querySelector('[data-a="reset"]').addEventListener('click', async function () {
+        if (!window.confirm('Reset semua link scorekeeper? Link lama gak bisa dipakai lagi.')) return;
+        state.skToken = rnd(); skEntries = {};
+        try { saveState(); } catch (e) {}
+        var d = await db(); if (d) { try { await d.ref(cPath()).remove(); } catch (e) {} }
+        toast('Link baru dibuat'); draw();
+      });
+      sheet.querySelectorAll('[data-copy]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var u = skUrl(parseInt(b.getAttribute('data-copy'), 10));
+          (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(function () { toast('Link disalin'); }, function () { window.prompt('Salin link:', u); });
+        });
+      });
+      sheet.querySelectorAll('[data-wa]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var i = parseInt(b.getAttribute('data-wa'), 10);
+          var t = 'Scorekeeper ' + courtName(i) + ' - ' + (state.tournamentName || 'Tourney') + '\n' + skUrl(i);
+          window.open('https://wa.me/?text=' + encodeURIComponent(t), '_blank');
+        });
+      });
+      sheet.querySelectorAll('[data-qr]').forEach(function (b) {
+        b.addEventListener('click', function () { var i = parseInt(b.getAttribute('data-qr'), 10); qrOpen[i] = !qrOpen[i]; draw(); });
+      });
+    }
+    draw();
+    sheet._redraw = draw;
+  }
+  window._ptOpenSkSheet = openSheet;
+
+  function addSkButton() {
+    if (IS_VIEWER) return;
+    var host = document.getElementById('tourneyDrawView');
+    if (!host || !tourneyOn()) return;
+    if (!(state.tourneyPhase === 'groups' || isKo())) return;
+    var tools = host.querySelector('.ptsig-tools');
+    if (!tools || tools.querySelector('[data-ptsk]')) return;
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'ptsig-btn'; b.setAttribute('data-ptsk', 'open'); b.textContent = 'Scorekeeper';
+    b.addEventListener('click', openSheet);
+    var tv = tools.querySelector('[data-pttv]');
+    if (tv && tv.nextSibling) tools.insertBefore(b, tv.nextSibling); else tools.appendChild(b);
+  }
+
+  /* merge hasil scorekeeper ke state admin */
+  var renderTimer = null;
+  function softRender() {
+    if (renderTimer) return;
+    renderTimer = setTimeout(function () {
+      renderTimer = null;
+      var host = document.getElementById('tourneyDrawView');
+      if (!host || host.offsetParent === null) return;
+      var ae = document.activeElement;
+      if (ae && ae.tagName === 'INPUT' && host.contains(ae)) { softRender(); return; }
+      var act = host.querySelector('[data-ptk].active'); var tk = act ? act.getAttribute('data-ptk') : null;
+      var main = document.querySelector('main');
+      var y = window.scrollY || 0, my = main ? main.scrollTop : 0;
+      if (isKo()) renderKnockout(); else if (state.tourneyPhase === 'groups') renderTourneyGroupPhase(); else return;
+      if (tk && tk !== 'score') { var nb = host.querySelector('[data-ptk="' + tk + '"]'); if (nb) nb.click(); }
+      requestAnimationFrame(function () { window.scrollTo(0, y); if (main) main.scrollTop = my; });
+    }, 350);
+  }
+  function mergeEntries() {
+    if (IS_VIEWER || !tourneyOn() || !state.skToken) return;
+    var changed = false;
+    Object.keys(skEntries).forEach(function (k) {
+      var e = skEntries[k]; if (!e || e.tok !== state.skToken) return;
+      var kind = k.charAt(0), idx = parseInt(k.slice(1), 10);
+      if (kind !== 'g' && kind !== 'k') return;
+      if (kind === 'g' ? state.tourneyPhase !== 'groups' && state.tourneyPhase !== 'knockout' && state.tourneyPhase !== 'done' : !isKo()) return;
+      var m = matchAt(kind, idx);
+      if (!m || m.bye) return;
+      if (pid(m.teamA) !== e.a || pid(m.teamB) !== e.b) return;
+      if ((e.ts || 0) <= (m.skTs || 0)) return;
+      var a = sc(e.sA), b = sc(e.sB);
+      m.scoreA = a; m.scoreB = b; m.skTs = e.ts;
+      m.pA = Math.max(0, Math.min(3, sc(e.pA))); m.pB = Math.max(0, Math.min(3, sc(e.pB)));
+      if (!m.liveAt && a + b + m.pA + m.pB > 0) m.liveAt = e.ts || Date.now();
+      if (e.done && !(kind === 'k' && a === b)) {
+        m.done = true; m.pA = 0; m.pB = 0;
+        if (e.sig && e.sig.id) m.sig = e.sig;
+      }
+      changed = true;
+    });
+    if (changed) { try { saveState(); } catch (x) {} softRender(); }
+  }
+  var attachedRoom = null;
+  async function attachAdmin() {
+    if (IS_VIEWER || !tourneyOn() || !state.skToken) return;
+    var r = room(); if (!r || attachedRoom === r) return;
+    var d = await db(); if (!d) return;
+    attachedRoom = r;
+    d.ref('tournaments/' + r + '__court').on('value', function (snap) {
+      skEntries = snap.val() || {};
+      mergeEntries();
+      if (sheet && sheet._redraw) sheet._redraw();
+    });
+  }
+  if (!IS_VIEWER) {
+    setInterval(attachAdmin, 2500);
+    ['renderTourneyGroupPhase', 'renderKnockout'].forEach(function (name) {
+      if (typeof window[name] !== 'function') return;
+      var orig = window[name];
+      window[name] = function () {
+        var r = orig.apply(this, arguments);
+        try { addSkButton(); } catch (e) { console.warn('[v203] btn', e); }
+        return r;
+      };
+      try { (0, eval)(name + ' = window.' + name); } catch (e) {}
+    });
+  }
+
+  /* ============================================================
+     SCOREKEEPER DEVICE
+     ============================================================ */
+  if (IS_SK) {
+    var ci = SK_COURT - 1, root = null, work = {}, localDone = {}, lastHash = '', online = false, flash = '', flashT = null, pushT = null;
+
+    function ensureRoot() {
+      if (root && document.body.contains(root)) return root;
+      root = document.createElement('div'); root.id = 'ptsk';
+      document.body.appendChild(root);
+      return root;
+    }
+    function entryFor(kind, idx, m) {
+      var e = skEntries[kind + idx];
+      if (!e || e.tok !== SK_TOK) return null;
+      if (pid(m.teamA) !== e.a || pid(m.teamB) !== e.b) return null;
+      return e;
+    }
+    function queue() {
+      var out = [];
+      if (state.tourneyPhase === 'groups') {
+        (state.tourneyGroupMatches || []).forEach(function (m, i) {
+          if (!m || m.court !== ci || m.done) return;
+          out.push({ kind: 'g', idx: i, m: m, ord: (m.round || 0) * 100 + i / 1000 });
+        });
+      } else if (isKo()) {
+        (state.koBracket || []).forEach(function (m, i) {
+          if (!m || m.bye || m.done) return;
+          if (pid(m.teamA) == null || pid(m.teamB) == null) return;
+          if ((m.mi || 0) !== ci) return;
+          out.push({ kind: 'k', idx: i, m: m, ord: (STAGE_ORDER[m.stage] || 0) * 100 + i / 1000 });
+        });
+      }
+      out = out.filter(function (it) {
+        if (localDone[it.kind + it.idx]) return false;
+        var e = entryFor(it.kind, it.idx, it.m);
+        return !(e && e.done);
+      });
+      out.sort(function (a, b) { return a.ord - b.ord; });
+      return out;
+    }
+    function scoresOf(it) {
+      var k = it.kind + it.idx;
+      if (work[k]) return work[k];
+      var e = entryFor(it.kind, it.idx, it.m);
+      if (e) return { a: sc(e.sA), b: sc(e.sB), pa: sc(e.pA), pb: sc(e.pB), hist: [] };
+      return { a: sc(it.m.scoreA), b: sc(it.m.scoreB), pa: sc(it.m.pA), pb: sc(it.m.pB), hist: [] };
+    }
+    function netHtml() { return '<span class="sk-net' + (online ? ' on' : '') + '"><i></i>' + (online ? 'Online' : 'Offline') + '</span>'; }
+    function msg(t, sub) { return '<div class="sk-msg">' + t + (sub ? '<small>' + sub + '</small>' : '') + '</div>'; }
+    function ctxOf(it) {
+      var m = it.m;
+      if (it.kind === 'g') return 'Grup ' + LETTERS[m.group] + ' · Match ' + groupNo(m) + ' · Round ' + ((m.round || 0) + 1);
+      return stageLbl(m.stage);
+    }
+    var PT = ['0', '15', '30', '40'];
+    function teamHtml(side, pi, s) {
+      var g = side === 'A' ? s.a : s.b, p = side === 'A' ? s.pa : s.pb;
+      return '<div class="sk-team"><div class="sk-names">' + pairArr(pi).map(function (n) { return '<span>' + esc(n) + '</span>'; }).join('') + '</div>'
+        + '<div class="sk-scrow"><div class="sk-num" data-num="' + side + '">' + g + '</div><div class="sk-pt" data-pt="' + side + '">' + PT[Math.max(0, Math.min(3, p || 0))] + '</div></div>'
+        + '<button type="button" class="sk-btn plus sk-pbtn" data-act="pt" data-s="' + side + '">+ Poin</button></div>';
+    }
+    function toolsHtml() {
+      return '<div class="sk-tools"><button type="button" class="sk-tbtn" data-act="undo">↶ Undo</button>'
+        + '<div class="sk-tg"><span class="sk-tl">Game A</span><button type="button" class="sk-tbtn" data-act="g" data-s="A" data-d="-1">−</button><button type="button" class="sk-tbtn" data-act="g" data-s="A" data-d="1">+</button></div>'
+        + '<div class="sk-tg"><span class="sk-tl">Game B</span><button type="button" class="sk-tbtn" data-act="g" data-s="B" data-d="-1">−</button><button type="button" class="sk-tbtn" data-act="g" data-s="B" data-d="1">+</button></div></div>'
+        + '<div class="sk-gp" data-gp></div>';
+    }
+    function render(force) {
+      var ob = document.getElementById('onboardingScreen'); if (ob) ob.remove();
+      var r = ensureRoot();
+      var head = '<div class="sk-top"><div class="sk-court"><small>Scorekeeper</small>' + esc(courtName(ci)) + '</div>' + netHtml() + '</div>';
+      var body = '', hash; r._cur = null;
+      if (!tourneyOn()) { body = msg('Nunggu admin mulai tourney...'); hash = 'wait'; }
+      else if (!state.skToken || state.skToken !== SK_TOK) { body = msg('Link ini udah gak berlaku', 'Minta link baru ke admin.'); hash = 'bad'; }
+      else if (ci >= nCourts()) { body = msg('Court ini gak ada di tourney ini'); hash = 'nocourt'; }
+      else {
+        var q = queue();
+        if (!q.length) {
+          body = msg('Gak ada match yang nunggu di ' + esc(courtName(ci)), state.tourneyPhase === 'groups' || isKo() ? 'Halaman ini update sendiri begitu match berikutnya siap.' : 'Nunggu fase grup mulai.');
+          hash = 'none|' + online + '|' + flash;
+        } else {
+          var it = q[0], s = scoresOf(it), tg = targetOf(it.kind, it.m);
+          hash = [it.kind, it.idx, pid(it.m.teamA), pid(it.m.teamB), online, flash, q.length, tg, state.skSign].join('|');
+          body = '<div class="sk-ctx">' + esc(ctxOf(it)) + (tg ? ' · Race to ' + tg : '') + '</div>'
+            + '<div class="sk-teams">' + teamHtml('A', pid(it.m.teamA), s) + teamHtml('B', pid(it.m.teamB), s) + '</div>' + toolsHtml()
+            + '<button type="button" class="sk-fin" data-fin="1">' + (state.skSign !== false ? 'Selesai · minta TTD pemain' : 'Selesai · kirim hasil') + '</button>'
+            + (q[1] ? '<div class="sk-next"><b>Berikutnya</b>' + esc(pairArr(pid(q[1].m.teamA)).join(' / ')) + ' vs ' + esc(pairArr(pid(q[1].m.teamB)).join(' / ')) + '</div>' : '');
+          r._cur = it;
+        }
+      }
+      if (!force && hash === lastHash) return;
+      lastHash = hash;
+      r.innerHTML = head + '<div class="sk-body">' + body + '</div>' + (flash ? '<div class="sk-flash">' + esc(flash) + '</div>' : '');
+      if (r._cur && /sk-fin/.test(r.innerHTML)) wire(r);
+    }
+    function paint(r, it) {
+      var s = scoresOf(it), tg = targetOf(it.kind, it.m);
+      var q = function (x) { return r.querySelector(x); };
+      if (q('[data-num="A"]')) { q('[data-num="A"]').textContent = s.a; q('[data-num="B"]').textContent = s.b; }
+      if (q('[data-pt="A"]')) { q('[data-pt="A"]').textContent = PT[s.pa || 0]; q('[data-pt="B"]').textContent = PT[s.pb || 0]; }
+      var gp = q('[data-gp]'); if (gp) gp.textContent = (s.pa === 3 && s.pb === 3) ? 'Golden point: poin berikutnya menang game' : '';
+      var f = q('.sk-fin'); if (f) f.classList.toggle('ready', !!tg && (s.a >= tg || s.b >= tg));
+    }
+    function wire(r) {
+      var it = r._cur;
+      function cur() { var k = it.kind + it.idx, s = scoresOf(it); if (!work[k]) work[k] = { a: s.a, b: s.b, pa: s.pa || 0, pb: s.pb || 0, hist: [] }; return work[k]; }
+      function snap(w) { w.hist.push({ a: w.a, b: w.b, pa: w.pa, pb: w.pb }); if (w.hist.length > 60) w.hist.shift(); }
+      r.querySelectorAll('[data-act]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var w = cur(), act = b.getAttribute('data-act'), side = b.getAttribute('data-s');
+          if (act === 'pt') {
+            snap(w);
+            var me = side === 'A' ? 'pa' : 'pb', gm = side === 'A' ? 'a' : 'b';
+            if (w[me] >= 3) { w[gm]++; w.pa = 0; w.pb = 0; } else w[me]++;
+          } else if (act === 'g') {
+            snap(w);
+            var gk = side === 'A' ? 'a' : 'b';
+            w[gk] = Math.max(0, w[gk] + parseInt(b.getAttribute('data-d'), 10)); w.pa = 0; w.pb = 0;
+          } else if (act === 'undo') {
+            var h = w.hist.pop(); if (!h) { toast('Gak ada yang bisa di-undo'); return; }
+            w.a = h.a; w.b = h.b; w.pa = h.pa; w.pb = h.pb;
+          }
+          paint(r, it); schedulePush(it);
+        });
+      });
+      var fin = r.querySelector('[data-fin]');
+      if (fin) fin.addEventListener('click', function () { finish(it); });
+      paint(r, it);
+    }
+    function entryBase(it, s, done) {
+      return { a: pid(it.m.teamA), b: pid(it.m.teamB), sA: s.a, sB: s.b, pA: done ? 0 : (s.pa || 0), pB: done ? 0 : (s.pb || 0), done: !!done, ts: Date.now(), tok: SK_TOK, c: ci };
+    }
+    function schedulePush(it) {
+      clearTimeout(pushT);
+      pushT = setTimeout(async function () {
+        var d = await db(); if (!d) return;
+        var e = entryBase(it, scoresOf(it), false);
+        skEntries[it.kind + it.idx] = e;
+        try { await d.ref(cPath() + '/' + it.kind + it.idx).set(e); } catch (x) { console.warn('[sk] push', x); }
+      }, 180);
+    }
+    function setFlash(t) {
+      flash = t; render(true);
+      clearTimeout(flashT); flashT = setTimeout(function () { flash = ''; render(true); }, 3200);
+    }
+    async function submit(it, s, sigId, rec, meta) {
+      var d = await db();
+      var e = entryBase(it, s, true);
+      if (meta) e.sig = meta;
+      var k = it.kind + it.idx;
+      localDone[k] = true; skEntries[k] = e; delete work[k];
+      if (d) {
+        try {
+          if (sigId && rec) d.ref('tournaments/' + room() + '__sig/' + sigId).set(rec);
+          await d.ref(cPath() + '/' + k).set(e);
+        } catch (x) { console.warn('[sk] submit', x); }
+      }
+      setFlash(d ? 'Terkirim ke admin' : 'Tersimpan, nunggu koneksi');
+    }
+    function finish(it) {
+      var s = scoresOf(it), m = it.m;
+      if (s.a + s.b === 0) { toast('Isi skor dulu'); return; }
+      if (it.kind === 'k' && s.a === s.b) { toast('Skor seri, knockout harus ada pemenang'); return; }
+      var mm = { teamA: m.teamA, teamB: m.teamB, scoreA: s.a, scoreB: s.b, group: m.group, round: m.round, court: m.court, stage: m.stage, mi: m.mi };
+      if (state.skSign === false || typeof window._ptOpenSign !== 'function') {
+        if (!window.confirm('Kirim hasil ' + s.a + ' - ' + s.b + '?')) return;
+        submit(it, s, null, null, null);
+        return;
+      }
+      window._ptOpenSign(it.kind, it.idx, { m: mm, done: function (id, rec, meta) { submit(it, s, id, rec, meta); } });
+    }
+
+    (async function boot() {
+      ensureRoot(); render(true);
+      setInterval(function () { render(false); }, 500);
+      var d = await db(); if (!d) return;
+      try { d.ref('.info/connected').on('value', function (sn) { online = sn.val() === true; render(true); }); } catch (e) {}
+      d.ref('tournaments/' + room() + '__court').on('value', function (snap) { skEntries = snap.val() || {}; render(false); });
+    })();
+  }
+})();
+</script>
+
+<style id="codex-revision-v073202-css">
 .ktk-switch{margin:2px 0 16px}
 .ktk-switch-lbl{font-size:13px;font-weight:800;color:#526627;letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px}
 .ktk-seg-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -40011,7 +40772,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </body>
 </html>
 </script>
-<script id="codex-revision-v073199-js">
+<script id="codex-revision-v073202-js">
 (function(){
   'use strict';
   var QS = new URLSearchParams(location.search);
@@ -40050,16 +40811,44 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
     if (document.body) go(); else document.addEventListener('DOMContentLoaded', go);
   }
 
-  var kom = document.querySelector('.ktk-seg[data-ktk="komunitas"]');
-  if (kom) {
-    var open = function(){ build(true); };
-    kom.addEventListener('click', function(){
-      if (typeof _tourneyUnlocked !== 'undefined' && _tourneyUnlocked) return open();
-      if (typeof showTourneyPasswordModal === 'function') {
-        showTourneyPasswordModal(function(){ try { _tourneyUnlocked = true; } catch (e) {} open(); });
-      } else open();
-    });
+  var LSA = 'teroos_t3_admin', LSM = 'ktk_mode_v1';
+  function isKom(){ try { return localStorage.getItem(LSM) === 'komunitas'; } catch (e) { return false; } }
+  function setKom(v){ try { localStorage.setItem(LSM, v ? 'komunitas' : 'pair'); } catch (e) {} syncSeg(); }
+  function adminRoom(){
+    try { var s = JSON.parse(localStorage.getItem(LSA) || 'null'); if (s && s.room && Date.now() - s.ts < 2592000000) return s.room; } catch (e) {}
+    return null;
   }
+  function syncSeg(){
+    var k = isKom();
+    document.querySelectorAll('.ktk-seg').forEach(function(b){ b.classList.toggle('on', (b.getAttribute('data-ktk') === 'komunitas') === k); });
+  }
+  function unlockThen(fn){
+    if (typeof _tourneyUnlocked !== 'undefined' && _tourneyUnlocked) return fn();
+    if (typeof showTourneyPasswordModal === 'function') {
+      showTourneyPasswordModal(function(){ try { _tourneyUnlocked = true; } catch (e) {} fn(); });
+    } else fn();
+  }
+  document.querySelectorAll('.ktk-seg').forEach(function(b){
+    b.addEventListener('click', function(){
+      if (b.getAttribute('data-ktk') === 'komunitas') unlockThen(function(){ setKom(true); build(true); });
+      else setKom(false);
+    });
+  });
+  syncSeg();
+
+  // Tombol share (link nonton) di header: kalau mode Komunitas lagi dipilih,
+  // salin link peserta room komunitas, bukan link sesi scoring biasa.
+  document.addEventListener('click', function(e){
+    var t = e.target && e.target.closest && e.target.closest('#shareBtn');
+    if (!t || !isKom()) return;
+    e.stopImmediatePropagation(); e.preventDefault();
+    var room = adminRoom();
+    if (!room) { if (typeof showToast === 'function') showToast('Belum ada room Komunitas. Buka Komunitas dan buat turnamen dulu.'); return; }
+    var url = location.origin + location.pathname + '?kt=1&kroom=' + room;
+    var done = function(){ if (typeof showToast === 'function') showToast('Link nonton Tourney Komunitas dicopy'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, done);
+    else { var tmp = document.createElement('input'); tmp.value = url; document.body.appendChild(tmp); tmp.select(); try { document.execCommand('copy'); } catch (x) {} document.body.removeChild(tmp); done(); }
+  }, true);
 })();
 </script>
 </body>
