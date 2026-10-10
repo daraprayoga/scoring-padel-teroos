@@ -4245,7 +4245,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.198</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.199</div>
     </div>
   </div>
 
@@ -36891,7 +36891,7 @@ html body #tourneyDrawView #tourneyRedrawBtn.ptdraw-busy svg { animation: ptdraw
 </script>
 
 
-<style id="codex-revision-v073198-css">
+<style id="codex-revision-v073199-css">
 .ktk-entry{padding:12px 14px;border-radius:14px;background:rgba(255,255,255,0.55);border:1px solid rgba(82,102,39,0.22);cursor:pointer;transition:background .2s,border-color .2s,transform .2s;position:relative}
 .ktk-entry:hover{border-color:#5d7c1c;background:rgba(93,124,28,0.08)}
 .ktk-entry:active{transform:scale(.985)}
@@ -37669,6 +37669,12 @@ function circleRounds(ids){
   }
   return out;
 }
+/* Jumlah pair per kategori: tiap klub menurunkan `pairs` pasangan di kategori itu per tie. */
+function catPairs(cat){ const n = cat && parseInt(cat.pairs); return n>0 ? Math.min(n, 6) : 1; }
+function catLabel(cat, m){
+  if(!cat) return '';
+  return catPairs(cat) > 1 && m && m.pairIdx ? cat.name + ' · Pair ' + m.pairIdx : cat.name;
+}
 function nextPow2(n){ let p=1; while(p<n) p*=2; return p; }
 function seedOrder(n){
   let s=[1];
@@ -37951,7 +37957,8 @@ function DeskOverlay({room, club, cats, players, onClose}){
       <div className="rowline" style={{justifyContent:'center', gap:8, marginTop:16}}>
         {cats.map(c=>{
           const n = players.filter(p=>toArr(p.categories).indexOf(c.id)>=0).length;
-          return <span key={c.id} className={'chip'+(n>=2?'':' warn')} style={{fontSize:13, padding:'6px 14px'}}>{c.name}: {n}</span>;
+          const need = 2*catPairs(c);
+          return <span key={c.id} className={'chip'+(n>=need?'':' warn')} style={{fontSize:13, padding:'6px 14px'}}>{c.name}: {n}/{need}</span>;
         })}
       </div>
       <button className="btn btn-primary" style={{marginTop:24}} onClick={onClose}>Selesai, tutup</button>
@@ -38150,9 +38157,9 @@ function Landing({flash}){
 }
 
 const DEFAULT_CATS = [
-  {id:'md', name:"Men's Doubles", format:'race6'},
-  {id:'wd', name:"Women's Doubles", format:'race4'},
-  {id:'xd', name:'Mixed Doubles', format:'race4'}
+  {id:'md', name:"Men's Doubles", format:'race6', pairs:1},
+  {id:'wd', name:"Women's Doubles", format:'race4', pairs:1},
+  {id:'xd', name:'Mixed Doubles', format:'race4', pairs:1}
 ];
 
 // Format knockout ditentukan per JARAK dari final (0 = final, 1 = semifinal,
@@ -38201,11 +38208,11 @@ function Setup({onBack, flash}){
   const courts = courtsRaw.split(',').map(s=>s.trim()).filter(Boolean);
 
   function setCat(i, k, v){ setCats(cs=>cs.map((c,j)=> j===i ? Object.assign({}, c, {[k]:v}) : c)); }
-  function addCat(){ setCats(cs=>cs.concat([{id:uid('c'), name:'', format:'race4'}])); }
+  function addCat(){ setCats(cs=>cs.concat([{id:uid('c'), name:'', format:'race4', pairs:1}])); }
   function delCat(i){ setCats(cs=>cs.filter((_,j)=>j!==i)); }
 
   async function create(){
-    const cleanCats = cats.filter(c=>c.name.trim()).map(c=>({id:c.id, name:c.name.trim(), format:c.format}));
+    const cleanCats = cats.filter(c=>c.name.trim()).map(c=>({id:c.id, name:c.name.trim(), format:c.format, pairs:catPairs(c)}));
     if(!cleanCats.length) return flash('Minimal satu kategori.');
     if(clubNames.length < 2) return flash('Minimal 2 klub.');
     if(!courts.length) return flash('Minimal 1 lapangan.');
@@ -38264,7 +38271,7 @@ function Setup({onBack, flash}){
         <div className="card">
           <div className="card-title">Kategori</div>
           <div className="card-note">
-            Tiap pertemuan klub A vs klub B otomatis jadi satu match per kategori. Klub menang kalau menang mayoritas kategori.
+            Tiap pertemuan klub A vs klub B otomatis jadi match sesuai jumlah pair di tiap kategori (misal Men's Doubles 2 pair = 2 match). Klub menang kalau menang mayoritas match. Pakai total match ganjil biar gak seri.
           </div>
           {cats.map((c, i)=>(
             <div key={c.id} className="rowline" style={{marginBottom:9}}>
@@ -38272,6 +38279,9 @@ function Setup({onBack, flash}){
                 onChange={e=>setCat(i,'name',e.target.value)}/>
               <select className="inp" style={{flex:'1 1 130px'}} value={c.format} onChange={e=>setCat(i,'format',e.target.value)}>
                 {Object.keys(FORMATS).map(k=><option key={k} value={k}>{FORMATS[k].label}</option>)}
+              </select>
+              <select className="inp" style={{flex:'0 0 112px'}} value={catPairs(c)} title="Jumlah pair per klub" onChange={e=>setCat(i,'pairs',parseInt(e.target.value)||1)}>
+                {[1,2,3,4,5,6].map(n=><option key={n} value={n}>{n} pair</option>)}
               </select>
               <button className="icon-btn" onClick={()=>delCat(i)} title="Hapus">&times;</button>
             </div>
@@ -38542,14 +38552,16 @@ function buildGroupTies(meta, groups){
         const tid = uid('t');
         const mids = [];
         cats.forEach(c=>{
-          const mid = uid('m');
-          mids.push(mid);
-          matches[mid] = {
-            id:mid, tieId:tid, stage:'group', groupId:g.id, round:ri+1,
-            categoryId:c.id, format:c.format, clubA:pr[0], clubB:pr[1],
-            lineupA:[], lineupB:[], score:newScore(), status:'pending',
-            winner:null, court:null, seq:0, updatedAt:Date.now()
-          };
+          for(let k=1; k<=catPairs(c); k++){
+            const mid = uid('m');
+            mids.push(mid);
+            matches[mid] = {
+              id:mid, tieId:tid, stage:'group', groupId:g.id, round:ri+1,
+              categoryId:c.id, pairIdx:k, format:c.format, clubA:pr[0], clubB:pr[1],
+              lineupA:[], lineupB:[], score:newScore(), status:'pending',
+              winner:null, court:null, seq:0, updatedAt:Date.now()
+            };
+          }
         });
         ties[tid] = {id:tid, stage:'group', groupId:g.id, round:ri+1,
                      clubA:pr[0], clubB:pr[1], matchIds:mids, bronze:false};
@@ -38562,14 +38574,16 @@ function buildKoTie(meta, clubA, clubB, round, bronze){
   const cats = toArr(meta.categories);
   const tid = uid('t'), mids = [], matches = {};
   cats.forEach(c=>{
-    const mid = uid('m');
-    mids.push(mid);
-    matches[mid] = {
-      id:mid, tieId:tid, stage:'knockout', groupId:null, round:round,
-      categoryId:c.id, format: koFormatForRound(meta, round), clubA, clubB,
-      lineupA:[], lineupB:[], score:newScore(), status: (clubA&&clubB)?'pending':'done',
-      winner:null, court:null, seq:0, updatedAt:Date.now()
-    };
+    for(let k=1; k<=catPairs(c); k++){
+      const mid = uid('m');
+      mids.push(mid);
+      matches[mid] = {
+        id:mid, tieId:tid, stage:'knockout', groupId:null, round:round,
+        categoryId:c.id, pairIdx:k, format: koFormatForRound(meta, round), clubA, clubB,
+        lineupA:[], lineupB:[], score:newScore(), status: (clubA&&clubB)?'pending':'done',
+        winner:null, court:null, seq:0, updatedAt:Date.now()
+      };
+    }
   });
   const tie = {id:tid, stage:'knockout', groupId:null, round:round,
                clubA, clubB, matchIds:mids, bronze: !!bronze,
@@ -38584,7 +38598,7 @@ function groupIndex(data){
   Object.keys(matchesByTie).forEach(k=>{
     matchesByTie[k].sort((a,b)=>{
       const cs = toArr(data.meta && data.meta.categories).map(c=>c.id);
-      return cs.indexOf(a.categoryId) - cs.indexOf(b.categoryId);
+      return (cs.indexOf(a.categoryId) - cs.indexOf(b.categoryId)) || ((a.pairIdx||1) - (b.pairIdx||1));
     });
   });
   return matchesByTie;
@@ -38952,7 +38966,8 @@ function Organizer({room, flash}){
                     <div className="rowline" style={{marginTop:9}}>
                       {cats.map(cat=>{
                         const n = roster.filter(p=>toArr(p.categories).indexOf(cat.id)>=0).length;
-                        return <span key={cat.id} className={'chip'+(n>=2?'':' warn')}>{cat.name}: {n}</span>;
+                        const need = 2*catPairs(cat);
+                        return <span key={cat.id} className={'chip'+(n>=need?'':' warn')}>{cat.name}: {n}/{need}</span>;
                       })}
                     </div>
                     <div className="rowline" style={{marginTop:10, gap:8}}>
@@ -39084,7 +39099,7 @@ function TieBlock({room, tie, data, matchesByTie, onAssign, onLineup, onReopen, 
           return (
             <div className="rowline" key={m.id} style={{justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid rgba(93,124,28,0.08)'}}>
               <div style={{minWidth:0, flex:'1 1 150px'}}>
-                <div style={{fontSize:12.5, fontWeight:800}}>{cat ? cat.name : m.categoryId}</div>
+                <div style={{fontSize:12.5, fontWeight:800}}>{cat ? catLabel(cat, m) : m.categoryId}</div>
                 <div className="tiny">
                   {m.status==='done'
                     ? <span>Selesai {ha}-{hb} · {m.winner ? ((m.winner==='A'?A:B)||{}).name : 'seri'}</span>
@@ -39126,7 +39141,7 @@ function CourtCard({room, m, data, onUnassign, onLineup}){
       <div className="court-head">
         <span className="court-name">{m.court}</span>
         <div className="rowline">
-          <span className="chip">{cat ? cat.name : ''}</span>
+          <span className="chip">{catLabel(cat, m)}</span>
           <span className="chip">{F.short}</span>
           <span className="chip live"><i></i>Live</span>
         </div>
@@ -39163,8 +39178,13 @@ function LineupSheet({room, m, data, onClose, onSave, flash}){
   const [la, setLa] = useState(toArr(m.lineupA));
   const [lb, setLb] = useState(toArr(m.lineupB));
 
+  const usedElsewhere = {};
+  Object.values(toObj(data.matches)).forEach(x=>{
+    if(x.id!==m.id && x.tieId===m.tieId && x.categoryId===m.categoryId)
+      toArr(x.lineupA).concat(toArr(x.lineupB)).forEach(id=>{ usedElsewhere[id]=true; });
+  });
   const pool = cid => Object.values(players)
-    .filter(p=>p.clubId===cid && toArr(p.categories).indexOf(m.categoryId)>=0)
+    .filter(p=>p.clubId===cid && toArr(p.categories).indexOf(m.categoryId)>=0 && !usedElsewhere[p.id])
     .sort((a,b)=>(a.name||'').localeCompare(b.name||''));
 
   function toggle(side, id){
@@ -39182,7 +39202,7 @@ function LineupSheet({room, m, data, onClose, onSave, flash}){
       <div style={{marginBottom:16}}>
         <div className="card-title">{(clubs[cid]||{}).name} ({sel.length}/2)</div>
         {list.length===0
-          ? <div className="empty" style={{padding:'14px 8px'}}>Klub ini belum punya pemain terdaftar di kategori {cat?cat.name:''}.</div>
+          ? <div className="empty" style={{padding:'14px 8px'}}>Gak ada pemain tersisa di kategori {cat?cat.name:''} (belum terdaftar, atau udah dipakai di pair lain tie ini).</div>
           : <div className="plist">
               {list.map(p=>{
                 const on = sel.indexOf(p.id)>=0;
@@ -39204,7 +39224,7 @@ function LineupSheet({room, m, data, onClose, onSave, flash}){
   }
 
   return (
-    <Sheet title={cat ? cat.name : 'Lineup'} label="Susun lineup" onClose={onClose}
+    <Sheet title={cat ? catLabel(cat, m) : 'Lineup'} label="Susun lineup" onClose={onClose}
       foot={<React.Fragment>
         <button className="btn btn-ghost" style={{flex:1}} onClick={onClose}>Batal</button>
         <button className="btn btn-primary" style={{flex:2}} disabled={la.length!==2 || lb.length!==2}
@@ -39393,7 +39413,7 @@ function Scorekeeper({room, court, flash}){
             <div className="pad">
               <div className="pad-head">
                 <div className="rowline">
-                  <span className="chip">{cat ? cat.name : ''}</span>
+                  <span className="chip">{catLabel(cat, m)}</span>
                   <span className="chip">{F.short}</span>
                   {!isPoints && <span className="chip">{(DEUCE.find(d=>d.v===meta.deuce)||DEUCE[0]).label}</span>}
                   {m.status==='done' && <span className="chip gold">Selesai</span>}
@@ -39530,7 +39550,7 @@ function SignSheet({room, m, data, onClose, onSave, flash}){
         <div className="sheet-grab"></div>
         <div className="sheet-head">
           <div className="sh-lbl">TTD Konfirmasi Hasil</div>
-          <h3>{cat ? cat.name : 'Match'}</h3>
+          <h3>{cat ? catLabel(cat, m) : 'Match'}</h3>
         </div>
         <div className="sheet-body">
           <div className="sig-score">
@@ -39676,7 +39696,7 @@ function Viewer({room, flash, initialTv}){
                           <div style={{fontSize:13, fontWeight:800}}>
                             {(clubs[m.clubA]||{}).name} <span style={{opacity:0.4}}>vs</span> {(clubs[m.clubB]||{}).name}
                           </div>
-                          <div className="tiny">{cat?cat.name:''} · {toArr(m.lineupA).map(i=>(players[i]||{}).name).join(' & ')} vs {toArr(m.lineupB).map(i=>(players[i]||{}).name).join(' & ')}</div>
+                          <div className="tiny">{catLabel(cat, m)} · {toArr(m.lineupA).map(i=>(players[i]||{}).name).join(' & ')} vs {toArr(m.lineupB).map(i=>(players[i]||{}).name).join(' & ')}</div>
                         </div>
                         <div style={{fontWeight:800, fontSize:16, fontVariantNumeric:'tabular-nums'}}>{a} : {b}</div>
                       </div>
@@ -39776,7 +39796,7 @@ function TvMode({room, meta, clubs, players, cats, live, onExit}){
           <div className="tv-empty">Belum ada match yang lagi jalan.</div>
         ) : (
           <div className="tv-card">
-            <div className="tv-cat">{cat ? cat.name : ''}</div>
+            <div className="tv-cat">{catLabel(cat, m)}</div>
             <div className="tv-clubs">
               <div className="tv-club">
                 <div className="tv-club-name">{(clubs[m.clubA]||{}).name}</div>
@@ -39841,7 +39861,7 @@ function ViewerCourt({room, m, data, onPlayer}){
       <div className="court-head">
         <span className="court-name">{m.court}</span>
         <div className="rowline">
-          <span className="chip">{cat?cat.name:''}</span>
+          <span className="chip">{catLabel(cat, m)}</span>
           {m.liveAt && <span className="chip">mulai {new Date(m.liveAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}</span>}
           <span className="chip live"><i></i>Live</span>
         </div>
@@ -39917,7 +39937,7 @@ function PlayerSheet({room, pid, data, onClose}){
         const res = !m.winner ? '' : (m.winner===side ? 'win' : 'loss');
         return (
           <div className={'hrow '+res} key={m.id}>
-            <div className="cat">{cat?cat.name.split(' ')[0]:''}<br/>{m.stage==='knockout'?'KO':'Grup'}</div>
+            <div className="cat">{cat?cat.name.split(' ')[0]+(catPairs(cat)>1&&m.pairIdx?' '+m.pairIdx:''):''}<br/>{m.stage==='knockout'?'KO':'Grup'}</div>
             <div style={{minWidth:0}}>
               <div className="l1"><span>Partner </span>{partner || '-'}</div>
               <div className="l2"><span>Lawan </span>{opp}</div>
@@ -40006,7 +40026,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </body>
 </html>
 </script>
-<script id="codex-revision-v073198-js">
+<script id="codex-revision-v073199-js">
 (function(){
   'use strict';
   var QS = new URLSearchParams(location.search);
