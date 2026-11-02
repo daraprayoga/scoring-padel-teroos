@@ -4248,7 +4248,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.204</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.209</div>
     </div>
   </div>
 
@@ -37244,6 +37244,8 @@ html.dark #ptsk .sk-tbtn { background: rgba(236,231,218,.1); }
 #ptsk .sk-tools > [data-act="undo"] { grid-column: 1 / -1; }
 #ptsk .sk-tg { justify-content: space-between; }
 #ptsk .sk-tl { font-size: 12px; font-weight: 800; opacity: .6; margin-left: 6px; }
+#ptsk .sk-tagrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+#ptsk .sk-tag.on { background: var(--pt-action, #5d7c1c); color: #fff; }
 #ptsk .sk-gp { text-align: center; font-size: 13px; font-weight: 800; color: #8b5e1a; min-height: 16px; }
 #ptsk .sk-num { font-size: 88px; font-weight: 900; line-height: 1; text-align: center; font-variant-numeric: tabular-nums; }
 #ptsk .sk-btns { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
@@ -37298,6 +37300,7 @@ html.dark #ptsk .sk-next { background: rgba(236,231,218,.07); }
   function rnd() { return Math.random().toString(36).slice(2, 6) + Math.random().toString(36).slice(2, 6); }
   async function db() { try { if (!_fbDb && typeof initFirebase === 'function') await initFirebase(); return _fbDb || null; } catch (e) { return null; } }
   function cPath() { return 'tournaments/' + room() + '__court'; }
+  function lPath() { return 'tournaments/' + room() + '__log'; }
   function hhmm(ts) { var d = new Date(ts); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
   function stageLbl(st) { return st === '3P' ? 'Perebutan Juara 3' : (typeof koStageLabel === 'function' ? koStageLabel(st) : st); }
   function matchAt(kind, idx) { return kind === 'g' ? (state.tourneyGroupMatches || [])[idx] : (state.koBracket || [])[idx]; }
@@ -37435,7 +37438,7 @@ html.dark #ptsk .sk-next { background: rgba(236,231,218,.07); }
       if ((e.ts || 0) <= (m.skTs || 0)) return;
       var a = sc(e.sA), b = sc(e.sB);
       m.scoreA = a; m.scoreB = b; m.skTs = e.ts;
-      m.pA = Math.max(0, Math.min(3, sc(e.pA))); m.pB = Math.max(0, Math.min(3, sc(e.pB)));
+      m.pA = Math.max(0, Math.min(3, sc(e.pA))); m.pB = Math.max(0, Math.min(3, sc(e.pB))); m.skLog = sc(e.ln);
       if (!m.liveAt && a + b + m.pA + m.pB > 0) m.liveAt = e.ts || Date.now();
       if (e.done && !(kind === 'k' && a === b)) {
         m.done = true; m.pA = 0; m.pB = 0;
@@ -37475,6 +37478,7 @@ html.dark #ptsk .sk-next { background: rgba(236,231,218,.07); }
      SCOREKEEPER DEVICE
      ============================================================ */
   if (IS_SK) {
+    var logCache = {};
     var ci = SK_COURT - 1, root = null, work = {}, localDone = {}, lastHash = '', online = false, flash = '', flashT = null, pushT = null;
 
     function ensureRoot() {
@@ -37516,8 +37520,9 @@ html.dark #ptsk .sk-next { background: rgba(236,231,218,.07); }
       var k = it.kind + it.idx;
       if (work[k]) return work[k];
       var e = entryFor(it.kind, it.idx, it.m);
-      if (e) return { a: sc(e.sA), b: sc(e.sB), pa: sc(e.pA), pb: sc(e.pB), hist: [] };
-      return { a: sc(it.m.scoreA), b: sc(it.m.scoreB), pa: sc(it.m.pA), pb: sc(it.m.pB), hist: [] };
+      var lg = logCache[k], ev = (lg && lg.a === pid(it.m.teamA) && lg.b === pid(it.m.teamB) && Array.isArray(lg.ev)) ? lg.ev.slice() : [];
+      if (e) return { a: sc(e.sA), b: sc(e.sB), pa: sc(e.pA), pb: sc(e.pB), hist: [], ev: ev };
+      return { a: sc(it.m.scoreA), b: sc(it.m.scoreB), pa: sc(it.m.pA), pb: sc(it.m.pB), hist: [], ev: ev };
     }
     function netHtml() { return '<span class="sk-net' + (online ? ' on' : '') + '"><i></i>' + (online ? 'Online' : 'Offline') + '</span>'; }
     function msg(t, sub) { return '<div class="sk-msg">' + t + (sub ? '<small>' + sub + '</small>' : '') + '</div>'; }
@@ -37537,6 +37542,8 @@ html.dark #ptsk .sk-next { background: rgba(236,231,218,.07); }
       return '<div class="sk-tools"><button type="button" class="sk-tbtn" data-act="undo">↶ Undo</button>'
         + '<div class="sk-tg"><span class="sk-tl">Game A</span><button type="button" class="sk-tbtn" data-act="g" data-s="A" data-d="-1">−</button><button type="button" class="sk-tbtn" data-act="g" data-s="A" data-d="1">+</button></div>'
         + '<div class="sk-tg"><span class="sk-tl">Game B</span><button type="button" class="sk-tbtn" data-act="g" data-s="B" data-d="-1">−</button><button type="button" class="sk-tbtn" data-act="g" data-s="B" data-d="1">+</button></div></div>'
+        + '<div class="sk-tagrow" data-tagrow style="display:none"><span class="sk-tl">Poin terakhir</span>'
+        + ['ace:Ace', 'winner:Winner', 'error:Error'].map(function (x) { var p = x.split(':'); return '<button type="button" class="sk-tbtn sk-tag" data-act="tag" data-tag="' + p[0] + '">' + p[1] + '</button>'; }).join('') + '</div>'
         + '<div class="sk-gp" data-gp></div>';
     }
     function render(force) {
@@ -37574,25 +37581,39 @@ html.dark #ptsk .sk-next { background: rgba(236,231,218,.07); }
       if (q('[data-pt="A"]')) { q('[data-pt="A"]').textContent = PT[s.pa || 0]; q('[data-pt="B"]').textContent = PT[s.pb || 0]; }
       var gp = q('[data-gp]'); if (gp) gp.textContent = (s.pa === 3 && s.pb === 3) ? 'Golden point: poin berikutnya menang game' : '';
       var f = q('.sk-fin'); if (f) f.classList.toggle('ready', !!tg && (s.a >= tg || s.b >= tg));
+      var tr = q('[data-tagrow]');
+      if (tr) {
+        var le = (s.ev || [])[(s.ev || []).length - 1];
+        tr.style.display = (le && le.w) ? '' : 'none';
+        tr.querySelectorAll('[data-tag]').forEach(function (x) { x.classList.toggle('on', !!(le && le.tg === x.getAttribute('data-tag'))); });
+      }
     }
     function wire(r) {
       var it = r._cur;
-      function cur() { var k = it.kind + it.idx, s = scoresOf(it); if (!work[k]) work[k] = { a: s.a, b: s.b, pa: s.pa || 0, pb: s.pb || 0, hist: [] }; return work[k]; }
-      function snap(w) { w.hist.push({ a: w.a, b: w.b, pa: w.pa, pb: w.pb }); if (w.hist.length > 60) w.hist.shift(); }
+      function cur() { var k = it.kind + it.idx, s = scoresOf(it); if (!work[k]) work[k] = { a: s.a, b: s.b, pa: s.pa || 0, pb: s.pb || 0, hist: [], ev: s.ev || [] }; return work[k]; }
+      function snap(w) { w.hist.push({ a: w.a, b: w.b, pa: w.pa, pb: w.pb, n: w.ev.length }); if (w.hist.length > 60) w.hist.shift(); }
       r.querySelectorAll('[data-act]').forEach(function (b) {
         b.addEventListener('click', function () {
           var w = cur(), act = b.getAttribute('data-act'), side = b.getAttribute('data-s');
           if (act === 'pt') {
             snap(w);
             var me = side === 'A' ? 'pa' : 'pb', gm = side === 'A' ? 'a' : 'b';
-            if (w[me] >= 3) { w[gm]++; w.pa = 0; w.pb = 0; } else w[me]++;
+            var gn = w.a + w.b + 1, evn = { t: Date.now(), w: side, n: gn };
+            if (w[me] >= 3) { w[gm]++; w.pa = 0; w.pb = 0; evn.gw = 1; evn.p = ''; } else { w[me]++; evn.p = PT[w.pa] + '-' + PT[w.pb]; }
+            evn.g = w.a + '-' + w.b;
+            w.ev.push(evn);
           } else if (act === 'g') {
             snap(w);
             var gk = side === 'A' ? 'a' : 'b';
             w[gk] = Math.max(0, w[gk] + parseInt(b.getAttribute('data-d'), 10)); w.pa = 0; w.pb = 0;
+            w.ev.push({ t: Date.now(), x: 1, n: w.a + w.b + 1, g: w.a + '-' + w.b });
           } else if (act === 'undo') {
             var h = w.hist.pop(); if (!h) { toast('Gak ada yang bisa di-undo'); return; }
-            w.a = h.a; w.b = h.b; w.pa = h.pa; w.pb = h.pb;
+            w.a = h.a; w.b = h.b; w.pa = h.pa; w.pb = h.pb; w.ev.length = Math.min(w.ev.length, h.n);
+          } else if (act === 'tag') {
+            var le = w.ev[w.ev.length - 1];
+            if (!le || !le.w) return;
+            var tv = b.getAttribute('data-tag'); if (le.tg === tv) delete le.tg; else le.tg = tv;
           }
           paint(r, it); schedulePush(it);
         });
@@ -37602,7 +37623,7 @@ html.dark #ptsk .sk-next { background: rgba(236,231,218,.07); }
       paint(r, it);
     }
     function entryBase(it, s, done) {
-      return { a: pid(it.m.teamA), b: pid(it.m.teamB), sA: s.a, sB: s.b, pA: done ? 0 : (s.pa || 0), pB: done ? 0 : (s.pb || 0), done: !!done, ts: Date.now(), tok: SK_TOK, c: ci };
+      return { a: pid(it.m.teamA), b: pid(it.m.teamB), sA: s.a, sB: s.b, pA: done ? 0 : (s.pa || 0), pB: done ? 0 : (s.pb || 0), ln: (s.ev || []).length, done: !!done, ts: Date.now(), tok: SK_TOK, c: ci };
     }
     function schedulePush(it) {
       clearTimeout(pushT);
@@ -37610,7 +37631,12 @@ html.dark #ptsk .sk-next { background: rgba(236,231,218,.07); }
         var d = await db(); if (!d) return;
         var e = entryBase(it, scoresOf(it), false);
         skEntries[it.kind + it.idx] = e;
-        try { await d.ref(cPath() + '/' + it.kind + it.idx).set(e); } catch (x) { console.warn('[sk] push', x); }
+        try {
+          var cs = scoresOf(it);
+          if ((cs.ev || []).length) d.ref(lPath() + '/' + it.kind + it.idx).set({ a: e.a, b: e.b, ev: cs.ev });
+          else if (logCache[it.kind + it.idx]) d.ref(lPath() + '/' + it.kind + it.idx).remove();
+          await d.ref(cPath() + '/' + it.kind + it.idx).set(e);
+        } catch (x) { console.warn('[sk] push', x); }
       }, 180);
     }
     function setFlash(t) {
@@ -37626,6 +37652,7 @@ html.dark #ptsk .sk-next { background: rgba(236,231,218,.07); }
       if (d) {
         try {
           if (sigId && rec) d.ref('tournaments/' + room() + '__sig/' + sigId).set(rec);
+          if ((s.ev || []).length) d.ref(lPath() + '/' + k).set({ a: e.a, b: e.b, ev: s.ev });
           await d.ref(cPath() + '/' + k).set(e);
         } catch (x) { console.warn('[sk] submit', x); }
       }
@@ -37649,9 +37676,1163 @@ html.dark #ptsk .sk-next { background: rgba(236,231,218,.07); }
       setInterval(function () { render(false); }, 500);
       var d = await db(); if (!d) return;
       try { d.ref('.info/connected').on('value', function (sn) { online = sn.val() === true; render(true); }); } catch (e) {}
+      try { var ls = await d.ref(lPath()).get(); logCache = (ls && ls.exists && ls.exists()) ? (ls.val() || {}) : {}; } catch (e) {}
       d.ref('tournaments/' + room() + '__court').on('value', function (snap) { skEntries = snap.val() || {}; render(false); });
     })();
   }
+})();
+</script>
+
+<style id="codex-revision-v073205-css">
+/* tab tambahan (Pemain, Jadwal) muat di HP */
+html body #tourneyDrawView .sb-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; flex-wrap: nowrap; }
+html body #tourneyDrawView .sb-tabs::-webkit-scrollbar { display: none; }
+html body #tourneyDrawView .sb-tabs .sb-tab { flex: 1 0 auto; white-space: nowrap; padding-left: 10px; padding-right: 10px; }
+/* viewer mematikan semua button/input: elemen v205 tetap hidup */
+[data-ptvw], #ptvwView button, #ptvwView input, .ptvw-recap, #ptvwModal button { pointer-events: auto !important; cursor: pointer !important; }
+[data-ptvw], #ptvwView button:not(:disabled), #ptvwView input, .ptvw-recap, #ptvwModal button { opacity: 1 !important; }
+#ptvwView input { cursor: text !important; }
+
+#ptvwView { padding: 4px 0 24px; display: flex; flex-direction: column; gap: 10px; }
+.ptvw-h { font-weight: 800; font-size: 15px; }
+.ptvw-q { width: 100%; box-sizing: border-box; min-height: 44px; border-radius: 12px; border: 1px solid rgba(32,39,15,.15); padding: 0 14px; font: inherit; font-size: 15px; background: #fff; color: inherit; }
+html.dark .ptvw-q { background: #1d2412; border-color: rgba(236,231,218,.15); }
+.ptvw-grp, .ptvw-sec { font-size: 11px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: var(--pt-action-ink, #3c5d00); margin-top: 6px; }
+html.dark .ptvw-grp, html.dark .ptvw-sec { color: var(--pt-action-dark, #94b946); }
+.ptvw-pl { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 14px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(32,39,15,.08); }
+html.dark .ptvw-pl { background: #1d2412; box-shadow: none; }
+.ptvw-pn { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; line-height: 1.3; }
+.ptvw-pn span { display: block; }
+.ptvw-badge { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: rgba(93,124,28,.15); color: var(--pt-action-ink, #3c5d00); }
+html.dark .ptvw-badge { color: #cfe0a3; background: rgba(148,185,70,.18); }
+.ptvw-empty { text-align: center; opacity: .6; padding: 24px 0; font-size: 14px; }
+
+.ptvw-chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.ptvw-chips::-webkit-scrollbar { display: none; }
+.ptvw-chip { flex: 0 0 auto; appearance: none; -webkit-appearance: none; border: 1px solid rgba(32,39,15,.18); background: transparent; color: inherit; border-radius: 999px; min-height: 36px; padding: 0 14px; font: inherit; font-size: 13px; font-weight: 700; }
+.ptvw-chip.on { background: var(--pt-action, #5d7c1c); border-color: transparent; color: #fff; }
+html.dark .ptvw-chip { border-color: rgba(236,231,218,.2); }
+
+.ptvw-mc { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(32,39,15,.1); }
+html.dark .ptvw-mc { background: #1d2412; box-shadow: none; }
+.ptvw-mh { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: #33500a; color: #fff; font-size: 12px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; }
+.ptvw-mh .sp { flex: 1; }
+.ptvw-mh .st { font-size: 11px; padding: 2px 9px; border-radius: 999px; background: rgba(255,255,255,.18); }
+.ptvw-mc.live .ptvw-mh { background: #8e2b22; }
+.ptvw-mc.live .ptvw-mh .st { background: #fff; color: #8e2b22; }
+.ptvw-tr { display: flex; align-items: center; gap: 12px; padding: 11px 14px; }
+.ptvw-tr + .ptvw-tr { border-top: 1px solid rgba(32,39,15,.08); }
+html.dark .ptvw-tr + .ptvw-tr { border-top-color: rgba(236,231,218,.1); }
+.ptvw-tn { flex: 1; min-width: 0; font-size: 15px; font-weight: 700; line-height: 1.3; }
+.ptvw-tn span { display: block; }
+.ptvw-tbd { opacity: .5; font-style: italic; font-weight: 600; }
+.ptvw-ts { font-size: 30px; font-weight: 900; line-height: 1; text-align: right; font-variant-numeric: tabular-nums; display: flex; align-items: baseline; gap: 8px; }
+.ptvw-ts small { font-size: 16px; font-weight: 800; opacity: .65; min-width: 24px; }
+.ptvw-tr.win .ptvw-tn { font-weight: 900; }
+.ptvw-tr.win .ptvw-ts { color: var(--pt-action-ink, #3c5d00); }
+html.dark .ptvw-tr.win .ptvw-ts { color: #b8d86a; }
+.ptvw-tr.lose { opacity: .5; }
+.ptvw-mf { padding: 4px 14px 12px; }
+.ptvw-btn { appearance: none; -webkit-appearance: none; width: 100%; min-height: 40px; border-radius: 10px; border: 1px solid rgba(32,39,15,.2); background: transparent; color: inherit; font: inherit; font-size: 13px; font-weight: 800; }
+html.dark .ptvw-btn { border-color: rgba(236,231,218,.25); }
+
+/* bar poin + recap di kartu skor */
+.ptvw-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 4px 2px; font-size: 13px; }
+.ptvw-pts b { font-size: 16px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.ptvw-recap { appearance: none; -webkit-appearance: none; min-height: 34px; border-radius: 999px; border: 1px solid rgba(93,124,28,.5); background: transparent; color: var(--pt-action-ink, #3c5d00); font: inherit; font-size: 12px; font-weight: 800; padding: 0 14px; }
+html.dark .ptvw-recap { color: #cfe0a3; border-color: rgba(148,185,70,.5); }
+
+/* recap timeline */
+#ptvwModal { position: fixed; inset: 0; z-index: 2147481000; display: flex; flex-direction: column; background: var(--pt-paper, #fbf7f0); color: var(--pt-ink, #20270f);
+  padding: env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px); }
+html.dark #ptvwModal { background: #121609; color: var(--pt-ink-dk, #ece7da); }
+#ptvwModal .rc-top { display: flex; align-items: flex-start; gap: 10px; padding: 14px 16px 10px; border-bottom: 1px solid rgba(32,39,15,.1); }
+#ptvwModal .rc-ti { flex: 1; min-width: 0; }
+#ptvwModal .rc-t { font-size: 18px; font-weight: 800; }
+#ptvwModal .rc-s { font-size: 12px; opacity: .7; margin-top: 3px; line-height: 1.35; }
+#ptvwModal .rc-x { appearance: none; -webkit-appearance: none; width: 42px; height: 42px; border-radius: 50%; border: 0; background: rgba(32,39,15,.08); color: inherit; font-size: 20px; font-weight: 800; }
+#ptvwModal .rc-body { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 16px 28px; display: flex; flex-direction: column; gap: 10px; max-width: 680px; width: 100%; margin: 0 auto; box-sizing: border-box; }
+.rc-ban { padding: 12px 14px; border-radius: 12px; background: rgba(32,39,15,.06); font-weight: 800; font-size: 15px; }
+html.dark .rc-ban { background: rgba(236,231,218,.08); }
+.rc-leg { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; font-weight: 700; padding: 8px 2px; }
+.rc-leg span { display: inline-flex; align-items: center; gap: 6px; }
+.rc-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: 0 0 auto; }
+.rc-dot.A { background: #3a6d0e; } .rc-dot.B { background: #c28a1d; }
+.rc-game { border: 1px solid rgba(32,39,15,.12); border-radius: 12px; overflow: hidden; }
+html.dark .rc-game { border-color: rgba(236,231,218,.14); }
+.rc-gh { display: flex; justify-content: space-between; padding: 9px 12px; font-size: 13px; font-weight: 800; background: rgba(32,39,15,.05); }
+html.dark .rc-gh { background: rgba(236,231,218,.07); }
+.rc-ev { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid rgba(32,39,15,.07); font-size: 14px; line-height: 1.35; }
+html.dark .rc-ev { border-top-color: rgba(236,231,218,.08); }
+.rc-sc { width: 54px; flex: 0 0 auto; font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; opacity: .85; }
+.rc-tg { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 6px; font-size: 11px; font-weight: 900; display: inline-flex; align-items: center; justify-content: center; }
+.rc-tg.ace { background: #d9f0d0; color: #2d6a13; } .rc-tg.winner { background: #dbe8fb; color: #1d4f9c; } .rc-tg.error { background: #f8dcd8; color: #a3281c; }
+.rc-tx { flex: 1; min-width: 0; }
+.rc-ev.gw { background: rgba(93,124,28,.08); font-weight: 800; }
+.rc-empty { text-align: center; opacity: .65; padding: 28px 0; font-size: 14px; }
+</style>
+<script id="codex-revision-v073205-js">
+(function () {
+  'use strict';
+  if (typeof state === 'undefined') return;
+  var QS = new URLSearchParams(location.search);
+  var TVMODE = QS.get('tv') === '1';
+  var ISSK = !!(QS.get('sk') && QS.get('court'));
+  var PT = ['0', '15', '30', '40'];
+  var LETTERS = 'ABCDEFGH';
+  var STAGE_ORDER = { R32: 0, R16: 1, QF: 2, SF: 3, '3P': 4, F: 5 };
+
+  function pid(t) { return Array.isArray(t) ? t[0] : t; }
+  function sc(v) { return parseInt(v, 10) || 0; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+  function room() { try { return getRoomId(); } catch (e) { return state.roomId || ''; } }
+  async function db() { try { if (!_fbDb && typeof initFirebase === 'function') await initFirebase(); return _fbDb || null; } catch (e) { return null; } }
+  function pairArr(pi) {
+    if (pi == null) return [];
+    var p = (state.tourneyPairNames || [])[pi] || [];
+    var o = [String(p[0] || '').trim(), String(p[1] || '').trim()].filter(Boolean);
+    return o.length ? o : ['Pair ' + (pi + 1)];
+  }
+  function pairLine(pi) { return pi == null ? 'TBD' : pairArr(pi).join(' / '); }
+  function courtName(i) { return (state.courtNames && state.courtNames[i]) || ('Court ' + (i + 1)); }
+  function nCourts() { return Math.max(1, Math.min(parseInt(state.courts, 10) || 1, 12)); }
+  function isKo() { return state.tourneyPhase === 'knockout' || state.tourneyPhase === 'done'; }
+  function tourneyOn() { try { return typeof isTourney === 'function' && isTourney() && state.started; } catch (e) { return false; } }
+  function stageLbl(st) { return st === '3P' ? 'Perebutan Juara 3' : (typeof koStageLabel === 'function' ? koStageLabel(st) : st); }
+  function matchAt(kind, idx) { return kind === 'g' ? (state.tourneyGroupMatches || [])[idx] : (state.koBracket || [])[idx]; }
+  function hideSc() { return IS_VIEWER && !!(state.tvConfig && state.tvConfig.vwHideScores); }
+  function liveM(m) { return !!m && !m.done && !m.bye && (sc(m.scoreA) + sc(m.scoreB) + sc(m.pA) + sc(m.pB) > 0); }
+  function pt(v) { return PT[Math.max(0, Math.min(3, sc(v)))]; }
+  function groupNo(m) {
+    var n = 0, list = state.tourneyGroupMatches || [];
+    for (var i = 0; i < list.length; i++) { if (list[i].group === m.group) n++; if (list[i] === m) return n; }
+    return n;
+  }
+  function cardInfo(card) {
+    var inp = card.querySelector('.tg-score, .ko-score'); if (!inp) return null;
+    var kind = inp.classList.contains('tg-score') ? 'g' : 'k';
+    var idx = parseInt(kind === 'g' ? inp.getAttribute('data-mi') : inp.getAttribute('data-gmi'), 10);
+    var m = matchAt(kind, idx);
+    return m ? { kind: kind, idx: idx, m: m } : null;
+  }
+
+  /* ---------- poin + tombol recap di kartu skor ---------- */
+  function decorateBars() {
+    var host = document.getElementById('tourneyDrawView'); if (!host) return;
+    host.querySelectorAll('.sb-court-card').forEach(function (card) {
+      var old = card.querySelector(':scope > .ptvw-bar'); if (old) old.remove();
+      var ci = cardInfo(card); if (!ci || ci.m.bye || hideSc()) return;
+      var live = liveM(ci.m), has = sc(ci.m.skLog) > 0;
+      if (!live && !has) return;
+      var bar = document.createElement('div'); bar.className = 'ptvw-bar';
+      bar.innerHTML = (live ? '<span class="ptvw-pts">Poin <b>' + pt(ci.m.pA) + '</b> : <b>' + pt(ci.m.pB) + '</b></span>' : '<span></span>')
+        + (has ? '<button type="button" class="ptvw-recap" data-ptvwrc="' + ci.kind + ci.idx + '">Recap</button>' : '');
+      card.appendChild(bar);
+    });
+  }
+
+  /* ---------- tab Pemain & Jadwal (mode nonton) ---------- */
+  var curTab = null, playerQ = '', schedF = 'all';
+  function playersList() {
+    var draw = state.tourneyDraw || [], q = playerQ.trim().toLowerCase(), qual = {}, total = 0, h = '';
+    (state.tourneyQualInfo || []).forEach(function (x) { qual[x.id] = 1; });
+    draw.forEach(function (g, gi) {
+      var rows = (g || []).filter(function (pi) { return !q || pairArr(pi).join(' ').toLowerCase().indexOf(q) >= 0; });
+      if (!rows.length) return;
+      total += rows.length;
+      h += '<div class="ptvw-grp">Grup ' + LETTERS[gi] + '</div>' + rows.map(function (pi) {
+        return '<div class="ptvw-pl"><div class="ptvw-pn">' + pairArr(pi).map(function (n) { return '<span>' + esc(n) + '</span>'; }).join('') + '</div>' + (qual[pi] ? '<span class="ptvw-badge">Lolos</span>' : '') + '</div>';
+      }).join('');
+    });
+    return total ? h : '<div class="ptvw-empty">Gak ada pemain yang cocok</div>';
+  }
+  function playersHtml() {
+    return '<div class="ptvw-h">Pemain</div><input class="ptvw-q" type="search" placeholder="Cari nama pemain" value="' + esc(playerQ) + '" data-ptvwq="1"><div id="ptvwList" style="display:flex;flex-direction:column;gap:8px">' + playersList() + '</div>';
+  }
+  function allMatches() {
+    var out = [];
+    (state.tourneyGroupMatches || []).forEach(function (m, i) {
+      if (!m) return;
+      out.push({ kind: 'g', idx: i, m: m, sec: 'Round ' + ((m.round || 0) + 1), ord: (m.round || 0) * 100 + (m.court || 0), ctx: 'Grup ' + LETTERS[m.group] + ' · Match ' + groupNo(m), court: m.court || 0, cur: (m.round || 0) === (state.tourneyGroupRound || 0) && state.tourneyPhase === 'groups' });
+    });
+    if (isKo()) (state.koBracket || []).forEach(function (m, i) {
+      if (!m || m.bye) return;
+      out.push({ kind: 'k', idx: i, m: m, sec: stageLbl(m.stage), ord: 10000 + (STAGE_ORDER[m.stage] || 0) * 100 + i, ctx: stageLbl(m.stage), court: m.mi || 0, cur: false });
+    });
+    out.sort(function (a, b) { return a.ord - b.ord; });
+    return out;
+  }
+  function mcHtml(e) {
+    var m = e.m, hs = hideSc(), live = liveM(m), done = !!m.done, a = sc(m.scoreA), b = sc(m.scoreB);
+    var tA = pid(m.teamA), tB = pid(m.teamB), wa = done && a > b, wb = done && b > a;
+    function row(pi, s, p, win, lose) {
+      var nm = pi == null ? '<span class="ptvw-tbd">TBD</span>' : pairArr(pi).map(function (n) { return '<span>' + esc(n) + '</span>'; }).join('');
+      var sh = hs ? '' : ((done || live) ? s : '') + (live ? '<small>' + pt(p) + '</small>' : '');
+      return '<div class="ptvw-tr' + (win ? ' win' : '') + (lose ? ' lose' : '') + '"><div class="ptvw-tn">' + nm + '</div><div class="ptvw-ts">' + sh + '</div></div>';
+    }
+    var st = hs ? '' : (done ? 'Selesai' : live ? 'Live' : 'Belum main');
+    return '<div class="ptvw-mc' + (live && !hs ? ' live' : '') + '"><div class="ptvw-mh"><span>' + esc(e.ctx) + '</span><span class="sp"></span><span>' + esc(courtName(e.court)) + '</span>' + (st ? '<span class="st">' + st + '</span>' : '') + '</div>'
+      + row(tA, a, m.pA, wa, wb) + row(tB, b, m.pB, wb, wa)
+      + (!hs && sc(m.skLog) > 0 ? '<div class="ptvw-mf"><button type="button" class="ptvw-btn" data-ptvwrc="' + e.kind + e.idx + '">Lihat recap</button></div>' : '') + '</div>';
+  }
+  var schedP = '', schedG = 'all';
+  function schedOpts() {
+    var po = '<option value="">Semua match</option>', go = '<option value="all">Semua grup</option>';
+    var n = (state.tourneyPairNames || []).length || (state.tourneyPairs || 0);
+    var seen = {};
+    (state.tourneyDraw || []).forEach(function (g, gi) {
+      go += '<option value="g' + gi + '"' + (schedG === 'g' + gi ? ' selected' : '') + '>Grup ' + LETTERS[gi] + '</option>';
+      (g || []).forEach(function (pi) { seen[pi] = 1; });
+    });
+    if (isKo()) go += '<option value="ko"' + (schedG === 'ko' ? ' selected' : '') + '>Knockout</option>';
+    Object.keys(seen).map(Number).sort(function (a, b) { return pairLine(a).localeCompare(pairLine(b)); }).forEach(function (pi) {
+      po += '<option value="' + pi + '"' + (String(schedP) === String(pi) ? ' selected' : '') + '>' + esc(pairArr(pi).join(' + ')) + '</option>';
+    });
+    return '<label class="ptvw-fl"><span>Pemain</span><select data-ptvwp="1">' + po + '</select></label>'
+      + '<label class="ptvw-fl"><span>Grup</span><select data-ptvwg="1">' + go.replace('<option value="all">', '<option value="all"' + (schedG === 'all' ? ' selected' : '') + '>') + '</select></label>';
+  }
+  function odRow(e) {
+    var m = e.m, hs = hideSc(), live = liveM(m), done = !!m.done;
+    var s = hs ? '' : ((done || live) ? sc(m.scoreA) + '–' + sc(m.scoreB) : '');
+    var ctx = (e.kind === 'g' ? 'R' + ((m.round || 0) + 1) + ' · ' : '') + courtName(e.court) + ' · ' + e.ctx;
+    return '<details class="ptvw-od' + (live && !hs ? ' live' : '') + '"' + (live && !hs ? ' open' : '') + '><summary><span class="od-c">' + esc(ctx) + '</span><span class="od-s">' + esc(s) + '</span><span class="od-v">⌄</span></summary>' + mcHtml(e) + '</details>';
+  }
+  var schedQ = '';
+  function teamTxt(m) {
+    var o = [];
+    [pid(m.teamA), pid(m.teamB)].forEach(function (pi) {
+      if (pi == null) return; o.push(pairArr(pi).join(' '));
+      var tn = state.tourneyTeamNames && state.tourneyTeamNames[pi]; if (tn) o.push(tn);
+    });
+    return o.join(' ').toLowerCase();
+  }
+  function schedBody() {
+    var list = allMatches();
+    var q = schedQ.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    var f = list.filter(function (e) {
+      if (schedF === 'live' && !liveM(e.m)) return false;
+      if (schedP !== '') { var p = Number(schedP); if (pid(e.m.teamA) !== p && pid(e.m.teamB) !== p) return false; }
+      if (schedG === 'ko' && e.kind !== 'k') return false;
+      if (schedG.charAt(0) === 'g' && !(e.kind === 'g' && e.m.group === Number(schedG.slice(1)))) return false;
+      if (q.length) { var hay = teamTxt(e.m) + ' ' + (e.ctx + ' ' + courtName(e.court)).toLowerCase(); if (!q.every(function (w) { return hay.indexOf(w) >= 0; })) return false; }
+      return true;
+    });
+    var h = '', last = null;
+    f.forEach(function (e) {
+      if (e.sec !== last) { last = e.sec; h += '<div class="ptvw-sec">' + esc(e.sec) + (e.cur ? ' · sekarang' : '') + '</div>'; }
+      h += odRow(e);
+    });
+    if (!f.length) h += '<div class="ptvw-empty">' + (q.length ? 'Gak ada match buat "' + esc(schedQ.trim()) + '"' : schedF === 'live' ? 'Belum ada match yang lagi jalan' : 'Gak ada match yang cocok') + '</div>';
+    return h;
+  }
+  function schedHtml() {
+    var chips = '<button type="button" class="ptvw-chip' + (schedF === 'all' ? ' on' : '') + '" data-ptvwf="all">Semua</button>'
+      + '<button type="button" class="ptvw-chip' + (schedF === 'live' ? ' on' : '') + '" data-ptvwf="live">Live</button>';
+    return '<div class="ptvw-h">Order of Play</div><input class="ptvw-q" type="search" placeholder="Cari nama pemain atau team" value="' + esc(schedQ) + '" data-ptvwsq="1" autocomplete="off">'
+      + '<div class="ptvw-fls">' + schedOpts() + '</div><div class="ptvw-chips">' + chips + '</div><div id="ptvwOd" style="display:flex;flex-direction:column;gap:8px">' + schedBody() + '</div>';
+  }
+  document.addEventListener('input', function (e) {
+    var t = e.target; if (!t || !t.getAttribute || t.getAttribute('data-ptvwsq') !== '1') return;
+    schedQ = t.value; var l = document.getElementById('ptvwOd'); if (l) l.innerHTML = schedBody();
+  });
+  document.addEventListener('change', function (e) {
+    var t = e.target; if (!t || !t.getAttribute) return;
+    var v = document.getElementById('ptvwView'); if (!v || !v.contains(t)) return;
+    if (t.getAttribute('data-ptvwp') === '1') schedP = t.value;
+    else if (t.getAttribute('data-ptvwg') === '1') schedG = t.value;
+    else return;
+    var sy = window.scrollY; v.innerHTML = schedHtml(); window.scrollTo(0, sy);
+  });
+  function applyTab(host) {
+    var view = document.getElementById('ptvwView'); if (!view) return;
+    var tabs = host.querySelector('.sb-tabs');
+    var others = ['tgScoreView', 'tgStandingsView', 'ptkBracketView', 'ptkKoScore', 'ptkKoStand', 'ptkKoBracket'];
+    if (curTab) {
+      others.forEach(function (id) { var e = document.getElementById(id); if (e) e.style.display = 'none'; });
+      view.style.display = '';
+      view.innerHTML = curTab === 'players' ? playersHtml() : schedHtml();
+      if (tabs) tabs.querySelectorAll('.sb-tab').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-ptvw') === curTab); });
+    } else view.style.display = 'none';
+  }
+  function decorateTabs() {
+    if (!IS_VIEWER || TVMODE || ISSK) return;
+    var host = document.getElementById('tourneyDrawView'); if (!host || !tourneyOn()) return;
+    if (!(state.tourneyPhase === 'groups' || isKo())) { curTab = null; return; }
+    var tabs = host.querySelector('.sb-tabs'); if (!tabs) return;
+    [['players', 'Pemain'], ['sched', 'Jadwal']].forEach(function (x) {
+      if (tabs.querySelector('[data-ptvw="' + x[0] + '"]')) return;
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'sb-tab'; b.setAttribute('data-ptvw', x[0]); b.textContent = x[1]; tabs.appendChild(b);
+    });
+    var view = document.getElementById('ptvwView');
+    if (!view) {
+      var anchor = document.getElementById('ptkBracketView') || document.getElementById('ptkKoBracket'); if (!anchor) return;
+      view = document.createElement('div'); view.id = 'ptvwView'; view.style.display = 'none';
+      anchor.parentNode.insertBefore(view, anchor.nextSibling);
+    }
+    tabs.querySelectorAll('.sb-tab').forEach(function (b) {
+      if (b._ptvw) return; b._ptvw = 1;
+      b.addEventListener('click', function () { curTab = b.getAttribute('data-ptvw') || null; applyTab(host); });
+    });
+    applyTab(host);
+  }
+  document.addEventListener('input', function (e) {
+    var t = e.target; if (!t || !t.getAttribute || t.getAttribute('data-ptvwq') !== '1') return;
+    playerQ = t.value; var l = document.getElementById('ptvwList'); if (l) l.innerHTML = playersList();
+  });
+  document.addEventListener('click', function (e) {
+    var t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    var f = t.closest('[data-ptvwf]');
+    if (f && document.getElementById('ptvwView') && document.getElementById('ptvwView').contains(f)) {
+      schedF = f.getAttribute('data-ptvwf'); var v = document.getElementById('ptvwView'); if (v) v.innerHTML = schedHtml(); return;
+    }
+    var r = t.closest('[data-ptvwrc]');
+    if (r) { var k = r.getAttribute('data-ptvwrc'); openRecap(k.charAt(0), parseInt(k.slice(1), 10)); }
+  });
+
+  /* ---------- recap timeline ---------- */
+  var rcOv = null, rcOff = null;
+  function closeRecap() {
+    if (rcOff) { try { rcOff(); } catch (e) {} rcOff = null; }
+    if (rcOv) { rcOv.remove(); rcOv = null; document.documentElement.style.overflow = ''; }
+  }
+  function recapHtml(kind, idx, lg) {
+    var m = matchAt(kind, idx) || {}, tA = pid(m.teamA), tB = pid(m.teamB);
+    var nA = pairLine(tA), nB = pairLine(tB), a = sc(m.scoreA), b = sc(m.scoreB);
+    var ban = m.done ? ((a > b ? nA : b > a ? nB : '') ? '<b>' + esc(a > b ? nA : nB) + '</b> menang ' + a + '-' + b : 'Selesai ' + a + '-' + b)
+      : 'Match berlangsung · game ' + a + '-' + b + ' · poin ' + pt(m.pA) + ':' + pt(m.pB);
+    var h = '<div class="rc-ban">' + ban + '</div>'
+      + '<div class="rc-leg"><span><i class="rc-dot A"></i>' + esc(nA) + '</span><span><i class="rc-dot B"></i>' + esc(nB) + '</span></div>';
+    var ev = lg && Array.isArray(lg.ev) ? lg.ev : [];
+    if (!ev.length) return h + '<div class="rc-empty">Belum ada catatan poin buat match ini</div>';
+    var groups = [], curG = null;
+    ev.forEach(function (x) {
+      if (!curG || curG.n !== x.n) { curG = { n: x.n, rows: [], g: '' }; groups.push(curG); }
+      curG.rows.push(x); if (x.gw) curG.g = x.g;
+    });
+    groups.forEach(function (g) {
+      h += '<div class="rc-game"><div class="rc-gh"><span>Game ' + g.n + '</span><span>' + (g.g ? 'Skor ' + esc(g.g) : 'berlangsung') + '</span></div>';
+      g.rows.forEach(function (x) {
+        if (x.x) { h += '<div class="rc-ev"><div class="rc-sc">KOREKSI</div><div class="rc-tx">Skor game dikoreksi jadi ' + esc(x.g) + '</div></div>'; return; }
+        var win = x.w === 'A' ? nA : nB, lose = x.w === 'A' ? nB : nA, tx;
+        if (x.tg === 'ace') tx = '<b>' + esc(win) + '</b> menang poin dengan ace';
+        else if (x.tg === 'winner') tx = '<b>' + esc(win) + '</b> menang poin dengan winner';
+        else if (x.tg === 'error') tx = '<b>' + esc(lose) + '</b> kehilangan poin karena error';
+        else tx = '<b>' + esc(win) + '</b> menang poin';
+        if (x.gw) tx = (x.tg ? tx + '<br>' : '') + '<b>' + esc(win) + ' menang game (' + esc(x.g) + ')</b>';
+        h += '<div class="rc-ev' + (x.gw ? ' gw' : '') + '"><div class="rc-sc">' + (x.gw ? 'GAME' : esc(x.p)) + '</div><i class="rc-dot ' + (x.w === 'A' ? 'A' : 'B') + '"></i>'
+          + (x.tg ? '<span class="rc-tg ' + esc(x.tg) + '">' + (x.tg === 'ace' ? 'A' : x.tg === 'winner' ? 'W' : 'E') + '</span>' : '') + '<div class="rc-tx">' + tx + '</div></div>';
+      });
+      h += '</div>';
+    });
+    return h;
+  }
+  async function openRecap(kind, idx) {
+    var m = matchAt(kind, idx); if (!m || hideSc()) return;
+    closeRecap();
+    rcOv = document.createElement('div'); rcOv.id = 'ptvwModal';
+    document.body.appendChild(rcOv); document.documentElement.style.overflow = 'hidden';
+    var first = true;
+    function draw(lg) {
+      if (!rcOv) return;
+      var mm = matchAt(kind, idx) || m;
+      var sub = pairLine(pid(mm.teamA)) + '  vs  ' + pairLine(pid(mm.teamB));
+      var keep = rcOv.querySelector('.rc-body'), st = keep ? keep.scrollTop : 0;
+      rcOv.innerHTML = '<div class="rc-top"><div class="rc-ti"><div class="rc-t">Recap Match</div><div class="rc-s">' + esc(sub) + '</div></div><button type="button" class="rc-x" aria-label="Tutup">×</button></div>'
+        + '<div class="rc-body">' + (lg === undefined ? '<div class="rc-empty">Memuat...</div>' : recapHtml(kind, idx, lg)) + '</div>';
+      rcOv.querySelector('.rc-x').addEventListener('click', closeRecap);
+      var body = rcOv.querySelector('.rc-body');
+      if (first && lg !== undefined) { body.scrollTop = body.scrollHeight; first = false; } else body.scrollTop = st;
+    }
+    draw(undefined);
+    var d = await db();
+    if (!d) { draw(null); return; }
+    var ref = d.ref('tournaments/' + room() + '__log/' + kind + idx);
+    var cb = ref.on('value', function (sn) {
+      var v = sn.exists() ? sn.val() : null, mm = matchAt(kind, idx);
+      if (v && mm && (v.a !== pid(mm.teamA) || v.b !== pid(mm.teamB))) v = null;
+      draw(v);
+    });
+    rcOff = function () { try { ref.off('value', cb); } catch (e) {} };
+  }
+  window._ptOpenRecap = openRecap;
+
+  /* ---------- hook render ---------- */
+  if (!TVMODE && !ISSK) {
+    ['renderTourneyGroupPhase', 'renderKnockout'].forEach(function (name) {
+      if (typeof window[name] !== 'function') return;
+      var orig = window[name];
+      window[name] = function () {
+        // viewer yang baru buka link pas fase grup: host #tourneyDrawView belum ada
+        // (renderTourneyGroupPhase gak bikin sendiri), jadi layar tetap kosong/setup.
+        if (name === 'renderTourneyGroupPhase' && !document.getElementById('tourneyDrawView') && typeof showTourneyDrawResult === 'function') {
+          try { showTourneyDrawResult(); } catch (e) { console.warn('[v205] host', e); }
+        }
+        var r = orig.apply(this, arguments);
+        try { decorateBars(); } catch (e) { console.warn('[v205] bars', e); }
+        try { decorateTabs(); } catch (e) { console.warn('[v205] tabs', e); }
+        return r;
+      };
+      try { (0, eval)(name + ' = window.' + name); } catch (e) {}
+    });
+  }
+})();
+</script>
+
+<style id="codex-revision-v073207-css">
+.host-badge { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 800; letter-spacing: .9px; padding: 2px 8px; border-radius: 999px; vertical-align: middle;
+  background: rgba(201,169,97,.24); color: #8b5e1a; border: 1px solid rgba(139,94,26,.3); text-transform: uppercase; }
+html.dark .host-badge { color: #e0c27d; background: rgba(201,169,97,.16); border-color: rgba(201,169,97,.35); }
+#standingBody tr.standing-host td { opacity: .8; }
+#standingBody tr.standing-host .rank { background: rgba(139,94,26,.14) !important; color: #8b5e1a !important; box-shadow: none !important; border-color: transparent !important; font-size: 11px; font-weight: 800; }
+html.dark #standingBody tr.standing-host .rank { color: #e0c27d !important; background: rgba(201,169,97,.16) !important; }
+.pp-host-btn { appearance: none; -webkit-appearance: none; margin: 10px 0 2px; min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(139,94,26,.45); background: transparent; color: #8b5e1a; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.pp-host-btn.on { background: rgba(201,169,97,.24); }
+html.dark .pp-host-btn { color: #e0c27d; border-color: rgba(201,169,97,.5); }
+.pp-host-note { font-size: 12px; opacity: .72; margin-top: 4px; line-height: 1.4; }
+</style>
+<script id="codex-revision-v073207-js">
+(function () {
+  'use strict';
+  if (typeof state === 'undefined' || typeof computeStandings !== 'function') return;
+  var VIEW = 0;
+
+  /* ---------- data host: state.hostIds = [{id, name}] ---------- */
+  function hostList() { return Array.isArray(state.hostIds) ? state.hostIds : []; }
+  function nameOf(id) { try { return entityName(id); } catch (e) { return ''; } }
+  function isHost(id) { return hostList().some(function (h) { return h && h.id === id && h.name === nameOf(id); }); }
+  function setHost(id, on) {
+    var list = hostList().filter(function (h) { return h && h.id !== id; });
+    if (on) list.push({ id: id, name: nameOf(id) });
+    state.hostIds = list;
+    try { saveState(); } catch (e) {}
+  }
+
+  /* ---------- computeStandings: host paling bawah (cuma di konteks tampilan) ---------- */
+  var _cs = computeStandings;
+  function csWrapped() {
+    var r = _cs.apply(this, arguments);
+    if (!VIEW || !hostList().length || !Array.isArray(r)) return r;
+    var rest = [], hs = [];
+    r.forEach(function (s) {
+      if (isHost(s.id)) { s.isHost = true; s.name = s.name + ' (Host)'; hs.push(s); } else rest.push(s);
+    });
+    return rest.concat(hs);
+  }
+  window.computeStandings = csWrapped;
+  try { (0, eval)('computeStandings = window.computeStandings'); } catch (e) {}
+
+  function inView(fn) { VIEW++; try { return fn(); } finally { VIEW--; } }
+  /* fungsi tampilan: klasemen, podium, story. Pairing (generateRound, mexicanoStandings) TIDAK dibungkus,
+     jadi urutan asli tetap dipakai buat bagi pasangan. */
+  ['updateStandingTable', 'showPodium', 'tplPodium', 'tplTop3', 'tplStandings'].forEach(function (name) {
+    var o = window[name];
+    if (typeof o !== 'function') return;
+    window[name] = function () { var self = this, args = arguments; return inView(function () { return o.apply(self, args); }); };
+    try { (0, eval)(name + ' = window.' + name); } catch (e) {}
+  });
+
+  /* ---------- klasemen: rank tanpa host, badge HOST ---------- */
+  function postTable() {
+    var tbody = document.getElementById('standingBody'); if (!tbody) return;
+    if (!hostList().length || typeof podiumRankEntries !== 'function') return;
+    var st = inView(function () { return computeStandings(); });
+    var hostIds = {}, nonHost = [];
+    st.forEach(function (s) { if (s.isHost) hostIds[s.id] = 1; else nonHost.push(s); });
+    if (!Object.keys(hostIds).length) return;
+    var rankById = {}, sizeOf = {};
+    podiumRankEntries(nonHost, nonHost.length).forEach(function (e) { rankById[e.s.id] = e.rank; sizeOf[e.rank] = (sizeOf[e.rank] || 0) + 1; });
+    [].slice.call(tbody.querySelectorAll('tr[data-eid]')).forEach(function (tr) {
+      var id = Number(tr.dataset.eid), cell = tr.querySelector('.rank');
+      if (hostIds[id]) {
+        tr.className = 'standing-host';
+        if (cell) { cell.textContent = 'H'; cell.className = 'rank'; }
+        var nc = tr.querySelector('.player-name-cell');
+        if (nc && !nc.querySelector('.host-badge')) {
+          var tn = nc.firstChild;
+          if (tn && tn.nodeType === 3) tn.nodeValue = tn.nodeValue.replace(/\s*\(Host\)\s*$/, '');
+          var b = document.createElement('span'); b.className = 'host-badge'; b.textContent = 'Host';
+          if (tn && tn.nextSibling) nc.insertBefore(b, tn.nextSibling); else nc.appendChild(b);
+        }
+        return;
+      }
+      var rank = rankById[id]; if (rank === undefined) return;
+      var medal = rank <= 3 && (sizeOf[rank] || 1) <= 3;
+      if (cell) { cell.textContent = String(rank); cell.className = 'rank' + (medal ? ' rank-' + rank : ''); }
+      tr.className = medal ? ('standing-top3 standing-rank-' + rank) : '';
+    });
+  }
+  (function () {
+    var o = window.updateStandingTable;
+    if (typeof o !== 'function') return;
+    window.updateStandingTable = function () {
+      var r = o.apply(this, arguments);
+      try { postTable(); } catch (e) { console.warn('[v207] table', e); }
+      return r;
+    };
+    try { (0, eval)('updateStandingTable = window.updateStandingTable'); } catch (e) {}
+  })();
+
+  /* ---------- profil pemain: tombol host ---------- */
+  var _spp = window.showPlayerProfile;
+  if (typeof _spp === 'function') {
+    window.showPlayerProfile = function (playerId, rank, name) {
+      var r;
+      if (hostList().length) {
+        try {
+          var st = inView(function () { return computeStandings(); });
+          var idx = st.findIndex(function (x) { return x.id === playerId; });
+          if (idx >= 0) rank = idx;
+        } catch (e) {}
+      }
+      r = _spp.apply(this, [playerId, rank, name]);
+      try { decorateProfile(playerId); } catch (e) { console.warn('[v207] profile', e); }
+      return r;
+    };
+    try { (0, eval)('showPlayerProfile = window.showPlayerProfile'); } catch (e) {}
+  }
+  function decorateProfile(playerId) {
+    var badge = document.getElementById('ppRankBadge'); if (!badge) return;
+    var host = isHost(playerId);
+    if (host) badge.textContent = 'Host · di luar podium';
+    var old = document.getElementById('ppHostWrap'); if (old) old.remove();
+    if (IS_VIEWER) return;
+    var wrap = document.createElement('div'); wrap.id = 'ppHostWrap';
+    wrap.innerHTML = '<button type="button" class="pp-host-btn' + (host ? ' on' : '') + '">' + (host ? 'Host: lepas tanda' : 'Tandai sebagai host') + '</button>'
+      + '<div class="pp-host-note">Host selalu di paling bawah klasemen dan gak masuk podium, berapa pun skornya. Urutan buat bagi pasangan gak berubah.</div>';
+    var anchor = badge.parentNode || badge;
+    anchor.appendChild(wrap);
+    wrap.querySelector('button').addEventListener('click', function () {
+      setHost(playerId, !isHost(playerId));
+      try { updateStandingTable(); } catch (e) {}
+      try { if (typeof renderOverview === 'function') renderOverview(); } catch (e) {}
+      decorateProfile(playerId);
+      try { showToast(isHost(playerId) ? 'Ditandai sebagai host' : 'Tanda host dilepas'); } catch (e) {}
+    });
+  }
+  window._ptIsHost = isHost;
+  window._ptSetHost = setHost;
+})();
+</script>
+
+<style id="codex-revision-v073208-css">
+.ptvw-hint { font-size: 13px; opacity: .72; line-height: 1.4; }
+.ptvw-fls { display: flex; flex-direction: column; gap: 8px; }
+.ptvw-fl { display: flex; align-items: center; gap: 10px; }
+.ptvw-fl > span { width: 56px; flex: 0 0 auto; font-size: 11px; font-weight: 800; letter-spacing: 1.1px; text-transform: uppercase; opacity: .7; }
+.ptvw-fl select { flex: 1; min-width: 0; min-height: 44px; border-radius: 12px; border: 1px solid rgba(32,39,15,.18); padding: 0 12px; font: inherit; font-size: 15px; background: #fff; color: inherit; }
+html.dark .ptvw-fl select { background: #1c2210; border-color: rgba(236,231,218,.2); }
+details.ptvw-od { border-radius: 14px; background: #fff; box-shadow: 0 1px 3px rgba(32,39,15,.1); overflow: hidden; }
+html.dark details.ptvw-od { background: #1c2210; }
+details.ptvw-od > summary { list-style: none; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 800; }
+details.ptvw-od > summary::-webkit-details-marker { display: none; }
+details.ptvw-od .od-c { flex: 1; min-width: 0; }
+details.ptvw-od .od-s { font-size: 16px; font-variant-numeric: tabular-nums; }
+details.ptvw-od .od-v { opacity: .55; transition: transform .15s; }
+details.ptvw-od[open] .od-v { transform: rotate(180deg); }
+details.ptvw-od.live > summary { color: #8e2b22; }
+details.ptvw-od .ptvw-mc { border-radius: 0; box-shadow: none; }
+.pt8-live { display: flex; align-items: center; justify-content: flex-end; gap: 8px; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; opacity: .8; padding: 4px 2px 2px; }
+.pt8-live i { width: 8px; height: 8px; border-radius: 50%; background: #d8431f; display: inline-block; animation: pt8p 1.6s infinite; }
+@keyframes pt8p { 50% { opacity: .3; } }
+.pt8-g { background: #fff; border-radius: 16px; padding: 14px 12px 8px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(32,39,15,.1); }
+html.dark .pt8-g { background: #1c2210; }
+.pt8-g h4 { margin: 0 0 4px; font-size: 18px; font-weight: 900; }
+.pt8-rule { font-size: 12px; opacity: .7; line-height: 1.4; margin-bottom: 8px; }
+.pt8-t { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.pt8-t th { font-size: 10px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; opacity: .6; text-align: center; padding: 6px 3px; }
+.pt8-t th.l, .pt8-t td.l { text-align: left; }
+.pt8-t td { text-align: center; padding: 10px 3px; font-size: 14px; font-weight: 700; border-top: 1px solid rgba(32,39,15,.08); vertical-align: middle; }
+.pt8-t td.n { font-weight: 900; font-size: 15px; width: 22px; color: #c25a1b; }
+.pt8-t tr.adv td { background: rgba(93,124,28,.13); }
+.pt8-t tr.zone td { background: rgba(201,169,97,.14); }
+.pt8-t .pn { font-weight: 800; line-height: 1.3; }
+.pt8-t .pn span { display: block; }
+.pt8-h2h { display: inline-block; margin-top: 4px; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: #d8631f; color: #fff; }
+.pt8-h2h.x { background: rgba(32,39,15,.12); color: inherit; }
+.pt8-pod { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0 14px; }
+.pt8-pod > div { background: #fff; border-radius: 14px; padding: 10px 11px; box-shadow: 0 1px 3px rgba(32,39,15,.1); min-width: 0; }
+html.dark .pt8-pod > div { background: #1c2210; }
+.pt8-pod > div.ch { background: rgba(201,169,97,.22); }
+.pt8-pod small { display: block; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; opacity: .7; margin-bottom: 4px; }
+.pt8-pod b { display: block; font-size: 14px; line-height: 1.3; word-break: break-word; }
+</style>
+<script id="codex-revision-v073208-js">
+(function () {
+  'use strict';
+  if (typeof state === 'undefined') return;
+  var QS = new URLSearchParams(location.search);
+  if (QS.get('tv') === '1' || (QS.get('sk') && QS.get('court'))) return;
+  var LETTERS = 'ABCDEFGH';
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+  function pid(t) { return Array.isArray(t) ? t[0] : t; }
+  function sc(v) { return parseInt(v, 10) || 0; }
+  function pairArr(pi) {
+    var p = (state.tourneyPairNames || [])[pi] || [];
+    var o = [String(p[0] || '').trim(), String(p[1] || '').trim()].filter(Boolean);
+    return o.length ? o : ['Pair ' + (pi + 1)];
+  }
+  function line(pi) { return pi == null ? 'TBD' : pairArr(pi).join(' + '); }
+
+  function groupRows(gi) {
+    var gs = computeGroupStandings(gi), ms = state.tourneyGroupMatches || [];
+    var members = (state.tourneyDraw || [])[gi] || [], total = Math.max(0, members.length - 1);
+    var pf = {}, pa = {};
+    ms.forEach(function (m) {
+      if (m.group !== gi || !m.done) return;
+      var a = pid(m.teamA), b = pid(m.teamB);
+      pf[a] = (pf[a] || 0) + sc(m.scoreA); pa[a] = (pa[a] || 0) + sc(m.scoreB);
+      pf[b] = (pf[b] || 0) + sc(m.scoreB); pa[b] = (pa[b] || 0) + sc(m.scoreA);
+    });
+    return gs.map(function (s, i) {
+      var nx = gs[i + 1], pv = gs[i - 1], tag = '';
+      if (nx && nx.wins === s.wins && nx.points === s.points) tag = 'w';
+      else if (pv && pv.wins === s.wins && pv.points === s.points) tag = 'l';
+      return { s: s, pf: pf[s.id] || 0, pa: pa[s.id] || 0, total: total, tag: tag };
+    });
+  }
+  function standHtml() {
+    var q = state.qualTop || 0, best = state.qualBest3rd || 0;
+    var h = '<div class="ptvw-h">Group / Standing</div>';
+    (state.tourneyDraw || []).forEach(function (g, gi) {
+      var rows = groupRows(gi).map(function (r, i) {
+        var cls = i < q ? 'adv' : (i === q && best > 0 ? 'zone' : '');
+        var pn = pairArr(r.s.id).map(function (n) { return '<span>' + esc(n) + '</span>'; }).join('');
+        var tag = r.tag === 'w' ? '<span class="pt8-h2h">H2H ✓</span>' : r.tag === 'l' ? '<span class="pt8-h2h x">H2H ×</span>' : '';
+        var pd = r.s.diff;
+        return '<tr class="' + cls + '"><td class="n">' + (i + 1) + '</td><td class="l"><div class="pn">' + pn + '</div>' + tag + '</td>'
+          + '<td>' + r.s.games + '/' + r.total + '</td><td>' + r.s.wins + '</td><td>' + r.s.losses + '</td><td>' + (pd > 0 ? '+' : '') + pd + '</td><td>' + r.pf + '</td><td>' + r.pa + '</td></tr>';
+      }).join('');
+      h += '<div class="pt8-g"><h4>Grup ' + LETTERS[gi] + '</h4><div class="pt8-rule">Top ' + q + ' lolos' + (best > 0 ? ' + ' + best + ' terbaik peringkat ' + (q + 1) : '') + ' · Urutan: menang → poin → head-to-head</div>'
+        + '<table class="pt8-t"><thead><tr><th>#</th><th class="l">Pair</th><th>Main</th><th>Menang</th><th>Kalah</th><th>PD</th><th>PF</th><th>PA</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    });
+    return h;
+  }
+  function podiumHtml() {
+    var ko = state.koBracket || [], F = null, T = null;
+    ko.forEach(function (m) { if (m && m.stage === 'F') F = m; if (m && m.stage === '3P') T = m; });
+    function win(m, side) {
+      if (!m || !m.done) return null;
+      var a = sc(m.scoreA), b = sc(m.scoreB); if (a === b) return null;
+      var w = a > b ? 'A' : 'B'; return pid(side === 'w' ? (w === 'A' ? m.teamA : m.teamB) : (w === 'A' ? m.teamB : m.teamA));
+    }
+    var c = win(F, 'w'), r = win(F, 'l'), t = win(T, 'w');
+    function cell(cls, lbl, pi) { return '<div class="' + cls + '"><small>' + lbl + '</small><b>' + (pi == null ? '–' : esc(line(pi))) + '</b></div>'; }
+    return '<div class="pt8-pod">' + cell('ch', '🏆 Champion', c) + cell('', 'Runner-up', r) + cell('', '3rd place', t) + '</div>';
+  }
+  function decorate() {
+    var host = document.getElementById('tourneyDrawView'); if (!host) return;
+    var sv = document.getElementById('tgStandingsView');
+    if (sv && (state.tourneyDraw || []).length) { try { sv.innerHTML = standHtml(); } catch (e) { console.warn('[v208] stand', e); } }
+    ['ptkBracketView', 'ptkKoBracket'].forEach(function (id) {
+      var b = document.getElementById(id); if (!b || b.querySelector('.pt8-pod')) return;
+      b.insertAdjacentHTML('afterbegin', podiumHtml());
+    });
+    if (IS_VIEWER) {
+      var pg = host.querySelector('.sb-page');
+      if (pg) {
+        var el = pg.querySelector('.pt8-live');
+        var d = new Date(), t = [d.getHours(), d.getMinutes(), d.getSeconds()].map(function (x) { return (x < 10 ? '0' : '') + x; }).join(':');
+        if (!el) { el = document.createElement('div'); el.className = 'pt8-live'; pg.insertBefore(el, pg.firstChild); }
+        el.innerHTML = '<i></i>Live · updated ' + t;
+      }
+    }
+  }
+  ['renderTourneyGroupPhase', 'renderKnockout'].forEach(function (name) {
+    if (typeof window[name] !== 'function') return;
+    var orig = window[name];
+    window[name] = function () {
+      var r = orig.apply(this, arguments);
+      try { decorate(); } catch (e) { console.warn('[v208] ' + name, e); }
+      return r;
+    };
+    try { (0, eval)(name + ' = window.' + name); } catch (e) {}
+  });
+})();
+</script>
+
+<style id="codex-revision-v073209-css">
+#ptdaf, #ptregSheet { position: fixed; inset: 0; z-index: 2147481500; overflow-y: auto; -webkit-overflow-scrolling: touch; background: #f3eee3; color: #20270f;
+  padding: env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px); font-family: inherit; }
+html.dark #ptdaf, html.dark #ptregSheet { background: #121609; color: #ece7da; }
+#ptdaf *, #ptregSheet * { box-sizing: border-box; }
+#ptdaf button, #ptdaf input, #ptdaf select, #ptdaf label, #ptdaf textarea, #ptregSheet button, #ptregSheet input, #ptregSheet select, #ptregSheet label, #ptregSheet textarea { pointer-events: auto !important; cursor: pointer; }
+#ptdaf button:not(:disabled), #ptdaf input, #ptdaf label, #ptregSheet button:not(:disabled), #ptregSheet input, #ptregSheet label { opacity: 1 !important; }
+#ptdaf input[type=text], #ptdaf input[type=number], #ptdaf input[type=url], #ptdaf input[type=search], #ptdaf textarea, #ptregSheet input[type=text], #ptregSheet input[type=search] { cursor: text; }
+.pr-wrap { max-width: 560px; margin: 0 auto; padding: 18px 16px 90px; display: flex; flex-direction: column; gap: 12px; }
+.pr-top { display: flex; align-items: center; gap: 10px; }
+.pr-top h1 { flex: 1; margin: 0; font-size: 22px; font-weight: 900; line-height: 1.15; }
+.pr-x { width: 42px; height: 42px; border-radius: 50%; border: 0; background: rgba(32,39,15,.09); color: inherit; font-size: 20px; font-weight: 800; }
+.pr-sub { font-size: 13px; opacity: .72; line-height: 1.45; }
+.pr-card { background: #fff; border-radius: 16px; padding: 14px; box-shadow: 0 1px 3px rgba(32,39,15,.1); display: flex; flex-direction: column; gap: 10px; }
+html.dark .pr-card { background: #1c2210; }
+.pr-h { font-size: 11px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: #3c5d00; }
+html.dark .pr-h { color: #94b946; }
+.pr-f { display: flex; flex-direction: column; gap: 5px; }
+.pr-f > span { font-size: 12px; font-weight: 700; opacity: .8; }
+.pr-f input[type=text], .pr-f input[type=number], .pr-f input[type=url], .pr-f select, .pr-f textarea, .pr-in { width: 100%; min-height: 46px; border-radius: 12px; border: 1px solid rgba(32,39,15,.2); padding: 0 12px; font: inherit; font-size: 16px; background: #fff; color: inherit; }
+html.dark .pr-f input, html.dark .pr-f select, html.dark .pr-in { background: #121609; border-color: rgba(236,231,218,.22); }
+.pr-row { display: flex; gap: 8px; }
+.pr-row > * { flex: 1; min-width: 0; }
+.pr-ck { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; min-height: 40px; }
+.pr-ck input { width: 22px; height: 22px; flex: 0 0 auto; }
+.pr-file { font-size: 14px; }
+.pr-btn { appearance: none; -webkit-appearance: none; min-height: 46px; padding: 0 18px; border-radius: 999px; border: 1px solid rgba(32,39,15,.25); background: transparent; color: inherit; font: inherit; font-size: 14px; font-weight: 800; }
+.pr-btn.solid { background: #4d6d12; border-color: transparent; color: #fff; }
+.pr-btn.bad { border-color: rgba(163,40,28,.5); color: #a3281c; }
+.pr-btn.sm { min-height: 38px; padding: 0 14px; font-size: 13px; }
+.pr-btn:disabled { opacity: .5 !important; }
+.pr-err { padding: 10px 12px; border-radius: 10px; background: #f8dcd8; color: #7a1d14; font-size: 13px; font-weight: 700; }
+.pr-note { padding: 10px 12px; border-radius: 10px; background: rgba(201,169,97,.2); font-size: 13px; line-height: 1.45; }
+.pr-big { text-align: center; padding: 34px 10px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.pr-big b { font-size: 22px; font-weight: 900; }
+.pr-pill { display: inline-block; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: rgba(93,124,28,.16); color: #3c5d00; }
+.pr-pill.ok { background: #d9f0d0; color: #2d6a13; } .pr-pill.no { background: #f8dcd8; color: #a3281c; } .pr-pill.up { background: #dbe8fb; color: #1d4f9c; } .pr-pill.new { background: rgba(201,169,97,.28); color: #7a5a14; }
+.pr-fl { display: flex; flex-wrap: wrap; gap: 6px; }
+.pr-fl span { font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 8px; line-height: 1.3; }
+.pr-fl .bad { background: #f8dcd8; color: #7a1d14; } .pr-fl .warn { background: rgba(201,169,97,.3); color: #6b4d0f; } .pr-fl .info { background: rgba(32,39,15,.09); }
+.pr-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.pr-chips::-webkit-scrollbar { display: none; }
+.pr-chip { flex: 0 0 auto; appearance: none; -webkit-appearance: none; border: 1px solid rgba(32,39,15,.2); background: transparent; color: inherit; border-radius: 999px; min-height: 36px; padding: 0 14px; font: inherit; font-size: 13px; font-weight: 700; }
+.pr-chip.on { background: #4d6d12; border-color: transparent; color: #fff; }
+.pr-pn { font-size: 16px; font-weight: 900; line-height: 1.3; }
+.pr-meta { font-size: 12px; opacity: .72; line-height: 1.45; }
+.pr-link { word-break: break-all; font-size: 12px; padding: 9px 10px; border-radius: 10px; background: rgba(32,39,15,.07); }
+.pr-imgs { display: flex; gap: 8px; }
+.pr-imgs img { flex: 1; min-width: 0; max-height: 360px; object-fit: contain; border-radius: 10px; background: rgba(32,39,15,.06); }
+.pr-qr { display: flex; justify-content: center; }
+.pr-qr img { width: 180px; height: 180px; background: #fff; padding: 8px; border-radius: 10px; }
+.pr-tog { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; font-size: 14px; font-weight: 700; }
+.pr-sw { width: 46px; height: 28px; border-radius: 999px; background: rgba(32,39,15,.25); position: relative; flex: 0 0 auto; }
+.pr-sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.pr-tog.on .pr-sw { background: #4d6d12; } .pr-tog.on .pr-sw::after { transform: translateX(18px); }
+</style>
+<script id="codex-revision-v073209-js">
+(function () {
+  'use strict';
+  if (typeof state === 'undefined') return;
+  var QS = new URLSearchParams(location.search);
+  var DAF = QS.get('daf') || '';
+  var IS_FORM = !!(IS_VIEWER && DAF);
+  var TIERS = [['Beginner', 0, 899], ['Upper Beginner', 900, 1199], ['Lower Bronze', 1200, 1499], ['Bronze', 1500, 1799], ['Upper Bronze', 1800, 2099], ['Silver', 2100, 2499], ['Gold', 2500, 2999], ['Platinum', 3000, 99999]];
+  var OPEN = 8;
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+  function rnd() { return Math.random().toString(36).slice(2, 6) + Math.random().toString(36).slice(2, 6); }
+  function room() { try { return getRoomId(); } catch (e) { return state.roomId || ''; } }
+  function toast(t) { try { showToast(t); } catch (e) {} }
+  async function db() { try { if (!_fbDb && typeof initFirebase === 'function') await initFirebase(); return _fbDb || null; } catch (e) { return null; } }
+  function P(k) { return 'tournaments/' + room() + '__' + k; }
+  function tierOf(elo) { if (elo == null || isNaN(elo)) return null; for (var i = TIERS.length - 1; i >= 0; i--) if (elo >= TIERS[i][1]) return i; return 0; }
+  function tierName(ti) { return ti === OPEN ? 'Open' : (TIERS[ti] ? TIERS[ti][0] : '?'); }
+  function num(v) { var n = parseInt(v, 10); return isNaN(n) ? null : n; }
+  function norm(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+  function hash(s) { var h = 5381; for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return String(h >>> 0); }
+  function catLabel(cfg, ti) { return (cfg.label ? cfg.label + ' · ' : '') + tierName(ti); }
+  function sortCats(a) { return (a || []).slice().sort(function (x, y) { return x - y; }); }
+  function pickImg(file, max) {
+    return new Promise(function (res, rej) {
+      var r = new FileReader();
+      r.onerror = rej;
+      r.onload = function () {
+        var im = new Image(); im.onerror = rej;
+        im.onload = function () {
+          var s = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(im.width * s)); c.height = Math.max(1, Math.round(im.height * s));
+          c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+          res(c.toDataURL('image/jpeg', 0.6));
+        };
+        im.src = r.result;
+      };
+      r.readAsDataURL(file);
+    });
+  }
+  function formUrl() { return location.origin + location.pathname + '?room=' + encodeURIComponent(room()) + '&daf=' + encodeURIComponent(state.regToken); }
+
+  /* ===================================================================
+     SISI PEMAIN: ?room=<room>&daf=<token>
+     =================================================================== */
+  if (IS_FORM) {
+    var cfg = null, cfgLoaded = false, root = null, myId = '', D = null, busy = false, err = '', decRef = null, decCb = null, dec = null, lastKey = '';
+    try { myId = localStorage.getItem('ptdaf_' + room() + '_' + DAF) || ''; } catch (e) {}
+    function blankD() { return { cat: '', pl: [0, 1].map(function () { return { n: '', c: '', elo: '', m: '', t: '', link: '', ch: false, chn: '', file: null, fname: '' }; }) }; }
+    D = blankD();
+    function ensureRoot() {
+      if (root && document.body.contains(root)) return root;
+      var ob = document.getElementById('onboardingScreen'); if (ob) ob.remove();
+      root = document.createElement('div'); root.id = 'ptdaf'; document.body.appendChild(root);
+      document.documentElement.style.overflow = 'hidden';
+      root.addEventListener('input', onIn); root.addEventListener('change', onIn); root.addEventListener('click', onClick);
+      return root;
+    }
+    function head(sub) { return '<div class="pr-top"><h1>' + esc(cfg && cfg.name ? cfg.name : 'Pendaftaran') + '</h1></div>' + (sub ? '<div class="pr-sub">' + sub + '</div>' : ''); }
+    function big(t, s) { return '<div class="pr-wrap">' + head('') + '<div class="pr-card pr-big"><b>' + t + '</b>' + (s ? '<div class="pr-sub">' + s + '</div>' : '') + '</div></div>'; }
+    function tierOpts(sel) {
+      return '<option value="">Pilih level kamu</option>' + TIERS.map(function (t, i) { return '<option value="' + i + '"' + (String(sel) === String(i) ? ' selected' : '') + '>' + t[0] + (i === 0 ? ' (ELO kurang dari 900)' : i === 7 ? ' (ELO 3000 ke atas)' : ' (' + t[1] + '-' + t[2] + ')') + '</option>'; }).join('');
+    }
+    function playerCard(k) {
+      var p = D.pl[k];
+      return '<div class="pr-card"><div class="pr-h">Pemain ' + (k + 1) + '</div>'
+        + '<label class="pr-f"><span>Nama (sesuai profil Trekkr)</span><input type="text" data-k="' + k + '" data-f="n" value="' + esc(p.n) + '" autocomplete="off" placeholder="Nama lengkap"></label>'
+        + '<label class="pr-f"><span>WhatsApp' + (k === 0 ? '' : ' (opsional)') + '</span><input type="text" inputmode="tel" data-k="' + k + '" data-f="c" value="' + esc(p.c) + '" autocomplete="off" placeholder="08xxxxxxxxxx"></label>'
+        + '<label class="pr-f"><span>Level kamu sendiri</span><select data-k="' + k + '" data-f="t">' + tierOpts(p.t) + '</select></label>'
+        + '<div class="pr-row"><label class="pr-f"><span>ELO Trekkr</span><input type="number" inputmode="numeric" data-k="' + k + '" data-f="elo" value="' + esc(p.elo) + '" placeholder="mis. 1013"></label>'
+        + '<label class="pr-f"><span>Jumlah match</span><input type="number" inputmode="numeric" data-k="' + k + '" data-f="m" value="' + esc(p.m) + '" placeholder="mis. 6"></label></div>'
+        + '<label class="pr-f"><span>Link profil Trekkr (opsional)</span><input type="url" data-k="' + k + '" data-f="link" value="' + esc(p.link) + '" placeholder="https://..."></label>'
+        + '<div class="pr-f"><span>Screenshot paspor Trekkr (halaman ELO)</span><input class="pr-file" type="file" accept="image/*" data-k="' + k + '" data-f="file">' + (p.fname ? '<div class="pr-meta">Dipilih: ' + esc(p.fname) + '</div>' : '') + '</div>'
+        + '<label class="pr-ck"><input type="checkbox" data-k="' + k + '" data-f="ch"' + (p.ch ? ' checked' : '') + '>Pernah juara turnamen padel dalam 12 bulan terakhir</label>'
+        + (p.ch ? '<label class="pr-f"><span>Turnamen apa dan di level mana</span><input type="text" data-k="' + k + '" data-f="chn" value="' + esc(p.chn) + '" autocomplete="off"></label>' : '')
+        + '</div>';
+    }
+    function formHtml() {
+      var cats = sortCats(cfg.cats);
+      var opts = '<option value="">Pilih kategori</option>' + cats.map(function (ti) { return '<option value="' + ti + '"' + (String(D.cat) === String(ti) ? ' selected' : '') + '>' + esc(catLabel(cfg, ti)) + '</option>'; }).join('');
+      return '<div class="pr-wrap">' + head('Daftar berpasangan. Panitia mengecek level tiap pemain supaya semua main di kategori yang sesuai. Isi data apa adanya, data yang gak cocok dengan bukti akan ditolak atau dipindah kategori.')
+        + '<div class="pr-card"><div class="pr-h">Kategori</div><label class="pr-f"><span>Kategori yang kamu incar</span><select data-f="cat">' + opts + '</select></label></div>'
+        + playerCard(0) + playerCard(1)
+        + (err ? '<div class="pr-err">' + esc(err) + '</div>' : '')
+        + '<button type="button" class="pr-btn solid" data-a="send"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Mengirim...' : 'Kirim pendaftaran') + '</button>'
+        + '<div class="pr-meta">Screenshot dan data kamu cuma dipakai panitia buat kurasi turnamen ini.</div></div>';
+    }
+    var STX = { new: ['Menunggu panitia', 'new'], ok: ['Terverifikasi', 'ok'], up: ['Dipindah kategori', 'up'], no: ['Ditolak', 'no'] };
+    function statusHtml() {
+      var st = (dec && dec.st) || 'new', s = STX[st] || STX.new, h = '<div class="pr-wrap">' + head('') + '<div class="pr-card pr-big"><span class="pr-pill ' + s[1] + '">' + s[0] + '</span>';
+      if (st === 'new') h += '<b>Pendaftaran terkirim</b><div class="pr-sub">Panitia akan mengecek datamu. Simpan halaman ini, status berubah sendiri begitu panitia memutuskan.</div>';
+      else if (st === 'ok') h += '<b>Kamu terverifikasi</b><div class="pr-sub">Pasanganmu masuk daftar peserta kategori ' + esc(catLabel(cfg, dec.cat != null ? dec.cat : 0)) + '.</div>';
+      else if (st === 'up') h += '<b>Dipindah ke ' + esc(catLabel(cfg, dec.cat)) + '</b><div class="pr-sub">Berdasarkan data levelmu, panitia memindahkan pasanganmu ke kategori ini.</div>';
+      else h += '<b>Pendaftaran ditolak</b>';
+      if (dec && dec.note) h += '<div class="pr-note">Catatan panitia: ' + esc(dec.note) + '</div>';
+      h += '</div><button type="button" class="pr-btn" data-a="again">Daftarkan pasangan lain</button></div>';
+      return h;
+    }
+    function watchDec() {
+      if (decRef) { try { decRef.off('value', decCb); } catch (e) {} decRef = null; }
+      if (!myId) return;
+      db().then(function (d) {
+        if (!d || !myId) return;
+        decRef = d.ref(P('regd') + '/' + myId);
+        decCb = decRef.on('value', function (sn) { dec = sn.exists() ? sn.val() : null; draw(true); });
+      });
+    }
+    function draw(force) {
+      var r = ensureRoot(), key;
+      if (!cfgLoaded) { key = 'load'; if (key !== lastKey || force) { r.innerHTML = big('Memuat...', ''); lastKey = key; } return; }
+      if (!cfg || cfg.tok !== DAF) { key = 'bad'; if (key !== lastKey) { r.innerHTML = big('Link ini gak berlaku', 'Minta link pendaftaran yang baru ke panitia.'); lastKey = key; } return; }
+      if (myId) { r.innerHTML = statusHtml(); lastKey = 'st'; return; }
+      if (!cfg.open) { key = 'closed'; if (key !== lastKey) { r.innerHTML = big('Pendaftaran ditutup', 'Hubungi panitia kalau kamu masih mau ikut.'); lastKey = key; } return; }
+      key = 'form|' + (cfg.cats || []).join(',') + '|' + cfg.label + '|' + cfg.name + '|' + err + '|' + busy + '|' + D.pl[0].ch + D.pl[1].ch + '|' + D.pl[0].fname + D.pl[1].fname;
+      if (key === lastKey && !force) return;
+      var top = r.scrollTop; r.innerHTML = formHtml(); r.scrollTop = top; lastKey = key;
+    }
+    function onIn(e) {
+      var t = e.target; if (!t || !t.getAttribute) return;
+      var f = t.getAttribute('data-f'); if (!f) return;
+      var k = t.getAttribute('data-k');
+      if (f === 'cat') { D.cat = t.value; return; }
+      var p = D.pl[+k]; if (!p) return;
+      if (f === 'file') {
+        var file = t.files && t.files[0]; p.file = file || null; p.fname = file ? file.name : '';
+        err = ''; lastKey = ''; draw(true); return;
+      }
+      if (f === 'ch') { p.ch = t.checked; lastKey = ''; draw(true); return; }
+      p[f] = t.value;
+    }
+    function validate() {
+      if (D.cat === '') return 'Pilih kategori dulu.';
+      for (var k = 0; k < 2; k++) {
+        var p = D.pl[k];
+        if (!p.n.trim()) return 'Nama pemain ' + (k + 1) + ' belum diisi.';
+        if (k === 0 && p.c.replace(/\D/g, '').length < 8) return 'Isi nomor WhatsApp pemain 1 yang valid.';
+        if (p.t === '') return 'Pilih level pemain ' + (k + 1) + '.';
+        if (p.elo !== '' && (num(p.elo) == null || num(p.elo) < 0 || num(p.elo) > 5000)) return 'ELO pemain ' + (k + 1) + ' gak valid.';
+      }
+      if (norm(D.pl[0].n) === norm(D.pl[1].n)) return 'Dua pemain gak boleh namanya sama.';
+      return '';
+    }
+    async function send() {
+      if (busy) return;
+      err = validate(); if (err) { lastKey = ''; draw(true); return; }
+      busy = true; err = ''; lastKey = ''; draw(true);
+      try {
+        var d = await db(); if (!d) throw new Error('Koneksi gak ada');
+        var id = Date.now().toString(36) + rnd().slice(0, 4);
+        var pl = [], imgs = [];
+        for (var k = 0; k < 2; k++) {
+          var p = D.pl[k], im = null;
+          if (p.file) { try { im = await pickImg(p.file, 1280); } catch (e) { throw new Error('Screenshot pemain ' + (k + 1) + ' gak bisa dibaca. Coba foto lain.'); } }
+          imgs.push(im);
+          pl.push({ n: p.n.trim(), c: p.c.trim(), t: num(p.t), elo: p.elo === '' ? null : num(p.elo), m: p.m === '' ? null : num(p.m), link: p.link.trim(), img: !!im, h: im ? hash(im) : '', ch: !!p.ch, chn: p.ch ? p.chn.trim() : '' });
+        }
+        for (var j = 0; j < 2; j++) if (imgs[j]) await d.ref(P('regimg') + '/' + id + '_' + j).set(imgs[j]);
+        await d.ref(P('reg') + '/' + id).set({ tok: DAF, ts: Date.now(), cat: num(D.cat), p: pl });
+        myId = id; try { localStorage.setItem('ptdaf_' + room() + '_' + DAF, id); } catch (e) {}
+        D = blankD(); busy = false; dec = null; watchDec(); draw(true);
+      } catch (e) {
+        busy = false; err = (e && e.message) || 'Gagal mengirim. Coba lagi.'; lastKey = ''; draw(true);
+      }
+    }
+    function onClick(e) {
+      var b = e.target && e.target.closest ? e.target.closest('[data-a]') : null; if (!b) return;
+      var a = b.getAttribute('data-a');
+      if (a === 'send') send();
+      else if (a === 'again') { myId = ''; dec = null; try { localStorage.removeItem('ptdaf_' + room() + '_' + DAF); } catch (e2) {} watchDec(); lastKey = ''; draw(true); }
+    }
+    (async function boot() {
+      draw(true);
+      var d = await db(); if (!d) { cfgLoaded = true; draw(true); return; }
+      d.ref(P('regcfg')).on('value', function (sn) { cfg = sn.exists() ? sn.val() : null; cfgLoaded = true; draw(true); });
+      watchDec();
+    })();
+    window.addEventListener('load', function () { draw(); });
+    return;   // form pemain: sisa blok ini cuma buat admin
+  }
+
+  /* ===================================================================
+     SISI PANITIA
+     =================================================================== */
+  if (IS_VIEWER) return;
+  var entries = {}, decs = {}, subOn = false, sheet = null, view = { st: 'all', cat: 'all', q: '', open: {}, imgs: {} };
+
+  function ensureCfg() {
+    var ch = false;
+    if (!state.regToken) { state.regToken = rnd(); ch = true; }
+    if (state.regOpen === undefined) { state.regOpen = true; ch = true; }
+    if (!Array.isArray(state.regCats)) { state.regCats = [0, 1, 2, 3]; ch = true; }
+    if (state.regLabel === undefined) { state.regLabel = ''; ch = true; }
+    if (ch) { try { saveState(); } catch (e) {} }
+  }
+  function cfgObj() { return { tok: state.regToken, open: !!state.regOpen, cats: sortCats(state.regCats), label: state.regLabel || '', name: state.tournamentName || '', ts: Date.now() }; }
+  async function pubCfg() {
+    var d = await db(); if (!d || !state.tournamentName) return;
+    try { await d.ref(P('regcfg')).set(cfgObj()); } catch (e) { console.warn('[v209] cfg', e); }
+  }
+  async function subscribe() {
+    if (subOn || !state.regToken) return;
+    var d = await db(); if (!d) return; subOn = true;
+    d.ref(P('reg')).on('value', function (sn) { entries = sn.exists() ? (sn.val() || {}) : {}; refresh(); });
+    d.ref(P('regd')).on('value', function (sn) { decs = sn.exists() ? (sn.val() || {}) : {}; refresh(); });
+  }
+  function validEntries() {
+    return Object.keys(entries).map(function (id) { var e = entries[id]; return e && e.tok === state.regToken && Array.isArray(e.p) && e.p.length === 2 ? { id: id, e: e } : null; })
+      .filter(Boolean).sort(function (a, b) { return (a.e.ts || 0) - (b.e.ts || 0); });
+  }
+  function finalCat(it) { var d = decs[it.id]; return d && d.st === 'up' && d.cat != null ? d.cat : it.e.cat; }
+  function statusOf(it) { var d = decs[it.id]; return d && d.st ? d.st : 'new'; }
+
+  /* aturan kurasi */
+  function evalFlags(it, all) {
+    var e = it.e, ct = e.cat, f = [], maxTi = null, allElo = true, ceil = ct === OPEN ? null : TIERS[ct][2];
+    e.p.forEach(function (p, i) {
+      var nm = p.n || ('Pemain ' + (i + 1)), et = tierOf(p.elo);
+      if (p.elo == null) { allElo = false; f.push(['warn', 'ELO ' + nm + ' kosong']); } else if (maxTi == null || et > maxTi) maxTi = et;
+      if (!p.link && !p.img) f.push(['warn', 'Tanpa bukti: ' + nm]);
+      if (p.elo != null && p.m != null && p.m < 16) f.push(['warn', 'Belum kalibrasi: ' + nm + ' (' + p.m + '/16 match)']);
+      if (p.elo != null && ct !== OPEN && et > ct) f.push(['bad', 'ELO ' + nm + ' ' + p.elo + ' (' + tierName(et) + ') di atas kategori ' + tierName(ct)]);
+      else if (p.elo != null && ct !== OPEN && p.elo >= ceil - 60) f.push(['info', nm + ' dekat batas atas kategori (' + p.elo + ')']);
+      if (p.t != null && et != null && p.t < et) f.push(['bad', 'Level yang diklaim ' + nm + ' (' + tierName(p.t) + ') lebih rendah dari ELO-nya']);
+      if (p.t != null && ct !== OPEN && p.t > ct) f.push(['warn', nm + ' menilai dirinya ' + tierName(p.t) + ', di atas kategori']);
+      if (p.ch) f.push(['warn', 'Pernah juara: ' + nm + (p.chn ? ' (' + p.chn + ')' : '')]);
+    });
+    if (e.p[0].elo != null && e.p[1].elo != null && Math.abs(e.p[0].elo - e.p[1].elo) >= 400) f.push(['info', 'Selisih ELO partner ' + Math.abs(e.p[0].elo - e.p[1].elo)]);
+    var n0 = norm(e.p[0].n), n1 = norm(e.p[1].n);
+    all.forEach(function (o) {
+      if (o.id === it.id) return;
+      var same = [];
+      o.e.p.forEach(function (q, qi) {
+        var nq = norm(q.n);
+        e.p.forEach(function (p, pi) {
+          if ((nq && nq === norm(p.n)) || (q.h && p.h && q.h === p.h)) same.push(p.n || ('Pemain ' + (pi + 1)));
+        });
+      });
+      if (same.length) f.push(['bad', 'Duplikat: ' + same.filter(function (v, i, a) { return a.indexOf(v) === i; }).join(', ') + ' juga ada di pendaftaran lain']);
+    });
+    var seen = {}; f = f.filter(function (x) { var k = x[1]; if (seen[k]) return false; seen[k] = 1; return true; });
+    var sug = null;
+    if (maxTi != null && ct !== OPEN && maxTi > ct) {
+      var enabled = sortCats(state.regCats);
+      for (var i = 0; i < enabled.length; i++) if (enabled[i] >= maxTi) { sug = enabled[i]; break; }
+      if (sug == null) sug = OPEN;
+    }
+    return { flags: f, sug: sug, sev: f.some(function (x) { return x[0] === 'bad'; }) ? 2 : f.some(function (x) { return x[0] === 'warn'; }) ? 1 : 0 };
+  }
+
+  async function decide(id, st, extra) {
+    var d = await db(); if (!d) { toast('Gak ada koneksi'); return; }
+    var cur = decs[id] || {}, v = { st: st, note: (extra && extra.note != null) ? extra.note : (cur.note || ''), ts: Date.now() };
+    if (extra && extra.cat != null) v.cat = extra.cat;
+    else if (st === 'ok') v.cat = entries[id] ? entries[id].cat : 0;
+    try { await d.ref(P('regd') + '/' + id).set(v); decs[id] = v; refresh(); } catch (e) { toast('Gagal menyimpan'); }
+  }
+  async function loadImgs(id) {
+    var d = await db(); if (!d) return;
+    view.imgs[id] = view.imgs[id] || {};
+    [0, 1].forEach(function (j) {
+      var r = d.ref(P('regimg') + '/' + id + '_' + j), cb = r.on('value', function (sn) {
+        view.imgs[id][j] = sn.exists() ? sn.val() : '';
+        try { r.off('value', cb); } catch (e) {} refresh();
+      });
+    });
+  }
+
+  function summary() {
+    var all = validEntries(), ok = 0, fl = 0, nw = 0;
+    all.forEach(function (it) { var s = statusOf(it); if (s === 'ok' || s === 'up') ok++; if (s === 'new') nw++; if (s === 'new' && evalFlags(it, all).sev >= 1) fl++; });
+    return { n: all.length, ok: ok, nw: nw, fl: fl };
+  }
+  function syncCard() {
+    var pc = document.getElementById('tourneyPairsCard'); if (!pc) return;
+    var c = document.getElementById('ptregCard');
+    if (!c) {
+      c = document.createElement('div'); c.className = 'card'; c.id = 'ptregCard';
+      c.innerHTML = '<div class="card-title">Pendaftaran pemain</div><div class="pr-meta" id="ptregSum" style="margin-bottom:10px"></div><button type="button" class="pr-btn solid" id="ptregOpen" style="pointer-events:auto">Buka panel pendaftaran</button>';
+      pc.parentNode.insertBefore(c, pc);
+      c.querySelector('#ptregOpen').addEventListener('click', openSheet);
+    }
+    var tour = false; try { tour = isTourney(); } catch (e) {}
+    c.style.display = tour ? 'block' : 'none';
+    var s = summary(), el = document.getElementById('ptregSum');
+    if (el) el.textContent = state.regToken ? (s.n + ' pendaftar, ' + s.ok + ' terverifikasi' + (s.fl ? ', ' + s.fl + ' perlu dicek' : '') + (state.regOpen ? '' : ' (ditutup)')) : 'Belum diaktifkan. Buka panel buat bikin link pendaftaran.';
+  }
+  function refresh() { try { syncCard(); } catch (e) {} if (sheet) drawList(); }
+
+  function closeSheet() { if (sheet) { sheet.remove(); sheet = null; document.documentElement.style.overflow = ''; } }
+  function openSheet() {
+    closeSheet(); ensureCfg(); pubCfg(); subscribe();
+    sheet = document.createElement('div'); sheet.id = 'ptregSheet';
+    document.documentElement.style.overflow = 'hidden'; document.body.appendChild(sheet);
+    drawSheet();
+  }
+  function drawSheet() {
+    var noName = !String(state.tournamentName || '').trim();
+    var h = '<div class="pr-wrap"><div class="pr-top"><h1>Pendaftaran</h1><button type="button" class="pr-x" data-a="close" aria-label="Tutup">×</button></div>';
+    if (noName) h += '<div class="pr-err">Isi nama turnamen dulu. Link pendaftaran dibuat dari nama turnamen.</div>';
+    h += '<div class="pr-card"><div class="pr-h">Link pendaftaran</div><div class="pr-link">' + esc(formUrl()) + '</div>'
+      + '<div class="pr-row"><button type="button" class="pr-btn solid sm" data-a="copy">Salin</button><button type="button" class="pr-btn sm" data-a="wa">WhatsApp</button><button type="button" class="pr-btn sm" data-a="qr">QR</button></div>'
+      + '<div class="pr-qr" id="prQr"></div>'
+      + '<div class="pr-meta">Link terikat ke nama turnamen "' + esc(state.tournamentName || '') + '". Kalau nama diganti, kirim ulang link baru.</div></div>';
+    h += '<div class="pr-card"><div class="pr-h">Pengaturan</div>'
+      + '<div class="pr-tog' + (state.regOpen ? ' on' : '') + '" role="switch" data-a="open"><span>Pendaftaran dibuka</span><span class="pr-sw"></span></div>'
+      + '<label class="pr-f"><span>Label kategori (mis. Men\'s Doubles)</span><input type="text" id="prLabel" value="' + esc(state.regLabel) + '" autocomplete="off"></label>'
+      + '<div class="pr-f"><span>Kategori yang dibuka</span><div class="pr-chips" style="flex-wrap:wrap" id="prCats">'
+      + TIERS.map(function (t, i) { return '<button type="button" class="pr-chip' + (state.regCats.indexOf(i) >= 0 ? ' on' : '') + '" data-cat="' + i + '">' + t[0] + '</button>'; }).join('')
+      + '<button type="button" class="pr-chip' + (state.regCats.indexOf(OPEN) >= 0 ? ' on' : '') + '" data-cat="' + OPEN + '">Open</button></div></div>'
+      + '<div class="pr-note">Link dipegang siapa saja yang kamu kasih, jadi anggap daftar pendaftar bukan rahasia mutlak. Reset kalau link bocor ke orang yang gak seharusnya.</div>'
+      + '<button type="button" class="pr-btn bad sm" data-a="reset">Reset link</button></div>';
+    h += '<div id="prList"></div></div>';
+    sheet.innerHTML = h;
+    sheet.addEventListener('click', onSheetClick);
+    sheet.addEventListener('input', function (e) {
+      var t = e.target;
+      if (t.id === 'prLabel') { state.regLabel = t.value; try { saveState(); } catch (x) {} clearTimeout(sheet._t); sheet._t = setTimeout(pubCfg, 500); }
+      else if (t.id === 'prQ') { view.q = t.value; drawListBody(); }
+      else if (t.getAttribute && t.getAttribute('data-note')) { var id = t.getAttribute('data-note'); clearTimeout(sheet['_n' + id]); sheet['_n' + id] = setTimeout(function () { var d0 = decs[id] || { st: 'new' }; decide(id, d0.st || 'new', { note: t.value, cat: d0.cat }); }, 700); }
+    });
+    sheet.addEventListener('change', function (e) {
+      var t = e.target; if (t.id === 'prCatSel') { view.cat = t.value; drawListBody(); }
+    });
+    drawList();
+  }
+  function drawList() {
+    var box = sheet && sheet.querySelector('#prList'); if (!box) return;
+    var all = validEntries(), s = summary();
+    var cats = sortCats(state.regCats);
+    var focus = document.activeElement && document.activeElement.id === 'prQ';
+    box.innerHTML = '<div class="pr-card" style="margin-top:12px"><div class="pr-h">Pendaftar · ' + s.n + '</div>'
+      + '<div class="pr-meta">' + s.ok + ' terverifikasi, ' + s.nw + ' menunggu, ' + s.fl + ' perlu dicek</div>'
+      + '<div class="pr-chips">' + [['all', 'Semua'], ['new', 'Baru'], ['flag', 'Perlu dicek'], ['ok', 'Terverifikasi'], ['no', 'Ditolak']].map(function (x) { return '<button type="button" class="pr-chip' + (view.st === x[0] ? ' on' : '') + '" data-st="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>'
+      + '<div class="pr-row"><select class="pr-in" id="prCatSel"><option value="all">Semua kategori</option>' + cats.map(function (ti) { return '<option value="' + ti + '"' + (String(view.cat) === String(ti) ? ' selected' : '') + '>' + esc(catLabel({ label: state.regLabel }, ti)) + '</option>'; }).join('') + '</select>'
+      + '<input class="pr-in" type="search" id="prQ" placeholder="Cari nama" value="' + esc(view.q) + '" autocomplete="off"></div></div>'
+      + '<div id="prBody" style="display:flex;flex-direction:column;gap:12px;margin-top:12px"></div>';
+    drawListBody();
+    if (focus) { var q = box.querySelector('#prQ'); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }
+  }
+  function drawListBody() {
+    var body = sheet && sheet.querySelector('#prBody'); if (!body) return;
+    var all = validEntries(), q = norm(view.q), h = '', n = 0;
+    all.forEach(function (it) {
+      var ev = evalFlags(it, all), st = statusOf(it), fc = finalCat(it);
+      if (view.st === 'new' && st !== 'new') return;
+      if (view.st === 'flag' && !(st === 'new' && ev.sev >= 1)) return;
+      if (view.st === 'ok' && !(st === 'ok' || st === 'up')) return;
+      if (view.st === 'no' && st !== 'no') return;
+      if (view.cat !== 'all' && String(fc) !== String(view.cat)) return;
+      if (q && norm(it.e.p[0].n + it.e.p[1].n).indexOf(q) < 0) return;
+      n++;
+      var d = decs[it.id] || {}, pill = st === 'ok' ? '<span class="pr-pill ok">Terverifikasi</span>' : st === 'up' ? '<span class="pr-pill up">Dipindah ke ' + esc(tierName(d.cat)) + '</span>' : st === 'no' ? '<span class="pr-pill no">Ditolak</span>' : '<span class="pr-pill new">Baru</span>';
+      var fl = ev.flags.length ? '<div class="pr-fl">' + ev.flags.map(function (x) { return '<span class="' + x[0] + '">' + esc(x[1]) + '</span>'; }).join('') + '</div>' : '<div class="pr-meta">Gak ada flag.</div>';
+      var pl = it.e.p.map(function (p, i) {
+        var et = tierOf(p.elo);
+        return '<div class="pr-meta"><b>' + esc(p.n) + '</b> · ELO ' + (p.elo == null ? '-' : p.elo + ' (' + tierName(et) + ')') + (p.m != null ? ' · ' + p.m + ' match' : '') + ' · klaim ' + tierName(p.t) + (p.c ? ' · ' + esc(p.c) : '') + (p.link ? ' · <a href="' + esc(p.link) + '" target="_blank" rel="noopener">profil</a>' : '') + '</div>';
+      }).join('');
+      var imgs = '';
+      if (view.open[it.id]) {
+        var im = view.imgs[it.id];
+        imgs = '<div class="pr-imgs">' + [0, 1].map(function (j) { return im && im[j] ? '<img alt="Bukti ' + (j + 1) + '" src="' + im[j] + '">' : '<div class="pr-meta" style="flex:1">' + (it.e.p[j].img ? (im ? 'Memuat...' : '') : 'Tanpa screenshot: ' + esc(it.e.p[j].n)) + '</div>'; }).join('') + '</div>';
+      }
+      h += '<div class="pr-card"><div style="display:flex;gap:8px;align-items:flex-start"><div style="flex:1;min-width:0"><div class="pr-pn">' + esc(it.e.p[0].n) + ' + ' + esc(it.e.p[1].n) + '</div><div class="pr-meta">' + esc(catLabel({ label: state.regLabel }, fc)) + (fc !== it.e.cat ? ' (daftar di ' + esc(tierName(it.e.cat)) + ')' : '') + '</div></div>' + pill + '</div>'
+        + pl + fl + imgs
+        + '<div class="pr-row" style="flex-wrap:wrap">'
+        + '<button type="button" class="pr-btn sm" data-a="proof" data-id="' + it.id + '">' + (view.open[it.id] ? 'Tutup bukti' : 'Lihat bukti') + '</button>'
+        + '<button type="button" class="pr-btn solid sm" data-a="ok" data-id="' + it.id + '">Setujui</button>'
+        + (ev.sug != null ? '<button type="button" class="pr-btn sm" data-a="up" data-id="' + it.id + '" data-cat="' + ev.sug + '">Naikkan ke ' + esc(tierName(ev.sug)) + '</button>' : '')
+        + '<button type="button" class="pr-btn bad sm" data-a="no" data-id="' + it.id + '">Tolak</button></div>'
+        + '<label class="pr-f"><span>Catatan buat pemain (opsional)</span><input type="text" class="pr-in" data-note="' + it.id + '" value="' + esc(d.note || '') + '" autocomplete="off"></label></div>';
+    });
+    if (!n) h = '<div class="pr-card pr-big"><div class="pr-sub">' + (all.length ? 'Gak ada yang cocok dengan filter.' : 'Belum ada pendaftar. Kirim link di atas ke calon peserta.') + '</div></div>';
+    h += applyHtml(all);
+    body.innerHTML = h;
+  }
+  function verifiedBy(all, ti) {
+    return all.filter(function (it) { var s = statusOf(it); return (s === 'ok' || s === 'up') && finalCat(it) === ti; });
+  }
+  function applyHtml(all) {
+    var cats = sortCats(state.regCats).filter(function (ti) { return verifiedBy(all, ti).length; });
+    if (!cats.length) return '';
+    return '<div class="pr-card"><div class="pr-h">Pakai sebagai peserta</div><div class="pr-meta">Isi daftar Pairs di setup dengan pasangan terverifikasi satu kategori. Daftar Pairs yang sekarang diganti.</div><div class="pr-row" style="flex-wrap:wrap">'
+      + cats.map(function (ti) { return '<button type="button" class="pr-btn sm" data-a="apply" data-cat="' + ti + '">' + esc(catLabel({ label: state.regLabel }, ti)) + ' (' + verifiedBy(all, ti).length + ')</button>'; }).join('') + '</div></div>';
+  }
+  function applyPairs(ti) {
+    var list = verifiedBy(validEntries(), ti); if (!list.length) return;
+    if (!window.confirm('Ganti daftar Pairs dengan ' + list.length + ' pasangan terverifikasi (' + catLabel({ label: state.regLabel }, ti) + ')?')) return;
+    var n = Math.max(list.length, (state.tourneyGroups || 1) * 2);
+    state.tourneyPairs = n;
+    state.tourneyPairNames = [];
+    for (var i = 0; i < n; i++) state.tourneyPairNames.push(list[i] ? [list[i].e.p[0].n, list[i].e.p[1].n] : ['', '']);
+    try { ensureTourneyPairNames(); renderTourneyConfig(); renderTourneyPairsList(); saveState(); } catch (e) { console.warn('[v209] apply', e); }
+    toast(list.length + ' pasangan masuk ke daftar Pairs');
+  }
+  function onSheetClick(e) {
+    var t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    var c = t.closest('[data-cat]');
+    if (c && c.closest('#prCats')) {
+      var ti = parseInt(c.getAttribute('data-cat'), 10), i = state.regCats.indexOf(ti);
+      if (i >= 0) { if (state.regCats.length > 1) state.regCats.splice(i, 1); } else state.regCats.push(ti);
+      state.regCats = sortCats(state.regCats); try { saveState(); } catch (x) {} pubCfg();
+      c.classList.toggle('on', state.regCats.indexOf(ti) >= 0); drawList(); return;
+    }
+    var s = t.closest('[data-st]'); if (s) { view.st = s.getAttribute('data-st'); drawList(); return; }
+    var b = t.closest('[data-a]'); if (!b) return;
+    var a = b.getAttribute('data-a'), id = b.getAttribute('data-id');
+    if (a === 'close') closeSheet();
+    else if (a === 'copy') { var u = formUrl(); (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(function () { toast('Link disalin'); }, function () { window.prompt('Salin link:', u); }); }
+    else if (a === 'wa') window.open('https://wa.me/?text=' + encodeURIComponent('Pendaftaran ' + (state.tournamentName || 'turnamen') + '\n' + formUrl()), '_blank');
+    else if (a === 'qr') { var q = sheet.querySelector('#prQr'); q.innerHTML = q.firstChild ? '' : '<img alt="QR pendaftaran" src="https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=0&data=' + encodeURIComponent(formUrl()) + '">'; }
+    else if (a === 'open') { state.regOpen = !state.regOpen; try { saveState(); } catch (x) {} pubCfg(); b.classList.toggle('on', state.regOpen); refresh(); }
+    else if (a === 'reset') { if (!window.confirm('Reset link pendaftaran? Link lama langsung mati dan pendaftar lama gak ikut terhitung.')) return; state.regToken = rnd(); try { saveState(); } catch (x) {} pubCfg(); drawSheet(); toast('Link baru dibuat'); }
+    else if (a === 'proof') { view.open[id] = !view.open[id]; if (view.open[id] && !view.imgs[id]) loadImgs(id); drawListBody(); }
+    else if (a === 'ok') decide(id, 'ok', { cat: entries[id].cat });
+    else if (a === 'up') decide(id, 'up', { cat: parseInt(b.getAttribute('data-cat'), 10) });
+    else if (a === 'no') decide(id, 'no', {});
+    else if (a === 'apply') applyPairs(parseInt(b.getAttribute('data-cat'), 10));
+  }
+
+  ['updateConfigVisibility', 'renderTourneyConfig'].forEach(function (name) {
+    var o = window[name]; if (typeof o !== 'function') return;
+    window[name] = function () { var r = o.apply(this, arguments); try { syncCard(); } catch (e) {} return r; };
+    try { (0, eval)(name + ' = window.' + name); } catch (e) {}
+  });
+  window._ptOpenReg = openSheet;
+  window.addEventListener('load', function () { setTimeout(function () { syncCard(); if (state.regToken) subscribe(); }, 600); });
+  setTimeout(function () { try { syncCard(); if (state.regToken) subscribe(); } catch (e) {} }, 800);
 })();
 </script>
 
