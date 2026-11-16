@@ -4259,7 +4259,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.215</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.216</div>
     </div>
   </div>
 
@@ -5221,6 +5221,9 @@ function koMatchesForStage(stage) {
   return state.koBracket.filter(m => m.stage === stage);
 }
 
+// v0.73.216: match knockout ke-N main di court (N mod jumlah court). Sebelumnya match ke-5..8 nunjuk "Court 5..8" yang gak ada.
+function koCourtCount() { return Math.max(1, Math.min(parseInt(state.courts, 10) || 1, 12)); }
+function koCourt(m) { return ((m && m.mi) || 0) % koCourtCount(); }
 function koMatchWinner(m) {
   if (m.teamA !== null && m.teamB === null) return m.teamA;
   if (m.teamB !== null && m.teamA === null) return m.teamB;
@@ -6021,6 +6024,7 @@ function renderTourneyGroupPhase() {
       const mi = parseInt(inp.dataset.mi);
       const m = state.tourneyGroupMatches[mi];
       if (!m) return;
+      if (m.skTs && m.done) return;   // v0.73.216: hasil final dari scorekeeper, input di layar bisa masih basi (render ulang telat ~0,3 dtk)
       const val = parseInt(inp.value) || 0;
       if (inp.dataset.side === 'A') m.scoreA = val; else m.scoreB = val;
     });
@@ -6160,14 +6164,15 @@ function renderKnockout() {
     const gmi = state.koBracket.indexOf(m);
     const winner = koMatchWinner(m);
     const isBye = m.bye;
-    const courtName = (state.courtNames && state.courtNames[mIdx]) || `Court ${mIdx + 1}`;
+    const cIdx = koCourt(m);
+    const courtName = ((state.courtNames && state.courtNames[cIdx]) || `Court ${cIdx + 1}`) + (matches.length > 1 ? ` · Match ${m.mi + 1}` : '');
     const nameA = m.teamA !== null ? tourneyPairLabel(m.teamA) : '—';
     const nameB = m.teamB !== null ? tourneyPairLabel(m.teamB) : (isBye ? 'BYE' : '—');
     if (isBye) {
       return `
         <div class="sb-court-card complete">
           <div class="sb-court-header">
-            <div class="sb-court-name">Court ${mIdx + 1}</div>
+            <div class="sb-court-name">Match ${m.mi + 1}</div>
             <div class="sb-court-status done">BYE</div>
           </div>
           <div class="sb-match-body">
@@ -6181,7 +6186,7 @@ function renderKnockout() {
     return `
       <div class="sb-court-card${m.done ? ' complete' : ''}">
         <div class="sb-court-header">
-          <div class="sb-court-name" data-court-idx="${mIdx}" title="Tap to rename">${escapeHtml(courtName)} <span class="sb-edit-icon">✎</span></div>
+          <div class="sb-court-name" data-court-idx="${cIdx}" title="Tap to rename">${escapeHtml(courtName)} <span class="sb-edit-icon">✎</span></div>
           <div class="sb-court-status ${m.done ? 'done' : (m.scoreA||m.scoreB) ? 'live' : ''}">${m.done ? 'Done' : (m.scoreA||m.scoreB) ? 'Live' : 'Race to ' + target}</div>
         </div>
         <div class="sb-match-body">
@@ -10345,7 +10350,8 @@ function exportState() {
     ...state,
     endedAt: state.endedAt ? state.endedAt.toISOString() : null,
     _version: 20,
-    _savedAt: new Date().toISOString()
+    _savedAt: new Date().toISOString(),
+    _logs: (window._ptLogsSnapshot ? window._ptLogsSnapshot() : undefined)   // v0.73.216: log poin per match (recap)
   };
   const json = JSON.stringify(snap, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
@@ -10379,6 +10385,7 @@ function importState(file) {
       });
       // Resume UI
       window._pt15G = false;
+      try { if (window._ptLogsRestore) window._ptLogsRestore(loaded._logs || null); } catch (e) { console.warn('[v216] logs', e); }
       saveState();   // v0.73.214: simpan dulu, biar data aman walau render gagal
       if (state.started && isTourney()) {
         // v0.73.214: tourney punya layar sendiri per fase (sama persis kayak resume pas app dibuka). Sebelumnya jatuh ke renderOverview() mabar dan crash.
@@ -10406,7 +10413,7 @@ function importState(file) {
   reader.readAsText(file);
 }
 
-document.getElementById('saveBtn').addEventListener('click', exportState);
+document.getElementById('saveBtn').addEventListener('click', () => { (window.exportStateFull || exportState)(); });
 
 document.getElementById('loadFileInput').addEventListener('change', (e) => {
   const file = e.target.files[0];
@@ -35382,7 +35389,7 @@ html.dark .ptsig-done-item { background: rgba(148, 185, 70, 0.14); color: var(--
   function stageName(st) { return st === '3P' ? 'Perebutan Juara 3' : (typeof koStageLabel === 'function' ? koStageLabel(st) : st); }
   function ctxLabel(kind, m) {
     if (kind === 'g') return 'Grup ' + LETTERS[m.group] + ' · Round ' + (m.round + 1) + ' · ' + courtName(m.court);
-    return stageName(m.stage) + ' · ' + courtName(m.mi);
+    return stageName(m.stage) + ' · Match ' + ((m.mi || 0) + 1) + ' · ' + courtName(koCourt(m));
   }
   function sc(v) { return parseInt(v, 10) || 0; }
   function scoreState(kind, m) {
@@ -35771,7 +35778,7 @@ html.dark .ptsig-done-item { background: rgba(148, 185, 70, 0.14); color: var(--
       try { saveState(); } catch (e) {}
       closeOverlay();
       rerender();
-      toast(stored ? ('Hasil ' + courtName(kind === 'g' ? m.court : m.mi) + ' dikonfirmasi') : 'Dikonfirmasi, tapi memori device penuh. Gambar TTD cuma ke-backup online.');
+      toast(stored ? ('Hasil ' + courtName(kind === 'g' ? m.court : koCourt(m)) + ' dikonfirmasi') : 'Dikonfirmasi, tapi memori device penuh. Gambar TTD cuma ke-backup online.');
     }
     draw();
   }
@@ -36656,8 +36663,8 @@ html.pt-tv, html.pt-tv body { overflow: hidden !important; background: #000 !imp
       (state.koBracket || []).forEach(function (m) {
         if (m.bye || m.done) return;
         if (pid(m.teamA) == null || pid(m.teamB) == null) return;
-        var c = m.mi || 0;
-        (q[c] = q[c] || []).push({ kind: 'k', m: m, ord: (STAGE_ORDER[m.stage] || 0) * 100 + c });
+        var c = koCourt(m);
+        (q[c] = q[c] || []).push({ kind: 'k', m: m, ord: (STAGE_ORDER[m.stage] || 0) * 100 + (m.mi || 0) });
       });
       Object.keys(q).forEach(function (k) { nCourts = Math.max(nCourts, +k + 1); });
     }
@@ -37563,7 +37570,7 @@ html.dark #ptsk .sk-next { background: rgba(236,231,218,.07); }
         (state.koBracket || []).forEach(function (m, i) {
           if (!m || m.bye || m.done) return;
           if (pid(m.teamA) == null || pid(m.teamB) == null) return;
-          if ((m.mi || 0) !== ci) return;
+          if (koCourt(m) !== ci) return;
           out.push({ kind: 'k', idx: i, m: m, ord: (STAGE_ORDER[m.stage] || 0) * 100 + i / 1000 });
         });
       }
@@ -37961,7 +37968,7 @@ html.dark .rc-ev { border-top-color: rgba(236,231,218,.08); }
     });
     if (isKo()) (state.koBracket || []).forEach(function (m, i) {
       if (!m || m.bye) return;
-      out.push({ kind: 'k', idx: i, m: m, sec: stageLbl(m.stage), ord: 10000 + (STAGE_ORDER[m.stage] || 0) * 100 + i, ctx: stageLbl(m.stage), court: m.mi || 0, cur: false });
+      out.push({ kind: 'k', idx: i, m: m, sec: stageLbl(m.stage), ord: 10000 + (STAGE_ORDER[m.stage] || 0) * 100 + i, ctx: stageLbl(m.stage) + ' · Match ' + ((m.mi || 0) + 1), court: koCourt(m), cur: false });
     });
     out.sort(function (a, b) { return a.ord - b.ord; });
     return out;
@@ -38179,11 +38186,13 @@ html.dark .rc-ev { border-top-color: rgba(236,231,218,.08); }
     }
     draw(undefined);
     var d = await db();
-    if (!d) { draw(null); return; }
+    function localLg() { try { return window._ptLogLocal ? window._ptLogLocal(kind, idx) : null; } catch (e) { return null; } }
+    if (!d) { draw(localLg()); return; }
     var ref = d.ref('tournaments/' + room() + '__log/' + kind + idx);
     var cb = ref.on('value', function (sn) {
       var v = sn.exists() ? sn.val() : null, mm = matchAt(kind, idx);
       if (v && mm && (v.a !== pid(mm.teamA) || v.b !== pid(mm.teamB))) v = null;
+      if (v) { try { if (window._ptLogCache) window._ptLogCache(kind, idx, v); } catch (e) {} } else v = localLg();
       draw(v);
     });
     rcOff = function () { try { ref.off('value', cb); } catch (e) {} };
@@ -42227,115 +42236,163 @@ html.dark .rc2-ini b.A { color: #94b946; } html.dark .rc2-ini b.B { color: #e0b2
 .ptvw-ts small.ptvw-tb { font-size: 12px; opacity: .7; min-width: 0; }
 #grpTargetWrap .ko-stage-target { flex-wrap: wrap; justify-content: flex-end; }
 </style>
-<style id="codex-revision-v073215-css">
-/* v0.73.215: rapihin layar tourney. Header + strip tahap + toolbar satu baris. */
-html body #tourneyDrawView .pt15-head { margin: 10px 0 12px; display: flex; flex-direction: column; gap: 10px; }
-html body #tourneyDrawView .pt15-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
-html body #tourneyDrawView .pt15-title svg { flex: 0 0 auto; color: var(--gold, #c9a961); }
-html body #tourneyDrawView .pt15-tt { min-width: 0; flex: 1; }
-html body #tourneyDrawView .pt15-name { font-size: 17px; font-weight: 900; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--pt-ink, #20270f); }
-html.dark body #tourneyDrawView .pt15-name { color: var(--pt-ink-dk, #ece7da); }
-html body #tourneyDrawView .pt15-sub { font-size: 12px; font-weight: 600; opacity: .7; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-html body #tourneyDrawView .pt15-stages { display: flex; gap: 6px; }
-html body #tourneyDrawView .pt15-st { flex: 1 1 0; min-width: 0; min-height: 40px; appearance: none; -webkit-appearance: none; border-radius: 12px; border: 1px solid rgba(32,39,15,.16); background: #fff; color: inherit;
-  font: inherit; font-size: 13px; font-weight: 800; padding: 0 4px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer; pointer-events: auto !important; opacity: 1; white-space: nowrap; }
-html.dark body #tourneyDrawView .pt15-st { background: #1d2412; border-color: rgba(236,231,218,.16); }
-html body #tourneyDrawView .pt15-st.done::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--pt-action, #5d7c1c); flex: 0 0 auto; }
-html body #tourneyDrawView .pt15-st.on { background: var(--pt-action, #5d7c1c); border-color: transparent; color: #fff; }
-html body #tourneyDrawView .pt15-st.on.done::before { background: #fff; }
-html body #tourneyDrawView .pt15-st.lock { opacity: .38 !important; pointer-events: none !important; cursor: default; }
-/* toolbar (TV, Scorekeeper, Rekap TTD): baris sendiri, lebar penuh */
-html body #tourneyDrawView .pt15-anchor { display: block !important; margin: 0 0 12px !important; }
-html body #tourneyDrawView .pt15-anchor > :not(.ptsig-tools) { display: none !important; }
-html body #tourneyDrawView .pt15-anchor:not(:has(.ptsig-tools)) { display: none !important; }
-html body #tourneyDrawView .pt15-anchor .ptsig-tools { display: flex !important; flex-wrap: nowrap; gap: 8px !important; margin: 0 !important; width: 100%; overflow-x: auto; scrollbar-width: none; }
-html body #tourneyDrawView .pt15-anchor .ptsig-tools::-webkit-scrollbar { display: none; }
-html body #tourneyDrawView .pt15-anchor .ptsig-tools .ptsig-btn { flex: 1 0 auto; white-space: nowrap; }
-/* knockout: strip tahap gantiin pill lama + nav prev/next */
-html body #tourneyDrawView.pt15-ko #koStagePills, html body #tourneyDrawView.pt15-ko #koStagePills + div, html body #tourneyDrawView.pt15-ko .ptnav-top .sb-round-nav { display: none !important; }
-html body #tourneyDrawView .ptnav-top .sb-round-info { flex-wrap: wrap; row-gap: 2px; }
-html body #tourneyDrawView.pt15-ko .ptnav-top .sb-round-label { display: none !important; }
-html body #tourneyDrawView.pt15-ko .ptnav-top .sb-round-num { font-size: 22px; }
-/* grup: label grup tanpa bulatan kosong */
+<style id="codex-revision-v073216-css">
+/* v0.73.216: layar tourney, satu hirarki. Judul -> tab (Score/Standings/Bracket) -> [di Score aja] strip tahap -> konteks -> toolbar -> kartu. */
+html body #tourneyDrawView .pt16-head { display: flex; align-items: center; gap: 10px; margin: 12px 0; min-width: 0; }
+html body #tourneyDrawView .pt16-head svg { flex: 0 0 auto; color: var(--gold, #c9a961); }
+html body #tourneyDrawView .pt16-tt { min-width: 0; flex: 1; }
+html body #tourneyDrawView .pt16-name { font-size: 17px; font-weight: 900; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--pt-ink, #20270f); }
+html.dark body #tourneyDrawView .pt16-name { color: var(--pt-ink-dk, #ece7da); }
+html body #tourneyDrawView .pt16-sub { font-size: 12px; font-weight: 600; opacity: .7; margin-top: 1px; }
+/* kartu ronde lama jadi bar tab polos selebar kartu court */
+html body #tourneyDrawView .ptnav-top.pt16-bar { display: block !important; width: auto !important; max-width: none !important; margin: 0 0 12px !important; padding: 0 !important; background: none !important; border: 0 !important; box-shadow: none !important; border-radius: 0 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+html body #tourneyDrawView .pt16-bar .sb-round-info, html body #tourneyDrawView .pt16-bar .sb-round-nav { display: none !important; }
+html body #tourneyDrawView .pt16-bar .sb-tabs { display: flex !important; width: 100% !important; box-sizing: border-box; margin: 0 !important; overflow-x: auto; scrollbar-width: none; }
+html body #tourneyDrawView .pt16-bar .sb-tabs::-webkit-scrollbar { display: none; }
+html body #tourneyDrawView .pt16-bar .sb-tabs .sb-tab { flex: 1 0 auto !important; text-align: center; justify-content: center; white-space: nowrap; }
+/* strip tahap */
+html body #tourneyDrawView .pt16-stages { display: flex; gap: 6px; margin: 0 0 10px; }
+html body #tourneyDrawView .pt16-st { flex: 1 1 0; min-width: 0; min-height: 40px; appearance: none; -webkit-appearance: none; border-radius: 12px; border: 1px solid rgba(32,39,15,.16); background: #fff; color: inherit;
+  font: inherit; font-size: 13px; font-weight: 800; padding: 0 2px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer; pointer-events: auto !important; opacity: 1; white-space: nowrap; }
+html.dark body #tourneyDrawView .pt16-st { background: #1d2412; border-color: rgba(236,231,218,.16); }
+html body #tourneyDrawView .pt16-st.done::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--pt-action, #5d7c1c); flex: 0 0 auto; }
+html body #tourneyDrawView .pt16-st.on { background: var(--pt-action, #5d7c1c); border-color: transparent; color: #fff; }
+html body #tourneyDrawView .pt16-st.on.done::before { background: #fff; }
+html body #tourneyDrawView .pt16-st.lock { opacity: .38 !important; pointer-events: none !important; cursor: default; }
+html body #tourneyDrawView .pt16-ctx { display: flex; align-items: baseline; gap: 8px; margin: 0 0 10px; font-size: 13px; font-weight: 600; }
+html body #tourneyDrawView .pt16-ctx b { font-size: 16px; font-weight: 900; color: var(--pt-action-ink, #3c5d00); }
+html.dark body #tourneyDrawView .pt16-ctx b { color: var(--pt-action-dark, #94b946); }
+html body #tourneyDrawView .pt16-ctx span { opacity: .72; }
+html body #tourneyDrawView .pt16-tools { margin: 0 0 12px; }
+html body #tourneyDrawView .pt16-tools .ptsig-tools { display: flex !important; flex-wrap: nowrap; gap: 8px !important; margin: 0 !important; width: 100%; overflow-x: auto; scrollbar-width: none; }
+html body #tourneyDrawView .pt16-tools .ptsig-tools::-webkit-scrollbar { display: none; }
+html body #tourneyDrawView .pt16-tools .ptsig-btn { flex: 1 0 auto; white-space: nowrap; }
+html body #tourneyDrawView .pt16-hide, html body #tourneyDrawView #koStagePills, html body #tourneyDrawView #koStagePills + div { display: none !important; }
+html body #tourneyDrawView #roundPillNavTourney { margin-bottom: 10px !important; padding-bottom: 2px !important; }
+/* jarak antar kartu knockout (sebelumnya nempel) */
+html body #tourneyDrawView #ptkKoScore .sb-court-card { margin-bottom: 12px; }
+html body #tourneyDrawView #ptkKoScore > .card { margin-bottom: 12px !important; }
 html body #tourneyDrawView .tg-group-label > span:first-child { display: none !important; }
 html body #tourneyDrawView .tg-group-block { margin-bottom: 14px !important; }
-html body #tourneyDrawView .pt15-note { font-size: 12px; font-weight: 700; padding: 9px 12px; border-radius: 10px; background: rgba(93,124,28,.12); margin: 0 0 12px; }
-html.dark body #tourneyDrawView .pt15-note { background: rgba(148,185,70,.16); }
+html body #tourneyDrawView .pt16-note { font-size: 12px; font-weight: 700; padding: 9px 12px; border-radius: 10px; background: rgba(93,124,28,.12); margin: 0 0 12px; }
+html.dark body #tourneyDrawView .pt16-note { background: rgba(148,185,70,.16); }
 html body #tourneyDrawView .sb-vs-label { white-space: nowrap; }
-/* bar recap nempel ke bar TTD, gak jadi baris kosong sendiri */
 html body #tourneyDrawView .sb-court-card > .ptvw-bar { margin-top: 0; padding-top: 0; border-top: 0; }
 </style>
-<script id="codex-revision-v073215-js">
-/* v0.73.215: layout tourney + navigasi tahap berurutan (Group, R16, QF, SF, 3P, Final). Fase grup tetap bisa dibuka (read-only) setelah knockout jalan. */
+<script id="codex-revision-v073216-js">
+/* v0.73.216 (gantiin blok v215): layout tourney satu hirarki + log poin ikut file save. */
 (function () {
   if (typeof renderKnockout !== 'function' || typeof renderTourneyGroupPhase !== 'function') return;
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]; }); }
   function koPhase() { return state.tourneyPhase === 'knockout' || state.tourneyPhase === 'done'; }
+  function pidOf(t) { return Array.isArray(t) ? t[0] : t; }
+
+  /* ============ A. log poin: cache lokal + export/import ============ */
+  function room() { try { return getRoomId(); } catch (e) { return state.roomId || ''; } }
+  function lsKey() { return 'ptlog:' + room(); }
+  var mem = null, memRoom = null;
+  function loadLocal() {
+    if (mem && memRoom === room()) return mem;
+    memRoom = room(); mem = {};
+    try { mem = JSON.parse(localStorage.getItem(lsKey()) || '{}') || {}; } catch (e) { mem = {}; }
+    return mem;
+  }
+  function saveLocal() { try { localStorage.setItem(lsKey(), JSON.stringify(mem || {})); } catch (e) { console.warn('[v216] log lokal penuh', e); } }
+  function matchOf(k) { var kind = k.charAt(0), i = parseInt(k.slice(1), 10); return kind === 'g' ? (state.tourneyGroupMatches || [])[i] : kind === 'k' ? (state.koBracket || [])[i] : null; }
+  function valid(k, lg) { var m = matchOf(k); return !!(m && lg && Array.isArray(lg.ev) && lg.ev.length && lg.a === pidOf(m.teamA) && lg.b === pidOf(m.teamB)); }
+  window._ptLogCache = function (kind, idx, lg) { var L = loadLocal(), k = kind + idx; if (!valid(k, lg)) return; if (L[k] && L[k].ev && L[k].ev.length === lg.ev.length) { L[k] = lg; return; } L[k] = lg; saveLocal(); };
+  window._ptLogLocal = function (kind, idx) { var L = loadLocal(), k = kind + idx; return valid(k, L[k]) ? L[k] : null; };
+  window._ptLogsSnapshot = function () { var L = loadLocal(), out = {}; Object.keys(L).forEach(function (k) { if (valid(k, L[k])) out[k] = L[k]; }); return Object.keys(out).length ? out : undefined; };
+  async function fbDb() { try { if (typeof _fbDb !== 'undefined' && !_fbDb && typeof initFirebase === 'function') await initFirebase(); return (typeof _fbDb !== 'undefined' && _fbDb) || null; } catch (e) { return null; } }
+  async function pullLogs() {
+    var d = await fbDb(); if (!d) return;
+    var p = d.ref('tournaments/' + room() + '__log').get().then(function (sn) {
+      var v = (sn && sn.exists && sn.exists()) ? (sn.val() || {}) : {}, L = loadLocal(), ch = false;
+      Object.keys(v).forEach(function (k) { if (valid(k, v[k])) { L[k] = v[k]; ch = true; } });
+      if (ch) saveLocal();
+    });
+    await Promise.race([p, new Promise(function (res) { setTimeout(res, 4000); })]).catch(function () {});
+  }
+  window._ptLogsRestore = function (logs) {
+    mem = null; var L = loadLocal();
+    Object.keys(L).forEach(function (k) { if (!valid(k, L[k])) delete L[k]; });
+    if (logs && typeof logs === 'object') Object.keys(logs).forEach(function (k) { if (valid(k, logs[k])) L[k] = logs[k]; });
+    saveLocal();
+    if (typeof IS_VIEWER !== 'undefined' && IS_VIEWER) return;
+    /* balikin juga ke Firebase biar link penonton bisa buka recap */
+    fbDb().then(function (d) { if (!d) return; Object.keys(L).forEach(function (k) { try { d.ref('tournaments/' + room() + '__log/' + k).set(L[k]); } catch (e) {} }); });
+  };
+  window.exportStateFull = async function () { try { await pullLogs(); } catch (e) {} return exportState(); };
+
+  /* ============ B. layout ============ */
   var SHORT = { G: 'Group', R32: 'R32', R16: 'R16', QF: 'QF', SF: 'SF', '3P': '3P', F: 'Final' };
   var LONG = { R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarterfinal', SF: 'Semifinal', '3P': '3rd Place', F: 'Final' };
   function stageList() {
-    var n = 0;
-    try { n = koPhase() ? (state.tourneyQualInfo || []).length : tourneyQualTotal(); } catch (e) {}
+    var n = 0; try { n = koPhase() ? (state.tourneyQualInfo || []).length : tourneyQualTotal(); } catch (e) {}
     var st = []; try { st = koStagesFor(n).stages.slice(); } catch (e) {}
     if (state.ko3rdPlace && st.indexOf('SF') >= 0 && st.indexOf('F') >= 0) st.splice(st.indexOf('F'), 0, '3P');
     return st;
   }
-  function curKo() {
-    var st = stageList(), v = state.koStageView;
-    return st.indexOf(v) >= 0 ? v : st[0];
-  }
+  function curKo() { var st = stageList(), v = state.koStageView; return st.indexOf(v) >= 0 ? v : st[0]; }
   function layout() {
     var host = document.getElementById('tourneyDrawView'); if (!host) return;
-    var page = host.querySelector('.sb-page'); if (!page) return;
-    var isG = !!document.getElementById('tgScoreView'), ko = koPhase(), review = isG && ko;
-    host.classList.toggle('pt15-ko', !isG);
-    /* anchor toolbar lama: sembunyiin judul gandanya, sisain tombol */
-    var anchor = isG ? document.getElementById('tgScoreView').firstElementChild : null;
-    if (!isG) { [].slice.call(page.children).forEach(function (ch) { if (!anchor && ch.tagName === 'DIV' && !ch.className && !ch.id) anchor = ch; }); }
-    if (anchor && !anchor.classList.contains('sb-topbar')) anchor.classList.add('pt15-anchor');
-    /* header + strip tahap */
-    var head = page.querySelector(':scope > .pt15-head');
-    if (!head) { head = document.createElement('div'); head.className = 'pt15-head'; page.insertBefore(head, page.firstChild); }
-    var cur = isG ? 'G' : curKo(), champ = '';
-    try { if (state.koChampion != null) champ = tourneyPairLabel(state.koChampion); } catch (e) {}
-    var sub = state.tourneyPhase === 'done' ? 'Selesai' + (champ ? ' · Juara: ' + champ : '') : ko ? 'Fase Knockout' : 'Fase Grup';
-    var chips = ['G'].concat(stageList()).map(function (s) {
+    var page = host.querySelector('.sb-page'); if (!page || page.querySelector('.pt16-stages')) return;
+    var gv = document.getElementById('tgScoreView'), isG = !!gv, ko = koPhase(), review = isG && ko;
+    var sv = isG ? gv : document.getElementById('ptkKoScore'); if (!sv) return;
+    /* anchor lama (judul + toolbar) */
+    var anchor = null;
+    if (isG) anchor = sv.firstElementChild;
+    else [].slice.call(page.children).forEach(function (ch) { if (!anchor && ch.tagName === 'DIV' && !ch.className && !ch.id) anchor = ch; });
+    var tools = host.querySelector('.ptsig-tools');
+    /* 1. judul */
+    var head = document.createElement('div'); head.className = 'pt16-head';
+    var sub = state.tourneyPhase === 'done' ? 'Tournament selesai' : ko ? 'Fase Knockout' : 'Fase Grup';
+    head.innerHTML = '<svg class="icn" width="22" height="22"><use href="#i-trophy"/></svg><div class="pt16-tt"><div class="pt16-name">' + esc(state.tournamentName || 'Tournament') + '</div><div class="pt16-sub">' + sub + '</div></div>';
+    var live = page.querySelector(':scope > .pt8-live');
+    page.insertBefore(head, live ? live.nextSibling : page.firstChild);
+    /* 2. bar tab */
+    var top = page.querySelector('.ptnav-top'); if (top) top.classList.add('pt16-bar');
+    /* 3. strip tahap + konteks, cuma di tab Score */
+    var cur = isG ? 'G' : curKo();
+    var strip = document.createElement('div'); strip.className = 'pt16-stages';
+    strip.innerHTML = ['G'].concat(stageList()).map(function (s) {
       var lock = false, done = false;
       if (s === 'G') done = ko;
       else { try { lock = !ko || !koMatchesForStage(s).length; done = !lock && koStageDone(s); } catch (e) { lock = true; } }
-      return '<button type="button" class="pt15-st' + (s === cur ? ' on' : '') + (done ? ' done' : '') + (lock ? ' lock' : '') + '" data-pt15st="' + s + '"' + (lock ? ' aria-disabled="true"' : '') + '>' + SHORT[s] + '</button>';
+      return '<button type="button" class="pt16-st' + (s === cur ? ' on' : '') + (done ? ' done' : '') + (lock ? ' lock' : '') + '" data-pt16st="' + s + '"' + (lock ? ' aria-disabled="true"' : '') + '>' + SHORT[s] + '</button>';
     }).join('');
-    head.innerHTML = '<div class="pt15-title"><svg class="icn" width="22" height="22"><use href="#i-trophy"/></svg><div class="pt15-tt"><div class="pt15-name">' + esc(state.tournamentName || 'Tournament') + '</div><div class="pt15-sub">' + esc(sub) + '</div></div></div>'
-      + '<div class="pt15-stages">' + chips + '</div>';
-    head.querySelectorAll('[data-pt15st]').forEach(function (b) {
+    strip.querySelectorAll('[data-pt16st]').forEach(function (b) {
       b.addEventListener('click', function () {
-        var s = b.getAttribute('data-pt15st');
+        var s = b.getAttribute('data-pt16st');
         if (s === 'G') { if (!koPhase() || isG) return; window._pt15G = true; window.renderTourneyGroupPhase(); }
         else { if (!koPhase()) return; try { if (!koMatchesForStage(s).length) return; } catch (e) { return; } window._pt15G = false; state.koStageView = s; window.renderKnockout(); }
         try { window.scrollTo(0, 0); } catch (e) {}
       });
     });
-    /* kartu ronde: teks sesuai konteks */
-    var top = page.querySelector('.ptnav-top');
-    if (top) {
-      var lb = top.querySelector('.sb-round-label'), nm = top.querySelector('.sb-round-num'), sb = top.querySelector('.sb-round-sub');
-      if (!isG) {
-        var tg = 0, tb = 0, fake = { stage: cur };
-        try { tg = window.raceTarget('k', fake); tb = window.tbTarget('k', fake); } catch (e) {}
-        if (nm) nm.textContent = LONG[cur] || cur;
-        if (sb) sb.textContent = (tg ? '· Race to ' + tg : '') + (tb ? ' · TB to ' + tb : '');
-      } else if (sb) {
-        var gt = 0, gtb = 0; try { gt = window.raceTarget('g', {}); gtb = window.tbTarget('g', {}); } catch (e) {}
-        var total = 0; try { total = tourneyGroupRoundCount(); } catch (e) {}
-        sb.textContent = 'of ' + total + (gt ? ' · Race to ' + gt : '') + (gtb ? ' · TB to ' + gtb : '');
-      }
+    var ctx = document.createElement('div'); ctx.className = 'pt16-ctx';
+    if (isG) {
+      var gt = 0, gtb = 0, total = 0; try { gt = window.raceTarget('g', {}); gtb = window.tbTarget('g', {}); total = tourneyGroupRoundCount(); } catch (e) {}
+      ctx.innerHTML = '<b>Round ' + ((state.tourneyGroupRound || 0) + 1) + '</b><span>of ' + total + (gt ? ' · Race to ' + gt : '') + (gtb ? ' · TB to ' + gtb : '') + '</span>';
+    } else {
+      var tg = 0, tb = 0, n = 0; try { tg = window.raceTarget('k', { stage: cur }); tb = window.tbTarget('k', { stage: cur }); n = koMatchesForStage(cur).length; } catch (e) {}
+      ctx.innerHTML = '<b>' + (LONG[cur] || cur) + '</b><span>' + n + (n > 1 ? ' matches' : ' match') + (tg ? ' · Race to ' + tg : '') + (tb ? ' · TB to ' + tb : '') + '</span>';
     }
+    var slot = document.createElement('div'); slot.className = 'pt16-tools';
+    if (tools) slot.appendChild(tools);
+    var pills = isG ? document.getElementById('roundPillNavTourney') : null;
+    var first = sv.firstChild;
+    sv.insertBefore(strip, first); sv.insertBefore(ctx, first);
+    if (pills) sv.insertBefore(pills, first);
+    if (tools) sv.insertBefore(slot, first);
+    if (anchor && anchor !== strip && !anchor.classList.contains('sb-topbar')) anchor.classList.add('pt16-hide');
+    /* banner juara cuma di layar Final */
+    if (!isG && cur !== 'F') { var cc = sv.querySelector(':scope > .card'); if (cc && /JUARA/.test(cc.textContent)) cc.classList.add('pt16-hide'); }
     /* review fase grup: read-only */
     if (review) {
       ['tgSaveRound', 'tgFinishGroups'].forEach(function (id) { var el = document.getElementById(id); if (el) el.style.display = 'none'; });
       host.querySelectorAll('.tg-score').forEach(function (i) { i.readOnly = true; i.disabled = true; });
-      var sv = document.getElementById('tgScoreView');
-      if (sv && !sv.querySelector('.pt15-note')) { var n = document.createElement('div'); n.className = 'pt15-note'; n.textContent = 'Fase grup udah selesai. Skor di sini cuma buat dilihat.'; sv.insertBefore(n, sv.firstChild); }
+      var nt = document.createElement('div'); nt.className = 'pt16-note'; nt.textContent = 'Fase grup udah selesai. Skor di sini cuma buat dilihat.';
+      sv.insertBefore(nt, (tools ? slot : (pills || ctx)).nextSibling);
     }
   }
   var oK = window.renderKnockout || renderKnockout, oG = window.renderTourneyGroupPhase || renderTourneyGroupPhase;
@@ -42346,24 +42403,24 @@ html body #tourneyDrawView .sb-court-card > .ptvw-bar { margin-top: 0; padding-t
       window._pt15G = true; state.tourneyPhase = 'groups';
       try { r = oG.apply(this, arguments); } finally { state.tourneyPhase = real; }
     } else { window._pt15G = false; r = oG.apply(this, arguments); }
-    try { layout(); } catch (e) { console.warn('[v215] layout', e); }
+    try { layout(); } catch (e) { console.warn('[v216] layout', e); }
     return r;
   };
   window.renderKnockout = function () {
     if (window._pt15G && koPhase() && (state.tourneyGroupMatches || []).length) return window.renderTourneyGroupPhase();
     var r = oK.apply(this, arguments);
-    try { layout(); } catch (e) { console.warn('[v215] layout', e); }
+    try { layout(); } catch (e) { console.warn('[v216] layout', e); }
     return r;
   };
   try { (0, eval)('renderTourneyGroupPhase = window.renderTourneyGroupPhase'); (0, eval)('renderKnockout = window.renderKnockout'); } catch (e) {}
-  /* render pas boot terjadi sebelum blok-blok revisi kepasang, jadi ulang sekali lewat rantai wrapper lengkap */
+  /* render pas boot terjadi sebelum blok revisi kepasang: ulang sekali lewat rantai wrapper lengkap */
   try {
     var h0 = document.getElementById('tourneyDrawView');
     if (h0 && h0.classList.contains('active') && typeof isTourney === 'function' && isTourney() && state.started) {
       if (koPhase()) window.renderKnockout();
       else if (state.tourneyPhase === 'groups' && (state.tourneyGroupMatches || []).length) window.renderTourneyGroupPhase();
     }
-  } catch (e) { console.warn('[v215] boot', e); }
+  } catch (e) { console.warn('[v216] boot', e); }
 })();
 </script>
 </body>
