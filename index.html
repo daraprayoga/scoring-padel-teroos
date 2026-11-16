@@ -4259,7 +4259,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.217</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.218</div>
     </div>
   </div>
 
@@ -37504,7 +37504,7 @@ html.dark #ptsk .sk-next { background: rgba(236,231,218,.07); }
       var a = sc(e.sA), b = sc(e.sB);
       m.scoreA = a; m.scoreB = b; m.skTs = e.ts;
       var pcap = e.tb ? 99 : 3;
-      m.pA = Math.max(0, Math.min(pcap, sc(e.pA))); m.pB = Math.max(0, Math.min(pcap, sc(e.pB))); m.tbLive = e.tb ? 1 : 0; m.skLog = sc(e.ln);
+      m.pA = Math.max(0, Math.min(pcap, sc(e.pA))); m.pB = Math.max(0, Math.min(pcap, sc(e.pB))); m.tbLive = e.tb ? 1 : 0; m.skLog = sc(e.ln); if (e.la && !e.done) m.skLast = e.la; else delete m.skLast;
       if (!m.liveAt && a + b + m.pA + m.pB > 0) m.liveAt = e.ts || Date.now();
       if (e.done && !(kind === 'k' && a === b)) {
         m.done = true; m.pA = 0; m.pB = 0; m.tbLive = 0;
@@ -37728,6 +37728,7 @@ html.dark #ptsk .sk-next { background: rgba(236,231,218,.07); }
       var en = { a: pid(it.m.teamA), b: pid(it.m.teamB), sA: s.a, sB: s.b, pA: done ? 0 : (s.pa || 0), pB: done ? 0 : (s.pb || 0), ln: (s.ev || []).length, done: !!done, ts: Date.now(), tok: SK_TOK, c: ci };
       var lastE = (s.ev || [])[(s.ev || []).length - 1];
       if (!done && tbOnS(it, s)) en.tb = 1;
+      if (!done && lastE && lastE.w && !lastE.x) { var la = { w: lastE.w }; if (lastE.tg) la.tg = lastE.tg; if (lastE.pl) la.pl = lastE.pl; en.la = la; }
       if (done && lastE && lastE.tb && lastE.gw) { en.tbA = s.pa || 0; en.tbB = s.pb || 0; }
       return en;
     }
@@ -37935,9 +37936,13 @@ html.dark .rc-ev { border-top-color: rgba(236,231,218,.08); }
       var old = card.querySelector(':scope > .ptvw-bar'); if (old) old.remove();
       var ci = cardInfo(card); if (!ci || ci.m.bye || hideSc()) return;
       var live = liveM(ci.m), has = sc(ci.m.skLog) > 0;
+      card.classList.toggle('ptvw-islive', !!live);
+      var oldL = card.querySelector(':scope > .ptvw-liverow'); if (oldL) oldL.remove();
+      if (live) { var lr = document.createElement('div'); lr.className = 'ptvw-liverow'; var mins = ci.m.liveAt ? Math.max(1, Math.round((Date.now() - ci.m.liveAt) / 60000)) : 0; lr.innerHTML = '<span class="ptvw-livepill"><i></i>LIVE</span>' + (mins ? '<span class="ptvw-el">' + mins + '\u2032</span>' : '') + '<span class="ptvw-inp">IN PROGRESS</span>'; card.insertBefore(lr, card.firstChild); }
       if (!live && !has && !ci.m.done) return;   // v0.73.217: match selesai tanpa log tetap dapat tombol (isi: skor akhir + info log kosong)
       var bar = document.createElement('div'); bar.className = 'ptvw-bar';
-      bar.innerHTML = (live ? '<span class="ptvw-pts">Poin <b>' + ptm(ci.m, ci.m.pA) + '</b> : <b>' + ptm(ci.m, ci.m.pB) + '</b></span>' : '<span></span>')
+      var lastA = ''; if (live && ci.m.skLast) { var lx = ci.m.skLast; lastA = '<div class="ptvw-last"><span class="rc3-tag ' + esc(lx.tg || 'none') + '">' + (lx.tg ? TGL[lx.tg] : 'POINT') + '</span><span class="ptvw-lt">' + actTx(lx, pairLine(pid(ci.m.teamA)), pairLine(pid(ci.m.teamB))) + '</span><em>LAST ACTION</em></div>'; }
+      bar.innerHTML = lastA + (live ? '<span class="ptvw-pts">Poin <b>' + ptm(ci.m, ci.m.pA) + '</b> : <b>' + ptm(ci.m, ci.m.pB) + '</b></span>' : '<span></span>')
         + '<button type="button" class="ptvw-recap" data-ptvwrc="' + ci.kind + ci.idx + '">Match recap</button>';
       card.appendChild(bar);
     });
@@ -37983,9 +37988,10 @@ html.dark .rc-ev { border-top-color: rgba(236,231,218,.08); }
       var sh = hs ? '' : ((done || live) ? s : '') + (live ? '<small>' + ptm(m, p) + '</small>' : '') + (done && m.tbA != null && m.tbB != null && tbv != null ? '<small class="ptvw-tb">(' + tbv + ')</small>' : '');
       return '<div class="ptvw-tr' + (win ? ' win' : '') + (lose ? ' lose' : '') + '"><div class="ptvw-tn">' + nm + '</div><div class="ptvw-ts">' + sh + '</div></div>';
     }
-    var st = hs ? '' : (done ? 'Selesai' : live ? 'Live' : 'Belum main');
+    var st = hs ? '' : (done ? 'Selesai' : live ? '<i class="ptvw-ld"></i>LIVE' : 'Belum main');
     return '<div class="ptvw-mc' + (live && !hs ? ' live' : '') + '"><div class="ptvw-mh"><span>' + esc(e.ctx) + '</span><span class="sp"></span><span>' + esc(courtName(e.court)) + '</span>' + (st ? '<span class="st">' + st + '</span>' : '') + '</div>'
       + row(tA, a, m.pA, wa, wb) + row(tB, b, m.pB, wb, wa)
+      + (live && !hs && m.skLast ? '<div class="ptvw-last"><span class="rc3-tag ' + esc(m.skLast.tg || 'none') + '">' + (m.skLast.tg ? TGL[m.skLast.tg] : 'POINT') + '</span><span class="ptvw-lt">' + actTx(m.skLast, pairLine(tA), pairLine(tB)) + '</span><em>LAST ACTION</em></div>' : '')
       + (!hs && (sc(m.skLog) > 0 || done) ? '<div class="ptvw-mf"><button type="button" class="ptvw-btn" data-ptvwrc="' + e.kind + e.idx + '">Lihat recap</button></div>' : '') + '</div>';
   }
   var schedP = '', schedG = 'all';
@@ -38108,66 +38114,145 @@ html.dark .rc-ev { border-top-color: rgba(236,231,218,.08); }
     if (rcOff) { try { rcOff(); } catch (e) {} rcOff = null; }
     if (rcOv) { rcOv.remove(); rcOv = null; document.documentElement.style.overflow = ''; }
   }
-  function recapHtml(kind, idx, lg) {
-    var m = matchAt(kind, idx) || {}, tA = pid(m.teamA), tB = pid(m.teamB);
-    var nA = pairLine(tA), nB = pairLine(tB), a = sc(m.scoreA), b = sc(m.scoreB);
-    var pa = pairArr(tA), pb = pairArr(tB);
-    /* v0.73.213: nama pair (A / B) = jamak -> win/lose, nama tunggal -> wins/loses */
-    function vb(n, s, p) { return String(n).indexOf(' / ') >= 0 ? p : s; }
-    var ban = m.done ? ((a > b ? nA : b > a ? nB : '') ? '<b>' + esc(a > b ? nA : nB) + '</b> ' + vb(a > b ? nA : nB, 'wins', 'win') + ' ' + Math.max(a, b) + '-' + Math.min(a, b) + (m.tbA != null && m.tbB != null ? ' (tiebreak ' + Math.max(m.tbA, m.tbB) + '-' + Math.min(m.tbA, m.tbB) + ')' : '') : 'Finished ' + a + '-' + b)
-      : 'Match in progress · games ' + a + '-' + b + ' · points ' + ptm(m, m.pA) + ':' + ptm(m, m.pB);
-    var h = '<div class="rc-ban">' + ban + '</div>'
-      + '<div class="rc-leg"><span><i class="rc-dot A"></i>' + esc(nA) + '</span><span><i class="rc-dot B"></i>' + esc(nB) + '</span></div>';
-    var ev = lg && Array.isArray(lg.ev) ? lg.ev : [];
-    if (!ev.length) return h + '<div class="rc-empty">' + (m.done ? 'This match was scored without point-by-point tracking, so only the final score is available.' : 'No point log for this match yet') + '</div>';
-    /* v0.73.210: statistik per pemain dari tg + pl (event tanpa pl gak dihitung) */
-    var st = {}, any = false;
+  var rcTab = 'timeline', rcLast;
+  function fmtT(ts) { if (!ts) return ''; var d = new Date(ts); function z(n) { return (n < 10 ? '0' : '') + n; } return z(d.getHours()) + ':' + z(d.getMinutes()) + ':' + z(d.getSeconds()); }
+  function fmtDur(ms) { var s = Math.round(ms / 1000), h = Math.floor(s / 3600), mi = Math.floor((s % 3600) / 60), se = s % 60; return h ? h + 'h ' + mi + 'm' : mi ? mi + 'm ' + (se < 10 ? '0' : '') + se + 's' : se + 's'; }
+  function vb(n, s, p) { return String(n).indexOf(' / ') >= 0 ? p : s; }
+  function ini(arr) { return arr.map(function (n) { return String(n).trim().charAt(0).toUpperCase(); }).join('') || '?'; }
+  var TGL = { ace: 'ACE', winner: 'WINNER', error: 'ERROR' };
+  function actTx(x, nA, nB) {
+    var win = x.w === 'A' ? nA : nB;
+    if (x.tg === 'ace') return x.pl ? 'Ace by ' + esc(x.pl) : 'Ace for ' + esc(win);
+    if (x.tg === 'winner') return x.pl ? 'Winner by ' + esc(x.pl) : 'Winner for ' + esc(win);
+    if (x.tg === 'error') return x.pl ? 'Error by ' + esc(x.pl) : 'Error, point to ' + esc(win);
+    return 'Point to ' + esc(win);
+  }
+  window._ptActTx = function (x, nA, nB) { return actTx(x, nA, nB); };
+  /* kelompokin event per game + tebak siapa yang serve (dari ace: server = sisi yang menang ace, gantian tiap game) */
+  function analyze(m, lg) {
+    var ev = lg && Array.isArray(lg.ev) ? lg.ev : [], games = [], cur = null;
     ev.forEach(function (x) {
-      if (x.x || !x.tg || !x.pl) return;
-      var side = x.tg === 'error' ? (x.w === 'A' ? 'B' : 'A') : x.w;
-      var o = st[side + '|' + x.pl] = st[side + '|' + x.pl] || { s: side, n: x.pl, W: 0, A: 0, E: 0 };
-      o[x.tg === 'winner' ? 'W' : x.tg === 'ace' ? 'A' : 'E']++; any = true;
+      if (!cur || cur.n !== x.n) { cur = { n: x.n, rows: [], tb: !!x.tb, win: '', score: '', srv: '', brk: false }; games.push(cur); }
+      cur.rows.push(x); if (x.tb) cur.tb = true; if (x.gw) { cur.win = x.w; cur.score = x.g; }
     });
+    var a0 = -1, s0 = '', ok = true;
+    games.forEach(function (g, i) { g.rows.forEach(function (x) { if (x.x || x.tg !== 'ace' || g.tb) return; if (a0 < 0) { a0 = i; s0 = x.w; } else { var exp = ((i - a0) % 2 === 0) ? s0 : (s0 === 'A' ? 'B' : 'A'); if (exp !== x.w) ok = false; } }); });
+    var known = a0 >= 0 && ok;
+    games.forEach(function (g, i) {
+      if (!known) return;
+      g.srv = ((i - a0) % 2 === 0) ? s0 : (s0 === 'A' ? 'B' : 'A');
+      g.brk = !g.tb && !!g.win && g.win !== g.srv;
+    });
+    var tot = { A: 0, B: 0 }, per = { A: { W: 0, A: 0, E: 0 }, B: { W: 0, A: 0, E: 0 } }, pl = {}, pts = 0, t0 = 0, t1 = 0;
+    ev.forEach(function (x) {
+      if (x.t) { if (!t0 || x.t < t0) t0 = x.t; if (x.t > t1) t1 = x.t; }
+      if (x.x) return; pts++; tot[x.w]++;
+      if (!x.tg) return;
+      var side = x.tg === 'error' ? (x.w === 'A' ? 'B' : 'A') : x.w, k = x.tg === 'winner' ? 'W' : x.tg === 'ace' ? 'A' : 'E';
+      per[side][k]++;
+      if (x.pl) { var o = pl[side + '|' + x.pl] = pl[side + '|' + x.pl] || { s: side, n: x.pl, W: 0, A: 0, E: 0 }; o[k]++; }
+    });
+    return { ev: ev, games: games, known: known, tot: tot, per: per, pl: pl, pts: pts, dur: (t1 > t0 ? t1 - t0 : 0), t0: t0 };
+  }
+  function recapBanner(m, nA, nB) {
+    var a = sc(m.scoreA), b = sc(m.scoreB);
+    return m.done ? ((a > b ? nA : b > a ? nB : '') ? '<b>' + esc(a > b ? nA : nB) + '</b> ' + vb(a > b ? nA : nB, 'wins', 'win') + ' ' + Math.max(a, b) + '-' + Math.min(a, b) + (m.tbA != null && m.tbB != null ? ' (tiebreak ' + Math.max(m.tbA, m.tbB) + '-' + Math.min(m.tbA, m.tbB) + ')' : '') : 'Finished ' + a + '-' + b)
+      : 'Match in progress · games ' + a + '-' + b + ' · points ' + ptm(m, m.pA) + ':' + ptm(m, m.pB);
+  }
+  function legend(nA, nB) { return '<div class="rc-leg"><span><i class="rc-dot A"></i>' + esc(nA) + '</span><span><i class="rc-dot B"></i>' + esc(nB) + '</span></div>'; }
+  function tabsBar() {
+    return '<div class="rc3-tabs" role="tablist">' + [['overview', 'Overview'], ['detail', 'Detail'], ['stats', 'Statistik'], ['timeline', 'Timeline']].map(function (t) {
+      return '<button type="button" role="tab" class="rc3-tab' + (rcTab === t[0] ? ' on' : '') + '" data-rctab="' + t[0] + '">' + t[1] + '</button>';
+    }).join('') + '</div>';
+  }
+  function tabOverview(m, A, nA, nB) {
+    var a = sc(m.scoreA), b = sc(m.scoreB), done = !!m.done;
+    function card(side, n, s, tbv, win) {
+      return '<div class="rc3-sc' + (win ? ' win' : '') + '"><i class="rc-dot ' + side + '"></i><span class="rc3-sn">' + esc(n) + '</span><b class="rc3-big">' + s + '</b>' + (tbv != null && m.tbA != null && m.tbB != null ? '<small>(' + tbv + ')</small>' : '') + '</div>';
+    }
+    var h = '<div class="rc3-set">SET 1: ' + a + '–' + b + '</div>' + card('A', nA, a, m.tbA, done && a > b) + card('B', nB, b, m.tbB, done && b > a);
+    var cells = [['Points played', A.pts], ['Games', A.games.filter(function (g) { return g.win; }).length]];
+    if (A.dur) cells.push(['Duration', fmtDur(A.dur)]);
+    if (A.t0) cells.push(['Started', fmtT(A.t0).slice(0, 5)]);
+    if (A.known) { var br = { A: 0, B: 0 }; A.games.forEach(function (g) { if (g.brk) br[g.win]++; }); cells.push(['Breaks', br.A + ' – ' + br.B]); }
+    var tg = A.per.A.A + A.per.B.A + A.per.A.W + A.per.B.W + A.per.A.E + A.per.B.E; if (tg) cells.push(['Points tagged', tg + ' / ' + A.pts]);
+    h += '<div class="rc3-grid">' + cells.map(function (c) { return '<div class="rc3-cell"><span>' + c[0] + '</span><b>' + c[1] + '</b></div>'; }).join('') + '</div>';
+    var wp = A.games.filter(function (g) { return g.win; });
+    if (wp.length) {
+      var ra = 0, rb = 0;
+      h += '<div class="rc3-h">Game by game</div><div class="rc3-strip">' + wp.map(function (g) { if (g.win === 'A') ra++; else rb++; return '<div class="rc3-gs ' + g.win + (g.brk ? ' brk' : '') + '"><span>' + (g.tb ? 'TB' : 'G' + g.n) + '</span><b>' + ra + '–' + rb + '</b></div>'; }).join('') + '</div>';
+    }
+    return h;
+  }
+  function tabDetail(m, A, nA, nB, pa, pb) {
+    var h = legend(nA, nB) + '<div class="rc3-tbl"><div class="rc3-th"><span>Game</span><span>Serve</span><span>Pts</span><span>Winner</span><span>Score</span></div>';
+    var ra = 0, rb = 0;
+    A.games.forEach(function (g) {
+      var pts = g.rows.filter(function (x) { return !x.x; }).length;
+      if (g.win === 'A') ra++; else if (g.win === 'B') rb++;
+      var srv = g.srv ? '<i class="rc-dot ' + g.srv + '"></i>' + esc(ini(g.srv === 'A' ? pa : pb)) : '<span class="rc3-na">–</span>';
+      h += '<div class="rc3-tr' + (g.brk ? ' brk' : '') + '"><span>' + (g.tb ? 'Tiebreak' : g.n) + (g.brk ? ' <em class="rc3-bd brk">BREAK</em>' : '') + '</span><span>' + srv + '</span><span>' + pts + '</span><span>'
+        + (g.win ? '<i class="rc-dot ' + g.win + '"></i>' + esc(ini(g.win === 'A' ? pa : pb)) : '<span class="rc3-na">live</span>') + '</span><b>' + (g.win ? ra + '–' + rb : '') + '</b></div>';
+    });
+    h += '</div>';
+    if (!A.known) h += '<div class="rc3-note">Serve and break are shown once the log has at least one ace to anchor who served.</div>';
+    return h;
+  }
+  function tabStats(m, A, nA, nB, pa, pb) {
+    var h = legend(nA, nB) + '<div class="rc3-bars">';
+    function bar(lbl, va, vb2) { var t = va + vb2 || 1; return '<div class="rc3-br"><div class="rc3-bl"><b>' + va + '</b><span>' + lbl + '</span><b>' + vb2 + '</b></div><div class="rc3-bt"><i class="A" style="width:' + Math.round(va / t * 100) + '%"></i><i class="B" style="width:' + Math.round(vb2 / t * 100) + '%"></i></div></div>'; }
+    h += bar('Points won', A.tot.A, A.tot.B) + bar('Aces', A.per.A.A, A.per.B.A) + bar('Winners', A.per.A.W, A.per.B.W) + bar('Errors', A.per.A.E, A.per.B.E) + '</div>';
+    var any = Object.keys(A.pl).length;
     if (any) {
       h += '<div class="rc2-st"><div class="rc2-sh"><span>Player</span><span>W</span><span>A</span><span>E</span><span>Net</span></div>';
       ['A', 'B'].forEach(function (side) {
         var names = (side === 'A' ? pa : pb).slice();
-        Object.keys(st).forEach(function (k) { var o = st[k]; if (o.s === side && names.indexOf(o.n) < 0) names.push(o.n); });
+        Object.keys(A.pl).forEach(function (k) { var o = A.pl[k]; if (o.s === side && names.indexOf(o.n) < 0) names.push(o.n); });
         names.forEach(function (n) {
-          var o = st[side + '|' + n] || { W: 0, A: 0, E: 0 }, net = o.W + o.A - o.E;
+          var o = A.pl[side + '|' + n] || { W: 0, A: 0, E: 0 }, net = o.W + o.A - o.E;
           h += '<div class="rc2-sr"><span class="rc2-sn"><i class="rc-dot ' + side + '"></i>' + esc(n) + '</span><b class="' + (o.W ? '' : 'z') + '">' + o.W + '</b><b class="' + (o.A ? '' : 'z') + '">' + o.A + '</b><b class="' + (o.E ? '' : 'z') + '">' + o.E + '</b><b class="rc2-net' + (net < 0 ? ' neg' : '') + '">' + (net > 0 ? '+' : '') + net + '</b></div>';
         });
       });
       h += '<div class="rc2-sf">W winner · A ace · E error · Net = W + A − E</div></div>';
     }
-    function ini(arr) { return arr.map(function (n) { return String(n).trim().charAt(0).toUpperCase(); }).join('') || '?'; }
-    var groups = [], curG = null;
-    ev.forEach(function (x) {
-      if (!curG || curG.n !== x.n) { curG = { n: x.n, rows: [], g: '', win: '' }; groups.push(curG); }
-      curG.rows.push(x); if (x.gw) { curG.g = x.g; curG.win = x.w; }
-    });
-    groups.forEach(function (g) {
-      var right = g.win ? esc(g.win === 'A' ? nA : nB) : (m.done ? '' : 'in progress');
-      h += '<div class="rc-game"><div class="rc-gh"><span>' + (g.rows[0] && g.rows[0].tb ? 'Tiebreak' : 'Game ' + g.n) + '</span><span class="rc2-gw">' + right + '</span></div>'
-        + '<div class="rc2-ini"><b class="A">' + esc(ini(pa)) + '</b>-<b class="B">' + esc(ini(pb)) + '</b></div>';
-      g.rows.forEach(function (x) {
-        if (x.x) { h += '<div class="rc-ev"><div class="rc-sc">EDIT</div><div class="rc-tx">Game score corrected to ' + esc(x.g) + '</div></div>'; return; }
-        var win = x.w === 'A' ? nA : nB, lose = x.w === 'A' ? nB : nA, tx;
-        var who = x.pl ? ' <b>(' + (x.tg === 'ace' ? 'ace by' : x.tg === 'winner' ? 'winner hit by' : 'error by') + ': ' + esc(x.pl) + ')</b>' : '';
-        if (x.tg === 'ace') tx = esc(win) + ' ' + vb(win, 'wins', 'win') + ' the point with an ace' + who;
-        else if (x.tg === 'winner') tx = esc(win) + ' ' + vb(win, 'wins', 'win') + ' the point with a winner' + who;
-        else if (x.tg === 'error') tx = esc(lose) + ' ' + vb(lose, 'loses', 'lose') + ' the point with an error' + who;
-        else tx = esc(win) + ' ' + vb(win, 'wins', 'win') + ' the point';
-        if (x.gw) tx += x.tb ? '<br><b>' + esc(win) + ' ' + vb(win, 'wins', 'win') + ' the tiebreak ' + esc(x.p) + ' and the match (' + esc(x.g) + ')</b>' : '<br><b>' + esc(win) + ' ' + vb(win, 'wins', 'win') + ' the game (' + esc(x.g) + ')</b>';
-        var mp = '';
-        if (x.tb && !x.gw) { var pp = String(x.p).split('-'), tbT = window.tbTarget(kind, m); if (tbT && Math.max(+pp[0] || 0, +pp[1] || 0) === tbT - 1) mp = '<span class="rc-mp">MP</span>'; }
-        h += '<div class="rc-ev' + (x.gw ? ' gw' : '') + '"><div class="rc-sc">' + (x.gw && !x.tb ? '---' : esc(x.p)) + '</div><i class="rc-dot ' + (x.w === 'A' ? 'A' : 'B') + '"></i>'
-          + (x.tg ? '<span class="rc-tg ' + esc(x.tg) + '">' + (x.tg === 'ace' ? 'A' : x.tg === 'winner' ? 'W' : 'E') + '</span>' : '') + '<div class="rc-tx">' + tx + '</div>' + mp + '</div>';
+    return h;
+  }
+  function tabTimeline(kind, m, A, nA, nB, pa, pb) {
+    var h = legend(nA, nB) + '<div class="rc3-set">SET 1: ' + sc(m.scoreA) + '–' + sc(m.scoreB) + '</div>', tbT = 0;
+    try { tbT = window.tbTarget(kind, m); } catch (e) {}
+    A.games.forEach(function (g) {
+      var srvTx = g.srv ? 'Serve: <b>' + esc(pairNames(g.srv === 'A' ? pa : pb)) + '</b>' : '';
+      h += '<div class="rc3-game"><div class="rc3-gh"><span class="rc3-gt">' + (g.tb ? 'Tiebreak' : 'Game ' + g.n) + (g.brk ? ' <em class="rc3-bd brk">BREAK</em>' : '') + '</span><span class="rc3-sv">' + srvTx + '</span></div>';
+      g.rows.forEach(function (x, i) {
+        if (x.x) { h += '<div class="rc3-ev"><span class="rc3-pt">EDIT</span><span class="rc3-tx">Game score corrected to ' + esc(x.g) + '</span></div>'; return; }
+        var before = i === 0 ? '0-0' : (function () { for (var j = i - 1; j >= 0; j--) if (!g.rows[j].x) return g.rows[j].p; return '0-0'; })();
+        var shown = x.gw && !x.tb ? '---' : before;
+        var bp = '';
+        if (g.srv && !g.tb) {
+          var ps = String(before).split('-'), rv = g.srv === 'A' ? ps[1] : ps[0];
+          if (rv === '40') bp = '<em class="rc3-bd bp">BP</em>';
+        }
+        if (x.tb && !x.gw && tbT) { var pp = String(x.p).split('-'); if (Math.max(+pp[0] || 0, +pp[1] || 0) === tbT - 1) bp = '<em class="rc3-bd bp">MP</em>'; }
+        var win = x.w === 'A' ? nA : nB, tx = actTx(x, nA, nB);
+        if (x.gw) tx += '<span class="rc3-gwl">' + (x.tb ? esc(win) + ' ' + vb(win, 'wins', 'win') + ' the tiebreak ' + esc(x.p) + ' and the match (' + esc(x.g) + ')' : esc(win) + ' ' + vb(win, 'wins', 'win') + ' the game (' + esc(x.g) + ')') + '</span>';
+        h += '<div class="rc3-ev' + (x.gw ? ' gw' : '') + '"><span class="rc3-in"><b class="' + (x.w === 'A' ? 'on ' : '') + 'A">' + esc(ini(pa)) + '</b>-<b class="' + (x.w === 'B' ? 'on ' : '') + 'B">' + esc(ini(pb)) + '</b></span><span class="rc3-pt">' + esc(shown) + '</span><i class="rc-dot sq ' + x.w + '"></i>'
+          + (x.tg ? '<span class="rc3-tag ' + esc(x.tg) + '">' + TGL[x.tg] + '</span>' : '<span class="rc3-tag none">POINT</span>') + bp + '<span class="rc3-tm">' + esc(fmtT(x.t)) + '</span><span class="rc3-tx">' + tx + '</span></div>';
       });
       h += '</div>';
     });
     return h;
   }
+  function pairNames(arr) { return arr.join(' / '); }
+  function recapHtml(kind, idx, lg) {
+    var m = matchAt(kind, idx) || {}, tA = pid(m.teamA), tB = pid(m.teamB);
+    var nA = pairLine(tA), nB = pairLine(tB), pa = pairArr(tA), pb = pairArr(tB);
+    var head = '<div class="rc-ban">' + recapBanner(m, nA, nB) + '</div>';
+    var ev = lg && Array.isArray(lg.ev) ? lg.ev : [];
+    if (!ev.length) return head + legend(nA, nB) + '<div class="rc-empty">' + (m.done ? 'This match was scored without point-by-point tracking, so only the final score is available.' : 'No point log for this match yet') + '</div>';
+    var A = analyze(m, lg);
+    return head + (rcTab === 'overview' ? tabOverview(m, A, nA, nB) : rcTab === 'detail' ? tabDetail(m, A, nA, nB, pa, pb) : rcTab === 'stats' ? tabStats(m, A, nA, nB, pa, pb) : tabTimeline(kind, m, A, nA, nB, pa, pb));
+  }
+
   async function openRecap(kind, idx) {
     var m = matchAt(kind, idx); if (!m || hideSc()) return;
     closeRecap();
@@ -38175,16 +38260,17 @@ html.dark .rc-ev { border-top-color: rgba(236,231,218,.08); }
     document.body.appendChild(rcOv); document.documentElement.style.overflow = 'hidden';
     var first = true;
     function draw(lg) {
-      if (!rcOv) return;
+      if (!rcOv) return; rcLast = lg;
       var mm = matchAt(kind, idx) || m;
       var sub = pairLine(pid(mm.teamA)) + '  vs  ' + pairLine(pid(mm.teamB));
       var keep = rcOv.querySelector('.rc-body'), st = keep ? keep.scrollTop : 0;
       rcOv.innerHTML = '<div class="rc-top"><div class="rc-ti"><div class="rc-t">Match Timeline</div><div class="rc-s">' + esc(sub) + '</div></div><button type="button" class="rc-x" aria-label="Tutup">×</button></div>'
-        + '<div class="rc-body">' + (lg === undefined ? '<div class="rc-empty">Memuat...</div>' : recapHtml(kind, idx, lg)) + '</div>';
+        + (lg && lg.ev && lg.ev.length ? tabsBar() : '') + '<div class="rc-body">' + (lg === undefined ? '<div class="rc-empty">Memuat...</div>' : recapHtml(kind, idx, lg)) + '</div>';
       rcOv.querySelector('.rc-x').addEventListener('click', closeRecap);
       var body = rcOv.querySelector('.rc-body');
-      if (first && lg !== undefined) { body.scrollTop = body.scrollHeight; first = false; } else body.scrollTop = st;
+      if (first && lg !== undefined) { body.scrollTop = (mm.done ? 0 : body.scrollHeight); first = false; } else body.scrollTop = st;
     }
+    rcOv.addEventListener('click', function (e) { var t = e.target && e.target.closest ? e.target.closest('[data-rctab]') : null; if (!t) return; rcTab = t.getAttribute('data-rctab'); first = false; draw(rcLast); var b = rcOv && rcOv.querySelector('.rc-body'); if (b) b.scrollTop = 0; });
     draw(undefined);
     var d = await db();
     function localLg() { try { return window._ptLogLocal ? window._ptLogLocal(kind, idx) : null; } catch (e) { return null; } }
@@ -42321,7 +42407,13 @@ html body #tourneyDrawView .sb-court-card > .ptvw-bar { margin-top: 0; padding-t
     saveLocal();
     if (typeof IS_VIEWER !== 'undefined' && IS_VIEWER) return;
     /* balikin juga ke Firebase biar link penonton bisa buka recap */
-    fbDb().then(function (d) { if (!d) return; Object.keys(L).forEach(function (k) { try { d.ref('tournaments/' + room() + '__log/' + k).set(L[k]); } catch (e) {} }); });
+    fbDb().then(function (d) {
+      var ks = Object.keys(L), say = function (t) { try { if (typeof showToast === 'function') showToast(t); } catch (e) {} console.log('[v218] ' + t); };
+      if (!ks.length) return;
+      if (!d) { say('Firebase gak tersambung: recap di link penonton belum bisa dibuka'); return; }
+      Promise.all(ks.map(function (k) { try { return Promise.resolve(d.ref('tournaments/' + room() + '__log/' + k).set(L[k])).then(function () { return 1; }, function (er) { console.warn('[v218] log', k, er && er.message); return 0; }); } catch (e) { return Promise.resolve(0); } }))
+        .then(function (r) { var ok = r.reduce(function (a, b) { return a + b; }, 0); say(ok === ks.length ? 'Log poin ' + ok + '/' + ks.length + ' ke Firebase, recap penonton siap' : 'Log poin cuma ' + ok + '/' + ks.length + ' ke Firebase. Cek rules Firebase, recap penonton belum lengkap'); });
+    });
   };
   window.exportStateFull = async function () { try { await pullLogs(); } catch (e) {} return exportState(); };
 
@@ -42424,6 +42516,76 @@ html body #tourneyDrawView .sb-court-card > .ptvw-bar { margin-top: 0; padding-t
   } catch (e) { console.warn('[v216] boot', e); }
 })();
 </script>
+<style id="codex-revision-v073218-css">
+/* v0.73.218: recap 4 tab (Overview, Detail, Statistik, Timeline) + penanda LIVE */
+#ptvwModal .rc3-tabs { display: flex; gap: 0; margin: 10px 16px 0; padding: 4px; border-radius: 12px; background: rgba(32,39,15,.07); max-width: 680px; align-self: center; width: calc(100% - 32px); box-sizing: border-box; }
+html.dark #ptvwModal .rc3-tabs { background: rgba(236,231,218,.08); }
+#ptvwModal .rc3-tab { flex: 1 1 0; min-width: 0; appearance: none; -webkit-appearance: none; border: 0; background: transparent; color: inherit; font: inherit; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: 10px 4px; border-radius: 9px; opacity: .72; }
+#ptvwModal .rc3-tab.on { background: #5d7c1c; color: #fff; opacity: 1; }
+.rc3-set { display: flex; align-items: center; gap: 12px; font-size: 12px; font-weight: 800; letter-spacing: .12em; opacity: .8; margin: 4px 0; }
+.rc3-set::before, .rc3-set::after { content: ''; flex: 1; height: 1px; background: currentColor; opacity: .25; }
+.rc3-game { border: 1px solid rgba(32,39,15,.14); border-radius: 12px; overflow: hidden; }
+html.dark .rc3-game { border-color: rgba(236,231,218,.16); }
+.rc3-gh { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; padding: 10px 12px; background: rgba(32,39,15,.06); font-size: 13px; }
+html.dark .rc3-gh { background: rgba(236,231,218,.08); }
+.rc3-gt { font-weight: 800; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; }
+.rc3-sv { font-size: 12px; opacity: .85; text-align: right; }
+.rc3-bd { font-style: normal; font-size: 10px; font-weight: 900; letter-spacing: .06em; padding: 2px 6px; border-radius: 4px; color: #fff; display: inline-block; }
+.rc3-bd.brk { background: #d6455a; } .rc3-bd.bp { background: #e0a030; color: #3a2a05; flex: 0 0 auto; }
+.rc3-ev { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 10px 12px; border-top: 1px solid rgba(32,39,15,.08); font-size: 13px; }
+html.dark .rc3-ev { border-top-color: rgba(236,231,218,.09); }
+.rc3-ev.gw { background: rgba(93,124,28,.09); }
+.rc3-in { flex: 0 0 auto; font-weight: 800; font-size: 12px; letter-spacing: .04em; opacity: .9; }
+.rc3-in b { opacity: .45; font-weight: 800; } .rc3-in b.on.A { color: #3a6d0e; opacity: 1; } .rc3-in b.on.B { color: #b07a10; opacity: 1; }
+.rc3-pt { flex: 0 0 auto; min-width: 42px; font-weight: 800; font-variant-numeric: tabular-nums; font-size: 14px; }
+.rc-dot.sq { border-radius: 2px; width: 10px; height: 10px; }
+.rc3-tag { flex: 0 0 auto; font-size: 10px; font-weight: 900; letter-spacing: .08em; padding: 5px 9px; border-radius: 4px; color: #fff; text-align: center; min-width: 58px; box-sizing: border-box; }
+.rc3-tag.ace { background: #3f9460; } .rc3-tag.winner { background: #3563e0; } .rc3-tag.error { background: #d6455a; } .rc3-tag.none { background: rgba(32,39,15,.28); }
+html.dark .rc3-tag.none { background: rgba(236,231,218,.22); }
+.rc3-tm { margin-left: auto; font-size: 12px; font-variant-numeric: tabular-nums; opacity: .6; }
+.rc3-tx { flex: 1 0 100%; font-weight: 600; line-height: 1.35; }
+.rc3-gwl { display: block; margin-top: 3px; font-weight: 800; font-size: 12px; opacity: .85; }
+@media (min-width: 560px) { .rc3-tx { flex: 1 1 0; } .rc3-tm { order: 9; } }
+.rc3-sc { display: flex; align-items: center; gap: 10px; padding: 14px; border-radius: 12px; border: 1px solid rgba(32,39,15,.14); opacity: .8; }
+html.dark .rc3-sc { border-color: rgba(236,231,218,.16); }
+.rc3-sc.win { opacity: 1; background: rgba(93,124,28,.1); border-color: rgba(93,124,28,.5); }
+.rc3-sn { flex: 1; min-width: 0; font-weight: 800; font-size: 15px; overflow-wrap: anywhere; }
+.rc3-big { font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums; } .rc3-sc small { font-size: 12px; opacity: .7; font-weight: 800; }
+.rc3-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.rc3-cell { padding: 10px 12px; border-radius: 12px; background: rgba(32,39,15,.05); display: flex; flex-direction: column; gap: 2px; }
+html.dark .rc3-cell { background: rgba(236,231,218,.07); }
+.rc3-cell span { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; opacity: .7; font-weight: 700; } .rc3-cell b { font-size: 18px; font-weight: 800; }
+.rc3-h { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; font-weight: 800; opacity: .7; margin-top: 4px; }
+.rc3-strip { display: flex; flex-wrap: wrap; gap: 6px; }
+.rc3-gs { min-width: 52px; padding: 6px 8px; border-radius: 8px; text-align: center; border-bottom: 3px solid #3a6d0e; background: rgba(32,39,15,.05); display: flex; flex-direction: column; gap: 2px; }
+.rc3-gs.B { border-bottom-color: #c28a1d; } .rc3-gs span { font-size: 10px; font-weight: 800; opacity: .65; } .rc3-gs b { font-size: 13px; font-variant-numeric: tabular-nums; } .rc3-gs.brk span::after { content: ' ●'; color: #d6455a; }
+.rc3-tbl { border: 1px solid rgba(32,39,15,.14); border-radius: 12px; overflow: hidden; }
+html.dark .rc3-tbl { border-color: rgba(236,231,218,.16); }
+.rc3-th, .rc3-tr { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) 44px minmax(0, 1fr) 54px; align-items: center; gap: 6px; padding: 10px 12px; font-size: 13px; }
+.rc3-th { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; background: rgba(32,39,15,.06); }
+html.dark .rc3-th { background: rgba(236,231,218,.08); }
+.rc3-tr { border-top: 1px solid rgba(32,39,15,.08); } html.dark .rc3-tr { border-top-color: rgba(236,231,218,.09); }
+.rc3-tr span { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; } .rc3-tr b { text-align: right; font-variant-numeric: tabular-nums; }
+.rc3-tr em { font-style: normal; } .rc3-na { opacity: .4; }
+.rc3-note { font-size: 12px; opacity: .65; line-height: 1.4; }
+.rc3-bars { display: flex; flex-direction: column; gap: 12px; }
+.rc3-bl { display: flex; align-items: center; justify-content: space-between; font-size: 13px; } .rc3-bl b { font-size: 16px; font-weight: 800; min-width: 28px; } .rc3-bl b:last-child { text-align: right; } .rc3-bl span { opacity: .75; font-weight: 700; }
+.rc3-bt { display: flex; gap: 3px; height: 8px; margin-top: 5px; } .rc3-bt i { display: block; border-radius: 4px; min-width: 2px; } .rc3-bt i.A { background: #3a6d0e; } .rc3-bt i.B { background: #c28a1d; }
+/* penanda LIVE di kartu */
+html body #tourneyDrawView .sb-court-card.ptvw-islive { box-shadow: 0 0 0 2px rgba(214,69,90,.55), 0 8px 24px rgba(32,39,15,.1); }
+.ptvw-liverow { display: flex; align-items: center; gap: 10px; margin: -2px 0 10px; padding: 8px 12px; border-radius: 10px; background: rgba(214,69,90,.1); font-size: 11px; font-weight: 900; letter-spacing: .1em; }
+.ptvw-livepill, .ptvw-mc .st .ptvw-ld { display: inline-flex; align-items: center; gap: 6px; }
+.ptvw-livepill { background: #d6455a; color: #fff; padding: 4px 9px; border-radius: 6px; } .ptvw-livepill i, .ptvw-ld { width: 7px; height: 7px; border-radius: 50%; background: #fff; display: inline-block; animation: ptvwPulse 1.2s ease-in-out infinite; }
+.ptvw-mc .st .ptvw-ld { background: #d6455a; margin-right: 6px; }
+.ptvw-el { opacity: .8; } .ptvw-inp { margin-left: auto; opacity: .65; }
+@keyframes ptvwPulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.ptvw-last { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; background: rgba(32,39,15,.05); font-size: 13px; min-width: 0; }
+html.dark .ptvw-last { background: rgba(236,231,218,.07); }
+.ptvw-last .ptvw-lt { flex: 1; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ptvw-last em { font-style: normal; font-size: 10px; font-weight: 800; letter-spacing: .1em; opacity: .5; flex: 0 0 auto; }
+html body #tourneyDrawView .sb-court-card > .ptvw-bar { flex-wrap: wrap; }
+html body #tourneyDrawView .sb-court-card > .ptvw-bar .ptvw-last { flex: 1 0 100%; }
+</style>
 <style id="codex-revision-v073217-css">
 /* v0.73.217 */
 /* (1) pill ronde: sebelumnya 46px dan scroll ke samping, sekarang grid selebar kartu court */
