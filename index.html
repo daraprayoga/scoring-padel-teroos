@@ -4259,7 +4259,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.216</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.217</div>
     </div>
   </div>
 
@@ -8533,6 +8533,7 @@ function renderOverview() {
   document.getElementById('overviewContent').style.display = 'block';
 
   const round = state.rounds[state.currentRoundIdx];
+  if (!round) return;   // v0.73.217: tourney gak pakai rounds mabar; sebelumnya crash 'reading matches' dan memutus init viewer
 
   // Top bar
   document.getElementById('liveRoundNum').textContent = state.currentRoundIdx + 1;
@@ -11556,7 +11557,7 @@ saveState = window.saveState;
       return;
     }
 
-    renderAll();
+    try { renderAll(); } catch (e) { console.warn('[v217] renderAll', e); }
 
     // Show nav
     if (state.started) {
@@ -37934,10 +37935,10 @@ html.dark .rc-ev { border-top-color: rgba(236,231,218,.08); }
       var old = card.querySelector(':scope > .ptvw-bar'); if (old) old.remove();
       var ci = cardInfo(card); if (!ci || ci.m.bye || hideSc()) return;
       var live = liveM(ci.m), has = sc(ci.m.skLog) > 0;
-      if (!live && !has) return;
+      if (!live && !has && !ci.m.done) return;   // v0.73.217: match selesai tanpa log tetap dapat tombol (isi: skor akhir + info log kosong)
       var bar = document.createElement('div'); bar.className = 'ptvw-bar';
       bar.innerHTML = (live ? '<span class="ptvw-pts">Poin <b>' + ptm(ci.m, ci.m.pA) + '</b> : <b>' + ptm(ci.m, ci.m.pB) + '</b></span>' : '<span></span>')
-        + (has ? '<button type="button" class="ptvw-recap" data-ptvwrc="' + ci.kind + ci.idx + '">Recap</button>' : '');
+        + '<button type="button" class="ptvw-recap" data-ptvwrc="' + ci.kind + ci.idx + '">Match recap</button>';
       card.appendChild(bar);
     });
   }
@@ -37985,7 +37986,7 @@ html.dark .rc-ev { border-top-color: rgba(236,231,218,.08); }
     var st = hs ? '' : (done ? 'Selesai' : live ? 'Live' : 'Belum main');
     return '<div class="ptvw-mc' + (live && !hs ? ' live' : '') + '"><div class="ptvw-mh"><span>' + esc(e.ctx) + '</span><span class="sp"></span><span>' + esc(courtName(e.court)) + '</span>' + (st ? '<span class="st">' + st + '</span>' : '') + '</div>'
       + row(tA, a, m.pA, wa, wb) + row(tB, b, m.pB, wb, wa)
-      + (!hs && sc(m.skLog) > 0 ? '<div class="ptvw-mf"><button type="button" class="ptvw-btn" data-ptvwrc="' + e.kind + e.idx + '">Lihat recap</button></div>' : '') + '</div>';
+      + (!hs && (sc(m.skLog) > 0 || done) ? '<div class="ptvw-mf"><button type="button" class="ptvw-btn" data-ptvwrc="' + e.kind + e.idx + '">Lihat recap</button></div>' : '') + '</div>';
   }
   var schedP = '', schedG = 'all';
   function schedOpts() {
@@ -38118,7 +38119,7 @@ html.dark .rc-ev { border-top-color: rgba(236,231,218,.08); }
     var h = '<div class="rc-ban">' + ban + '</div>'
       + '<div class="rc-leg"><span><i class="rc-dot A"></i>' + esc(nA) + '</span><span><i class="rc-dot B"></i>' + esc(nB) + '</span></div>';
     var ev = lg && Array.isArray(lg.ev) ? lg.ev : [];
-    if (!ev.length) return h + '<div class="rc-empty">No point log for this match yet</div>';
+    if (!ev.length) return h + '<div class="rc-empty">' + (m.done ? 'This match was scored without point-by-point tracking, so only the final score is available.' : 'No point log for this match yet') + '</div>';
     /* v0.73.210: statistik per pemain dari tg + pl (event tanpa pl gak dihitung) */
     var st = {}, any = false;
     ev.forEach(function (x) {
@@ -42421,6 +42422,52 @@ html body #tourneyDrawView .sb-court-card > .ptvw-bar { margin-top: 0; padding-t
       else if (state.tourneyPhase === 'groups' && (state.tourneyGroupMatches || []).length) window.renderTourneyGroupPhase();
     }
   } catch (e) { console.warn('[v216] boot', e); }
+})();
+</script>
+<style id="codex-revision-v073217-css">
+/* v0.73.217 */
+/* (1) pill ronde: sebelumnya 46px dan scroll ke samping, sekarang grid selebar kartu court */
+html body #tourneyDrawView #roundPillNavTourney { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(50px, 1fr)); gap: 8px; overflow: visible !important; width: 100%; box-sizing: border-box; padding: 0 !important; margin: 0 0 12px !important; }
+html body #tourneyDrawView #roundPillNavTourney .round-pill { width: 100% !important; min-width: 0; flex: none; height: 46px; }
+/* (2) jarak tombol Match recap dari baris Tanda tangan */
+html body #tourneyDrawView .sb-court-card > .ptvw-bar { display: flex; align-items: center; gap: 12px; margin: 12px 0 0 !important; padding: 0 !important; border: 0 !important; }
+html body #tourneyDrawView .sb-court-card > .ptvw-bar .ptvw-pts { flex: 0 0 auto; }
+html body #tourneyDrawView .sb-court-card > .ptvw-bar > span:empty { display: none; }
+html body #tourneyDrawView .sb-court-card > .ptvw-bar .ptvw-recap { flex: 1 1 0; width: 100%; min-height: 42px; border-radius: 12px; font-size: 13px; background: rgba(93,124,28,.10); }
+html.dark body #tourneyDrawView .sb-court-card > .ptvw-bar .ptvw-recap { background: rgba(148,185,70,.14); }
+/* (3) satu lebar buat semua blok di layar tourney (desktop: kartu court tadinya 2 kolom, blok lain full) */
+html body #tourneyDrawView .sb-page { max-width: 640px; margin-left: auto; margin-right: auto; }
+html body #tourneyDrawView .sb-courts { grid-template-columns: 1fr !important; }
+</style>
+<script id="codex-revision-v073217-js">
+/* v0.73.217: badge header viewer ("TOURNEY · ROUND 1" salah di tourney) */
+(function () {
+  function label() {
+    var p = state.tourneyPhase;
+    if (p === 'groups') return 'Group stage';
+    if (p === 'done') return 'Completed';
+    if (p === 'knockout') return (typeof koStageLabel === 'function' && state.koStageView) ? koStageLabel(state.koStageView) : 'Knockout';
+    return 'Draw';
+  }
+  var busy = false;
+  function fix() {
+    if (busy) return; var e = document.getElementById('formatBadge'); if (!e) return;
+    try { if (!(typeof isTourney === 'function' && isTourney() && state.started)) return; } catch (x) { return; }
+    var t = 'Tourney · ' + label(); if (e.textContent === t) return;
+    busy = true; e.textContent = t; busy = false;
+  }
+  function fixMeta() {
+    var m = document.querySelector('#viewerMastheadTitle .vm-meta'); if (!m) return;
+    try { if (!(typeof isTourney === 'function' && isTourney() && state.started)) return; } catch (x) { return; }
+    var t = 'Tourney \u00b7 ' + label(); if (m.textContent !== t) m.textContent = t;
+  }
+  function boot() {
+    var e = document.getElementById('formatBadge');
+    if (e) { try { new MutationObserver(fix).observe(e, { childList: true, characterData: true, subtree: true }); } catch (x) {} }
+    window.addEventListener('stateRendered', function () { fix(); setTimeout(fixMeta, 80); });
+    fix(); fixMeta(); setInterval(function () { fix(); fixMeta(); }, 1500);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 </script>
 </body>
