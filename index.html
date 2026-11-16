@@ -4259,7 +4259,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.214</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.215</div>
     </div>
   </div>
 
@@ -5255,8 +5255,7 @@ function koAdvanceStage(currentStage) {
     const done = (teamA !== null) !== (teamB !== null);
     newMatches.push({ stage: nextStage, mi: i / 2, teamA, teamB, scoreA: 0, scoreB: 0, done, bye: done });
   }
-  state.koBracket.push(...newMatches);
-
+  // v0.73.215: 3P dimasukin duluan, baru Final, biar urutan data = urutan main
   // Create 3rd-place match when building the Final, if enabled
   if (nextStage === 'F' && state.ko3rdPlace) {
     const sfMatches = koMatchesForStage('SF');
@@ -5268,7 +5267,9 @@ function koAdvanceStage(currentStage) {
       state.koBracket.push({ stage: '3P', mi: 0, teamA: losers[0] ?? null, teamB: losers[1] ?? null, scoreA: 0, scoreB: 0, done: false, bye: false });
     }
   }
-  state.koStageView = nextStage;
+  state.koBracket.push(...newMatches);
+  // v0.73.215: urutan main SF -> 3P -> Final
+  state.koStageView = (nextStage === 'F' && state.ko3rdPlace && koMatchesForStage('3P').length) ? '3P' : nextStage;
 }
 
 
@@ -6200,7 +6201,7 @@ function renderKnockout() {
                        value="${m.done || m.scoreB ? m.scoreB : ''}" data-gmi="${gmi}" data-side="B" placeholder="0" ${bothPresent ? '' : 'disabled'}>
               </div>
             </div>
-            <div class="sb-vs-label">Race to ${target}${(window.tbTarget && window.tbTarget('k', m) > 0) ? ' · TB to ' + window.tbTarget('k', m) : ''}${(m.done && m.tbA != null && m.tbB != null) ? ' · TB ' + m.tbA + '-' + m.tbB : ''}</div>
+            <div class="sb-vs-label">${(m.done && m.tbA != null && m.tbB != null) ? 'TB ' + m.tbA + '-' + m.tbB : 'VS'}</div>
           </div>
           <div class="sb-team right">
             <div class="sb-player">${escapeHtml(nameB)}</div>
@@ -6221,7 +6222,7 @@ function renderKnockout() {
   } else if (!isFinalStage) {
     const { stages: st } = koStagesFor(state.tourneyQualInfo.length);
     const ci = st.indexOf(viewStage);
-    const nextLabel = ci < st.length - 1 ? koStageLabel(st[ci + 1]) : 'Final';
+    const nextLabel = (viewStage !== '3P' && ci < st.length - 1) ? ((st[ci + 1] === 'F' && state.ko3rdPlace && koMatchesForStage('3P').length && !koStageDone('3P')) ? 'Perebutan Juara 3' : koStageLabel(st[ci + 1])) : 'Final';
     actionBtn = `<button class="primary-btn" id="koNextStage" style="width:100%;margin-top:8px;padding:13px;font-weight:800;">Lanjut ke ${nextLabel} →</button>`;
   }
 
@@ -6298,7 +6299,9 @@ function renderKnockout() {
   // Advance to next stage
   const nextBtn = document.getElementById('koNextStage');
   if (nextBtn) nextBtn.addEventListener('click', () => {
-    koAdvanceStage(viewStage);
+    if (viewStage === '3P') state.koStageView = 'F';
+    else if (viewStage === 'SF' && koMatchesForStage('F').length && state.ko3rdPlace && koMatchesForStage('3P').length && !koStageDone('3P')) state.koStageView = '3P';
+    else koAdvanceStage(viewStage);
     saveState();
     renderKnockout();
   });
@@ -10375,6 +10378,7 @@ function importState(file) {
         else state[k] = loaded[k];
       });
       // Resume UI
+      window._pt15G = false;
       saveState();   // v0.73.214: simpan dulu, biar data aman walau render gagal
       if (state.started && isTourney()) {
         // v0.73.214: tourney punya layar sendiri per fase (sama persis kayak resume pas app dibuka). Sebelumnya jatuh ke renderOverview() mabar dan crash.
@@ -36399,7 +36403,7 @@ html.pt-tv, html.pt-tv body { overflow: hidden !important; background: #000 !imp
     var scoreV = document.createElement('div'); scoreV.id = 'ptkKoScore';
     while (head.nextSibling) scoreV.appendChild(head.nextSibling);
     var tabs = document.createElement('div'); tabs.className = 'sb-tabs ptk-tabs';
-    tabs.innerHTML = '<button type="button" class="sb-tab" data-ptk="score">Score</button><button type="button" class="sb-tab" data-ptk="stand">Klasemen</button><button type="button" class="sb-tab" data-ptk="bracket">Bracket</button>';
+    tabs.innerHTML = '<button type="button" class="sb-tab" data-ptk="score">Score</button><button type="button" class="sb-tab" data-ptk="stand">Standings</button><button type="button" class="sb-tab" data-ptk="bracket">Bracket</button>';
     var standV = document.createElement('div'); standV.id = 'ptkKoStand'; standV.innerHTML = standingsHtmlPhone();
     var brV = document.createElement('div'); brV.id = 'ptkKoBracket'; brV.innerHTML = bracketPhoneHtml();
     page.appendChild(tabs); page.appendChild(scoreV); page.appendChild(standV); page.appendChild(brV);
@@ -38102,7 +38106,7 @@ html.dark .rc-ev { border-top-color: rgba(236,231,218,.08); }
     var pa = pairArr(tA), pb = pairArr(tB);
     /* v0.73.213: nama pair (A / B) = jamak -> win/lose, nama tunggal -> wins/loses */
     function vb(n, s, p) { return String(n).indexOf(' / ') >= 0 ? p : s; }
-    var ban = m.done ? ((a > b ? nA : b > a ? nB : '') ? '<b>' + esc(a > b ? nA : nB) + '</b> ' + vb(a > b ? nA : nB, 'wins', 'win') + ' ' + a + '-' + b + (m.tbA != null && m.tbB != null ? ' (tiebreak ' + m.tbA + '-' + m.tbB + ')' : '') : 'Finished ' + a + '-' + b)
+    var ban = m.done ? ((a > b ? nA : b > a ? nB : '') ? '<b>' + esc(a > b ? nA : nB) + '</b> ' + vb(a > b ? nA : nB, 'wins', 'win') + ' ' + Math.max(a, b) + '-' + Math.min(a, b) + (m.tbA != null && m.tbB != null ? ' (tiebreak ' + Math.max(m.tbA, m.tbB) + '-' + Math.min(m.tbA, m.tbB) + ')' : '') : 'Finished ' + a + '-' + b)
       : 'Match in progress · games ' + a + '-' + b + ' · points ' + ptm(m, m.pA) + ':' + ptm(m, m.pB);
     var h = '<div class="rc-ban">' + ban + '</div>'
       + '<div class="rc-leg"><span><i class="rc-dot A"></i>' + esc(nA) + '</span><span><i class="rc-dot B"></i>' + esc(nB) + '</span></div>';
@@ -42223,5 +42227,144 @@ html.dark .rc2-ini b.A { color: #94b946; } html.dark .rc2-ini b.B { color: #e0b2
 .ptvw-ts small.ptvw-tb { font-size: 12px; opacity: .7; min-width: 0; }
 #grpTargetWrap .ko-stage-target { flex-wrap: wrap; justify-content: flex-end; }
 </style>
+<style id="codex-revision-v073215-css">
+/* v0.73.215: rapihin layar tourney. Header + strip tahap + toolbar satu baris. */
+html body #tourneyDrawView .pt15-head { margin: 10px 0 12px; display: flex; flex-direction: column; gap: 10px; }
+html body #tourneyDrawView .pt15-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+html body #tourneyDrawView .pt15-title svg { flex: 0 0 auto; color: var(--gold, #c9a961); }
+html body #tourneyDrawView .pt15-tt { min-width: 0; flex: 1; }
+html body #tourneyDrawView .pt15-name { font-size: 17px; font-weight: 900; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--pt-ink, #20270f); }
+html.dark body #tourneyDrawView .pt15-name { color: var(--pt-ink-dk, #ece7da); }
+html body #tourneyDrawView .pt15-sub { font-size: 12px; font-weight: 600; opacity: .7; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html body #tourneyDrawView .pt15-stages { display: flex; gap: 6px; }
+html body #tourneyDrawView .pt15-st { flex: 1 1 0; min-width: 0; min-height: 40px; appearance: none; -webkit-appearance: none; border-radius: 12px; border: 1px solid rgba(32,39,15,.16); background: #fff; color: inherit;
+  font: inherit; font-size: 13px; font-weight: 800; padding: 0 4px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer; pointer-events: auto !important; opacity: 1; white-space: nowrap; }
+html.dark body #tourneyDrawView .pt15-st { background: #1d2412; border-color: rgba(236,231,218,.16); }
+html body #tourneyDrawView .pt15-st.done::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--pt-action, #5d7c1c); flex: 0 0 auto; }
+html body #tourneyDrawView .pt15-st.on { background: var(--pt-action, #5d7c1c); border-color: transparent; color: #fff; }
+html body #tourneyDrawView .pt15-st.on.done::before { background: #fff; }
+html body #tourneyDrawView .pt15-st.lock { opacity: .38 !important; pointer-events: none !important; cursor: default; }
+/* toolbar (TV, Scorekeeper, Rekap TTD): baris sendiri, lebar penuh */
+html body #tourneyDrawView .pt15-anchor { display: block !important; margin: 0 0 12px !important; }
+html body #tourneyDrawView .pt15-anchor > :not(.ptsig-tools) { display: none !important; }
+html body #tourneyDrawView .pt15-anchor:not(:has(.ptsig-tools)) { display: none !important; }
+html body #tourneyDrawView .pt15-anchor .ptsig-tools { display: flex !important; flex-wrap: nowrap; gap: 8px !important; margin: 0 !important; width: 100%; overflow-x: auto; scrollbar-width: none; }
+html body #tourneyDrawView .pt15-anchor .ptsig-tools::-webkit-scrollbar { display: none; }
+html body #tourneyDrawView .pt15-anchor .ptsig-tools .ptsig-btn { flex: 1 0 auto; white-space: nowrap; }
+/* knockout: strip tahap gantiin pill lama + nav prev/next */
+html body #tourneyDrawView.pt15-ko #koStagePills, html body #tourneyDrawView.pt15-ko #koStagePills + div, html body #tourneyDrawView.pt15-ko .ptnav-top .sb-round-nav { display: none !important; }
+html body #tourneyDrawView .ptnav-top .sb-round-info { flex-wrap: wrap; row-gap: 2px; }
+html body #tourneyDrawView.pt15-ko .ptnav-top .sb-round-label { display: none !important; }
+html body #tourneyDrawView.pt15-ko .ptnav-top .sb-round-num { font-size: 22px; }
+/* grup: label grup tanpa bulatan kosong */
+html body #tourneyDrawView .tg-group-label > span:first-child { display: none !important; }
+html body #tourneyDrawView .tg-group-block { margin-bottom: 14px !important; }
+html body #tourneyDrawView .pt15-note { font-size: 12px; font-weight: 700; padding: 9px 12px; border-radius: 10px; background: rgba(93,124,28,.12); margin: 0 0 12px; }
+html.dark body #tourneyDrawView .pt15-note { background: rgba(148,185,70,.16); }
+html body #tourneyDrawView .sb-vs-label { white-space: nowrap; }
+/* bar recap nempel ke bar TTD, gak jadi baris kosong sendiri */
+html body #tourneyDrawView .sb-court-card > .ptvw-bar { margin-top: 0; padding-top: 0; border-top: 0; }
+</style>
+<script id="codex-revision-v073215-js">
+/* v0.73.215: layout tourney + navigasi tahap berurutan (Group, R16, QF, SF, 3P, Final). Fase grup tetap bisa dibuka (read-only) setelah knockout jalan. */
+(function () {
+  if (typeof renderKnockout !== 'function' || typeof renderTourneyGroupPhase !== 'function') return;
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]; }); }
+  function koPhase() { return state.tourneyPhase === 'knockout' || state.tourneyPhase === 'done'; }
+  var SHORT = { G: 'Group', R32: 'R32', R16: 'R16', QF: 'QF', SF: 'SF', '3P': '3P', F: 'Final' };
+  var LONG = { R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarterfinal', SF: 'Semifinal', '3P': '3rd Place', F: 'Final' };
+  function stageList() {
+    var n = 0;
+    try { n = koPhase() ? (state.tourneyQualInfo || []).length : tourneyQualTotal(); } catch (e) {}
+    var st = []; try { st = koStagesFor(n).stages.slice(); } catch (e) {}
+    if (state.ko3rdPlace && st.indexOf('SF') >= 0 && st.indexOf('F') >= 0) st.splice(st.indexOf('F'), 0, '3P');
+    return st;
+  }
+  function curKo() {
+    var st = stageList(), v = state.koStageView;
+    return st.indexOf(v) >= 0 ? v : st[0];
+  }
+  function layout() {
+    var host = document.getElementById('tourneyDrawView'); if (!host) return;
+    var page = host.querySelector('.sb-page'); if (!page) return;
+    var isG = !!document.getElementById('tgScoreView'), ko = koPhase(), review = isG && ko;
+    host.classList.toggle('pt15-ko', !isG);
+    /* anchor toolbar lama: sembunyiin judul gandanya, sisain tombol */
+    var anchor = isG ? document.getElementById('tgScoreView').firstElementChild : null;
+    if (!isG) { [].slice.call(page.children).forEach(function (ch) { if (!anchor && ch.tagName === 'DIV' && !ch.className && !ch.id) anchor = ch; }); }
+    if (anchor && !anchor.classList.contains('sb-topbar')) anchor.classList.add('pt15-anchor');
+    /* header + strip tahap */
+    var head = page.querySelector(':scope > .pt15-head');
+    if (!head) { head = document.createElement('div'); head.className = 'pt15-head'; page.insertBefore(head, page.firstChild); }
+    var cur = isG ? 'G' : curKo(), champ = '';
+    try { if (state.koChampion != null) champ = tourneyPairLabel(state.koChampion); } catch (e) {}
+    var sub = state.tourneyPhase === 'done' ? 'Selesai' + (champ ? ' · Juara: ' + champ : '') : ko ? 'Fase Knockout' : 'Fase Grup';
+    var chips = ['G'].concat(stageList()).map(function (s) {
+      var lock = false, done = false;
+      if (s === 'G') done = ko;
+      else { try { lock = !ko || !koMatchesForStage(s).length; done = !lock && koStageDone(s); } catch (e) { lock = true; } }
+      return '<button type="button" class="pt15-st' + (s === cur ? ' on' : '') + (done ? ' done' : '') + (lock ? ' lock' : '') + '" data-pt15st="' + s + '"' + (lock ? ' aria-disabled="true"' : '') + '>' + SHORT[s] + '</button>';
+    }).join('');
+    head.innerHTML = '<div class="pt15-title"><svg class="icn" width="22" height="22"><use href="#i-trophy"/></svg><div class="pt15-tt"><div class="pt15-name">' + esc(state.tournamentName || 'Tournament') + '</div><div class="pt15-sub">' + esc(sub) + '</div></div></div>'
+      + '<div class="pt15-stages">' + chips + '</div>';
+    head.querySelectorAll('[data-pt15st]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var s = b.getAttribute('data-pt15st');
+        if (s === 'G') { if (!koPhase() || isG) return; window._pt15G = true; window.renderTourneyGroupPhase(); }
+        else { if (!koPhase()) return; try { if (!koMatchesForStage(s).length) return; } catch (e) { return; } window._pt15G = false; state.koStageView = s; window.renderKnockout(); }
+        try { window.scrollTo(0, 0); } catch (e) {}
+      });
+    });
+    /* kartu ronde: teks sesuai konteks */
+    var top = page.querySelector('.ptnav-top');
+    if (top) {
+      var lb = top.querySelector('.sb-round-label'), nm = top.querySelector('.sb-round-num'), sb = top.querySelector('.sb-round-sub');
+      if (!isG) {
+        var tg = 0, tb = 0, fake = { stage: cur };
+        try { tg = window.raceTarget('k', fake); tb = window.tbTarget('k', fake); } catch (e) {}
+        if (nm) nm.textContent = LONG[cur] || cur;
+        if (sb) sb.textContent = (tg ? '· Race to ' + tg : '') + (tb ? ' · TB to ' + tb : '');
+      } else if (sb) {
+        var gt = 0, gtb = 0; try { gt = window.raceTarget('g', {}); gtb = window.tbTarget('g', {}); } catch (e) {}
+        var total = 0; try { total = tourneyGroupRoundCount(); } catch (e) {}
+        sb.textContent = 'of ' + total + (gt ? ' · Race to ' + gt : '') + (gtb ? ' · TB to ' + gtb : '');
+      }
+    }
+    /* review fase grup: read-only */
+    if (review) {
+      ['tgSaveRound', 'tgFinishGroups'].forEach(function (id) { var el = document.getElementById(id); if (el) el.style.display = 'none'; });
+      host.querySelectorAll('.tg-score').forEach(function (i) { i.readOnly = true; i.disabled = true; });
+      var sv = document.getElementById('tgScoreView');
+      if (sv && !sv.querySelector('.pt15-note')) { var n = document.createElement('div'); n.className = 'pt15-note'; n.textContent = 'Fase grup udah selesai. Skor di sini cuma buat dilihat.'; sv.insertBefore(n, sv.firstChild); }
+    }
+  }
+  var oK = window.renderKnockout || renderKnockout, oG = window.renderTourneyGroupPhase || renderTourneyGroupPhase;
+  window.renderTourneyGroupPhase = function () {
+    var r, real = state.tourneyPhase;
+    if (koPhase()) {
+      /* dekorator lama milih anchor dari tourneyPhase, jadi pinjam 'groups' selama render sinkron ini */
+      window._pt15G = true; state.tourneyPhase = 'groups';
+      try { r = oG.apply(this, arguments); } finally { state.tourneyPhase = real; }
+    } else { window._pt15G = false; r = oG.apply(this, arguments); }
+    try { layout(); } catch (e) { console.warn('[v215] layout', e); }
+    return r;
+  };
+  window.renderKnockout = function () {
+    if (window._pt15G && koPhase() && (state.tourneyGroupMatches || []).length) return window.renderTourneyGroupPhase();
+    var r = oK.apply(this, arguments);
+    try { layout(); } catch (e) { console.warn('[v215] layout', e); }
+    return r;
+  };
+  try { (0, eval)('renderTourneyGroupPhase = window.renderTourneyGroupPhase'); (0, eval)('renderKnockout = window.renderKnockout'); } catch (e) {}
+  /* render pas boot terjadi sebelum blok-blok revisi kepasang, jadi ulang sekali lewat rantai wrapper lengkap */
+  try {
+    var h0 = document.getElementById('tourneyDrawView');
+    if (h0 && h0.classList.contains('active') && typeof isTourney === 'function' && isTourney() && state.started) {
+      if (koPhase()) window.renderKnockout();
+      else if (state.tourneyPhase === 'groups' && (state.tourneyGroupMatches || []).length) window.renderTourneyGroupPhase();
+    }
+  } catch (e) { console.warn('[v215] boot', e); }
+})();
+</script>
 </body>
 </html>
