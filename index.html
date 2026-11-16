@@ -4259,7 +4259,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.212</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.214</div>
     </div>
   </div>
 
@@ -10375,7 +10375,16 @@ function importState(file) {
         else state[k] = loaded[k];
       });
       // Resume UI
-      if (state.started) {
+      saveState();   // v0.73.214: simpan dulu, biar data aman walau render gagal
+      if (state.started && isTourney()) {
+        // v0.73.214: tourney punya layar sendiri per fase (sama persis kayak resume pas app dibuka). Sebelumnya jatuh ke renderOverview() mabar dan crash.
+        initSetup();
+        document.getElementById('resetBtn').style.display = 'flex';
+        document.getElementById('saveBtn').style.display = 'flex';
+        if (state.tourneyPhase === 'groups' && (state.tourneyGroupMatches || []).length) renderTourneyGroupPhase();
+        else if (state.tourneyPhase === 'knockout' || state.tourneyPhase === 'done') renderKnockout();
+        else showTourneyDrawResult();
+      } else if (state.started) {
         initSetup();
         showView('overview');
         const _bn = document.getElementById('bottomNav'); if (_bn) _bn.style.display = 'flex';
@@ -38091,7 +38100,9 @@ html.dark .rc-ev { border-top-color: rgba(236,231,218,.08); }
     var m = matchAt(kind, idx) || {}, tA = pid(m.teamA), tB = pid(m.teamB);
     var nA = pairLine(tA), nB = pairLine(tB), a = sc(m.scoreA), b = sc(m.scoreB);
     var pa = pairArr(tA), pb = pairArr(tB);
-    var ban = m.done ? ((a > b ? nA : b > a ? nB : '') ? '<b>' + esc(a > b ? nA : nB) + '</b> wins ' + a + '-' + b + (m.tbA != null && m.tbB != null ? ' (tiebreak ' + m.tbA + '-' + m.tbB + ')' : '') : 'Finished ' + a + '-' + b)
+    /* v0.73.213: nama pair (A / B) = jamak -> win/lose, nama tunggal -> wins/loses */
+    function vb(n, s, p) { return String(n).indexOf(' / ') >= 0 ? p : s; }
+    var ban = m.done ? ((a > b ? nA : b > a ? nB : '') ? '<b>' + esc(a > b ? nA : nB) + '</b> ' + vb(a > b ? nA : nB, 'wins', 'win') + ' ' + a + '-' + b + (m.tbA != null && m.tbB != null ? ' (tiebreak ' + m.tbA + '-' + m.tbB + ')' : '') : 'Finished ' + a + '-' + b)
       : 'Match in progress · games ' + a + '-' + b + ' · points ' + ptm(m, m.pA) + ':' + ptm(m, m.pB);
     var h = '<div class="rc-ban">' + ban + '</div>'
       + '<div class="rc-leg"><span><i class="rc-dot A"></i>' + esc(nA) + '</span><span><i class="rc-dot B"></i>' + esc(nB) + '</span></div>';
@@ -38131,11 +38142,11 @@ html.dark .rc-ev { border-top-color: rgba(236,231,218,.08); }
         if (x.x) { h += '<div class="rc-ev"><div class="rc-sc">EDIT</div><div class="rc-tx">Game score corrected to ' + esc(x.g) + '</div></div>'; return; }
         var win = x.w === 'A' ? nA : nB, lose = x.w === 'A' ? nB : nA, tx;
         var who = x.pl ? ' <b>(' + (x.tg === 'ace' ? 'ace by' : x.tg === 'winner' ? 'winner hit by' : 'error by') + ': ' + esc(x.pl) + ')</b>' : '';
-        if (x.tg === 'ace') tx = esc(win) + ' wins the point with an ace' + who;
-        else if (x.tg === 'winner') tx = esc(win) + ' wins the point with a winner' + who;
-        else if (x.tg === 'error') tx = esc(lose) + ' loses the point with an error' + who;
-        else tx = esc(win) + ' wins the point';
-        if (x.gw) tx += x.tb ? '<br><b>' + esc(win) + ' wins the tiebreak ' + esc(x.p) + ' and the match (' + esc(x.g) + ')</b>' : '<br><b>' + esc(win) + ' wins the game (' + esc(x.g) + ')</b>';
+        if (x.tg === 'ace') tx = esc(win) + ' ' + vb(win, 'wins', 'win') + ' the point with an ace' + who;
+        else if (x.tg === 'winner') tx = esc(win) + ' ' + vb(win, 'wins', 'win') + ' the point with a winner' + who;
+        else if (x.tg === 'error') tx = esc(lose) + ' ' + vb(lose, 'loses', 'lose') + ' the point with an error' + who;
+        else tx = esc(win) + ' ' + vb(win, 'wins', 'win') + ' the point';
+        if (x.gw) tx += x.tb ? '<br><b>' + esc(win) + ' ' + vb(win, 'wins', 'win') + ' the tiebreak ' + esc(x.p) + ' and the match (' + esc(x.g) + ')</b>' : '<br><b>' + esc(win) + ' ' + vb(win, 'wins', 'win') + ' the game (' + esc(x.g) + ')</b>';
         var mp = '';
         if (x.tb && !x.gw) { var pp = String(x.p).split('-'), tbT = window.tbTarget(kind, m); if (tbT && Math.max(+pp[0] || 0, +pp[1] || 0) === tbT - 1) mp = '<span class="rc-mp">MP</span>'; }
         h += '<div class="rc-ev' + (x.gw ? ' gw' : '') + '"><div class="rc-sc">' + (x.gw && !x.tb ? '---' : esc(x.p)) + '</div><i class="rc-dot ' + (x.w === 'A' ? 'A' : 'B') + '"></i>'
