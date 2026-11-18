@@ -4259,7 +4259,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.218</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.220</div>
     </div>
   </div>
 
@@ -33889,6 +33889,7 @@ body:not(.format-club-sparing) #sparingScoreHeader {
     var a = m.scoreA || 0, b = m.scoreB || 0;
     if (a > b) return 'A';
     if (b > a) return 'B';
+    if (m.tieWin === 'A' || m.tieWin === 'B') return m.tieWin; // v0.73.220: seri dipilih manual admin
     return sideRank(m.teamB, rk) < sideRank(m.teamA, rk) ? 'B' : 'A';
   }
 
@@ -42630,6 +42631,163 @@ html body #tourneyDrawView .sb-courts { grid-template-columns: 1fr !important; }
     fix(); fixMeta(); setInterval(function () { fix(); fixMeta(); }, 1500);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
+<script id="codex-revision-v073219-js">
+/* v0.73.219 -- KOTH: selesainya KING COURT = round selesai.
+   Aturan user: race to 4, begitu King Court nyentuh target, court lain otomatis
+   dianggap selesai walau skornya baru 2-1 atau 1-0. Pemenang court lain = skor
+   lebih tinggi; seri dipecah rank klasemen live (decide() v179, gak disentuh).
+   Cuma override unscoredCourts(): roundFullyScored() dan SEMUA gate (Next, +Add,
+   syncNextBtnState, regen) manggil fungsi ini lewat nama global, jadi ikut.
+   Format lain: delegate ke fungsi asli, nol perubahan. */
+(function () {
+  'use strict';
+  if (typeof unscoredCourts !== 'function') return;
+  var _orig = unscoredCourts;
+  function kingDone(round) {
+    try {
+      var m = round && round.matches && round.matches[0];
+      return !!(m && (m.scoreA > 0 || m.scoreB > 0) && isMatchComplete(m));
+    } catch (e) { return false; }
+  }
+  window.unscoredCourts = function (round) {
+    if (!(typeof isKoth === 'function' && isKoth())) return _orig.apply(this, arguments);
+    if (kingDone(round)) return [];
+    return _orig.apply(this, arguments); // King belum selesai: aturan lama (semua court wajib keisi)
+  };
+  unscoredCourts = window.unscoredCourts;
+})();
+</script>
+<style id="codex-revision-v073220-css">
+/* v0.73.220: KOTH seri, pilih pemenang manual (prefix .kth-) */
+.sb-court-card .kth-tie{margin:10px 12px 12px;padding:8px 10px;border-radius:14px;display:flex;flex-direction:column;gap:8px;
+  background:rgba(160,56,56,.08);border:1px solid rgba(160,56,56,.35)}
+.sb-court-card .kth-tie.kth-done{background:rgba(93,124,28,.10);border-color:rgba(93,124,28,.45)}
+.kth-msg{font-size:12px;font-weight:700;line-height:1.3;color:#a03838}
+.kth-done .kth-msg{color:#3c5d00}
+.kth-row{display:flex;gap:8px}
+.kth-pick{flex:1;min-width:0;min-height:44px;padding:6px 10px;border-radius:12px;font:inherit;font-size:12px;font-weight:700;
+  cursor:pointer;background:#fff;color:#20270f;border:1.5px solid rgba(32,39,15,.25);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kth-pick.kth-on{background:#5d7c1c;color:#fff;border-color:#5d7c1c}
+html.dark .sb-court-card .kth-tie{background:rgba(229,115,115,.10);border-color:rgba(229,115,115,.4)}
+html.dark .sb-court-card .kth-tie.kth-done{background:rgba(148,185,70,.12);border-color:rgba(148,185,70,.5)}
+html.dark .kth-msg{color:#e57373}
+html.dark .kth-done .kth-msg{color:#a8c95a}
+html.dark .kth-pick{background:#1d2412;color:#ece7da;border-color:rgba(236,231,218,.25)}
+html.dark .kth-pick.kth-on{background:#94b946;color:#141a0c;border-color:#94b946}
+</style>
+<script id="codex-revision-v073220-js">
+/* v0.73.220 -- KOTH: seri WAJIB dipilih manual, pemenang ditandai.
+   - m.tieWin 'A'|'B' (null kalau belum). Skor berubah = pilihan dihapus.
+   - Gate (unscoredCourts) nahan Next/+Add sampai semua court seri dipilih.
+   - matchWinner() KOTH balikin tieWin pas seri, jadi dot + kotak skor
+     pemenang yang SUDAH ADA ikut nyala (admin, nonton, semua 3 tempat render).
+   - Strip .kth-tie di kartu court: admin = 2 tombol, nonton = teks doang
+     (viewer gak dapat <button>, aman dari disable-pass applyViewerUI).
+   - decide() di blok v179 ngehormati tieWin (1 baris), jadi ronde berikutnya
+     naik sesuai pilihan. Format lain: nol perubahan. */
+(function () {
+  'use strict';
+  function koth() { return typeof isKoth === 'function' && isKoth(); }
+  function viewer() { return document.body && document.body.classList.contains('viewer-mode'); }
+  function curRound() { return state && state.rounds && state.rounds[state.currentRoundIdx]; }
+  function tied(m) { return (m.scoreA || 0) === (m.scoreB || 0); }
+  function kingDone(round) {
+    var m = round && round.matches && round.matches[0];
+    return !!(m && (m.scoreA > 0 || m.scoreB > 0) && isMatchComplete(m));
+  }
+  // seri yang perlu dipilih: ada skor, atau King Court udah selesai (court lain 0-0 ikut)
+  function needsPick(m, round) { return tied(m) && !m.tieWin && ((m.scoreA > 0) || kingDone(round)); }
+  function showsStrip(m, round) { return tied(m) && ((m.scoreA > 0) || kingDone(round)); }
+
+  // ---- gate ----
+  var _unsc = window.unscoredCourts;
+  window.unscoredCourts = function (round) {
+    var base = _unsc.apply(this, arguments);
+    if (!koth() || !round || !round.matches) return base;
+    var out = base.slice();
+    round.matches.forEach(function (m, i) {
+      if (!needsPick(m, round)) return;
+      var nm = (state.courtNames && state.courtNames[i]) || ('Court ' + (i + 1));
+      if (out.indexOf(nm) < 0) out.push(nm + ' (seri, pilih pemenang)');
+    });
+    return out;
+  };
+  unscoredCourts = window.unscoredCourts;
+
+  // ---- pemenang tampilan ----
+  var _mw = window.matchWinner;
+  window.matchWinner = function (m) {
+    if (koth() && m && tied(m) && (m.tieWin === 'A' || m.tieWin === 'B')) return m.tieWin;
+    return _mw.apply(this, arguments);
+  };
+  matchWinner = window.matchWinner;
+
+  // ---- skor berubah = pilihan dihapus ----
+  var _asi = window.applyScoreInput;
+  window.applyScoreInput = function (mIdx, team, raw) {
+    var r = curRound(), m = r && r.matches && r.matches[mIdx];
+    var a0 = m && m.scoreA, b0 = m && m.scoreB;
+    var res = _asi.apply(this, arguments);
+    if (m && m.tieWin && (m.scoreA !== a0 || m.scoreB !== b0)) { m.tieWin = null; try { saveState(); } catch (e) {} }
+    return res;
+  };
+  applyScoreInput = window.applyScoreInput;
+
+  // ---- strip di kartu ----
+  function sideName(m, side) {
+    try { return (getMatchPlayerNames(m, side) || []).filter(Boolean).join(' & ') || ('Tim ' + side); } catch (e) { return 'Tim ' + side; }
+  }
+  function esc(t) { return typeof escapeHtml === 'function' ? escapeHtml(t) : String(t); }
+  function paint(i) {
+    var round = curRound(); if (!round) return;
+    var m = round.matches[i];
+    var card = document.querySelectorAll('.sb-court-card')[i];
+    if (!card || !m) return;
+    var el = card.querySelector('.kth-tie');
+    if (!koth() || !showsStrip(m, round)) { if (el) el.remove(); return; }
+    if (!el) { el = document.createElement('div'); card.appendChild(el); }
+    var picked = m.tieWin === 'A' || m.tieWin === 'B';
+    var nA = sideName(m, 'A'), nB = sideName(m, 'B');
+    el.className = 'kth-tie' + (picked ? ' kth-done' : '');
+    var msg = picked
+      ? '\u2713 Seri ' + m.scoreA + '-' + m.scoreB + '. Naik via pilihan admin: ' + esc(m.tieWin === 'A' ? nA : nB)
+      : 'Seri ' + m.scoreA + '-' + m.scoreB + '. ' + (viewer() ? 'Menunggu admin milih yang naik.' : 'Pilih tim yang naik:');
+    var html = '<div class="kth-msg">' + msg + '</div>';
+    if (!viewer()) {
+      html += '<div class="kth-row">' +
+        '<button type="button" class="kth-pick' + (m.tieWin === 'A' ? ' kth-on' : '') + '" data-kthm="' + i + '" data-kths="A">' + esc(nA) + '</button>' +
+        '<button type="button" class="kth-pick' + (m.tieWin === 'B' ? ' kth-on' : '') + '" data-kthm="' + i + '" data-kths="B">' + esc(nB) + '</button></div>';
+    }
+    if (el.innerHTML !== html) el.innerHTML = html;
+  }
+  function paintAll() { var r = curRound(); if (r && r.matches) r.matches.forEach(function (m, i) { paint(i); }); }
+
+  var _ra = window.renderAll;
+  window.renderAll = function () { var x = _ra.apply(this, arguments); try { paintAll(); } catch (e) {} return x; };
+  renderAll = window.renderAll;
+  var _rcc = window.refreshCourtCard;
+  window.refreshCourtCard = function (i) {
+    var x = _rcc.apply(this, arguments);
+    try { paint(i); if (typeof syncNextBtnState === 'function') syncNextBtnState(); } catch (e) {}
+    return x;
+  };
+  refreshCourtCard = window.refreshCourtCard;
+
+  // ---- tap pilih (delegasi, gak gantung kapan kartu dirender) ----
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest && e.target.closest('.kth-pick');
+    if (!b || viewer()) return;
+    var round = curRound(); var m = round && round.matches[+b.dataset.kthm];
+    if (!m) return;
+    var side = b.dataset.kths;
+    m.tieWin = (m.tieWin === side) ? null : side; // tap lagi = batal
+    try { saveState(); } catch (x) {}
+    try { renderAll(); } catch (x) {}
+  });
+
+  try { if (state && state.started) renderAll(); } catch (e) {}
 })();
 </script>
 </body>
