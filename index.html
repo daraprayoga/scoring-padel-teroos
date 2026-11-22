@@ -4259,7 +4259,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.222</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.223</div>
     </div>
   </div>
 
@@ -42816,7 +42816,7 @@ html.dark #ppInsights .pp-ins.pp-ins-empty .pp-ins-name{color:var(--cream-dim)}
    Best partner = yang paling sering menang bareng lo (min 1 menang), seri ->
    win rate tertinggi -> rata-rata selisih. Toughest opponent = yang paling sering
    ngalahin lo (min 1 kalah), seri -> win rate lo terendah -> selisih paling negatif.
-   Rate = (W + 0.5 D) / G. Sengaja pakai jumlah menang/kalah, bukan rate doang,
+   Rate = W / G (sama kayak Win Rate klasemen). Sengaja pakai jumlah menang/kalah, bukan rate doang,
    biar 1 game doang (1-0) gak ngalahin partner yang udah 3x menang bareng. */
 (function () {
   'use strict';
@@ -42842,7 +42842,7 @@ html.dark #ppInsights .pp-ins.pp-ins-empty .pp-ins-name{color:var(--cream-dim)}
         (inA ? m.teamB : m.teamA).forEach(function (id) { bump(opp, id, my, op); });
       });
     });
-    function rate(r) { return (r.w + 0.5 * r.d) / r.g; }
+    function rate(r) { return r.w / r.g; } // sama kayak Win Rate klasemen: seri gak dihitung menang
     function list(map) { return Object.keys(map).map(function (k) { return map[k]; }); }
     var best = list(par).filter(function (r) { return r.w > 0; }).sort(function (a, b) {
       return b.w - a.w || rate(b) - rate(a) || (b.df / b.g) - (a.df / a.g);
@@ -42852,7 +42852,7 @@ html.dark #ppInsights .pp-ins.pp-ins-empty .pp-ins-name{color:var(--cream-dim)}
     })[0] || null;
     return { best: best, hard: hard };
   }
-  function rec(r) { return r.w + '-' + r.l + (r.d ? '-' + r.d : '') + ' · ' + (r.df > 0 ? '+' : '') + r.df; }
+  function rec(r) { return r.w + '-' + r.l + (r.d ? '-' + r.d : '') + ' · ' + Math.round(100 * r.w / r.g) + '% · ' + (r.df > 0 ? '+' : '') + r.df; }
   function esc(t) { return typeof escapeHtml === 'function' ? escapeHtml(t) : String(t); }
   function card(key, r, hard, emptyTxt) {
     if (!r) return '<div class="pp-ins pp-ins-empty"><div class="pp-ins-key">' + key + '</div><div class="pp-ins-name">' + emptyTxt + '</div></div>';
