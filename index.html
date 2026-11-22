@@ -4006,11 +4006,11 @@ try {
             <p>Fix pair. Pair rotate round-robin. Pair points.</p>
           </div>
           <div class="format-card" data-format="ind_koth">
-            <h3>Individual King of the Hill</h3>
+            <h3>Individual King of the Court</h3>
             <p>Court ladder: menang naik court, kalah turun. Partner diacak tiap round. Individual points. Antrean kalau pemain lebih dari slot.</p>
           </div>
           <div class="format-card" data-format="team_koth">
-            <h3>Team King of the Hill</h3>
+            <h3>Team King of the Court</h3>
             <p>Fix pair. Court ladder: menang naik court, kalah turun. Pair points. Antrean kalau pair lebih dari slot.</p>
           </div>
           <div class="format-card" data-format="club_sparing">
@@ -4259,7 +4259,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.220</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.222</div>
     </div>
   </div>
 
@@ -4573,7 +4573,7 @@ const isMexicano = () => state.format.endsWith('_mexicano');
 // ronde Mixicano berikutnya bisa disusun dari klasemen yang semuanya masih 0,
 // persis yang kriteria #4 mau cegah. Dibikin satu predikat, bukan 4 kondisi
 // paralel, supaya penambahan format rank-based berikutnya gak kelewat lagi.
-// v0.73.179: King of the Hill (ind_koth / team_koth). Round berikutnya dibangun dari
+// v0.73.179: King of the Court (ind_koth / team_koth). Round berikutnya dibangun dari
 // HASIL round sebelumnya (menang naik court, kalah turun), jadi ikut standings-driven:
 // gate skor Next/Add + regen ronde unscored dipakai apa adanya. Const, jadi gak bisa
 // di-override dari block lain -- makanya diedit langsung di sini.
@@ -33838,7 +33838,7 @@ body:not(.format-club-sparing) #sparingScoreHeader {
 </script>
 <script id="codex-revision-v073179-js">
 /* ============================================================
-   v0.73.179 -- MODE BARU: KING OF THE HILL (ind_koth + team_koth)
+   v0.73.179 -- MODE BARU: KING OF THE COURT (ind_koth + team_koth)
 
    Aturan (dikonfirmasi user):
    - Court 1 = "King Court". Tiap round: pemenang naik 1 court,
@@ -34042,8 +34042,8 @@ body:not(.format-club-sparing) #sparingScoreHeader {
   // ---- label ----
   var _fl = formatLabel;
   formatLabel = function (f) {
-    if (f === 'ind_koth') return 'Individual King of the Hill';
-    if (f === 'team_koth') return 'Team King of the Hill';
+    if (f === 'ind_koth') return 'Individual King of the Court';
+    if (f === 'team_koth') return 'Team King of the Court';
     return _fl.apply(this, arguments);
   };
 
@@ -34097,7 +34097,7 @@ body:not(.format-club-sparing) #sparingScoreHeader {
   var _usv = updateStepperVals;
   updateStepperVals = function () {
     var r = _usv.apply(this, arguments);
-    // kotak Info di config team bilang "4 pairs per court" (default format lain): koreksi buat KOTH
+    // kotak Info di config team bilang "4 pairs per court" (default format lain): koreksi buat KOTC
     try {
       var lab = [].slice.call(document.querySelectorAll('#configTeam .control > label')).filter(function (l) {
         return l.textContent.trim().toLowerCase() === 'info';
@@ -34153,7 +34153,7 @@ body:not(.format-club-sparing) #sparingScoreHeader {
 
   // Race boot: render pertama (restore localStorage / snapshot Firebase viewer) bisa kejadian
   // SEBELUM block ini keinstall -> label format & "SITTING OUT" tampil versi lama sampai
-  // render berikutnya. Render ulang sekali kalau sesi yang lagi jalan itu KOTH.
+  // render berikutnya. Render ulang sekali kalau sesi yang lagi jalan itu KOTC.
   try {
     if (isKoth()) {
       if (typeof updateStepperVals === 'function') updateStepperVals();
@@ -34589,7 +34589,7 @@ html.dark .status-player-card.is-rest {
   //
   // isAvailable() (~6474) sudah generik: cuma cek `=== 'available'`,
   // jadi status baru 'rest' OTOMATIS ke-treat sebagai "gak main" di
-  // SEMUA jalur pairing (Americano individu/tim, Mexicano, KOTH,
+  // SEMUA jalur pairing (Americano individu/tim, Mexicano, KOTC,
   // Sparing) tanpa nyentuh satupun fungsi pairing/fairness -- gak ada
   // resiko regresi ke kriteria RUN TEST yang udah divalidasi.
   //
@@ -34629,7 +34629,7 @@ html.dark .status-player-card.is-rest {
   // pakai `function renderPlayerStatus(){}` di top level, jadi
   // reassignment ini kepakein otomatis oleh SEMUA caller lama (listener
   // openStatusBtn ~10280, dan pemanggilan diri sendiri di dalam handler
-  // klik), persis pola override generateRound/formatLabel di block KOTH.
+  // klik), persis pola override generateRound/formatLabel di block KOTC.
   renderPlayerStatus = function () {
     var list = document.getElementById('statusList');
     list.innerHTML = '';
@@ -42634,7 +42634,7 @@ html body #tourneyDrawView .sb-courts { grid-template-columns: 1fr !important; }
 })();
 </script>
 <script id="codex-revision-v073219-js">
-/* v0.73.219 -- KOTH: selesainya KING COURT = round selesai.
+/* v0.73.219 -- KOTC: selesainya KING COURT = round selesai.
    Aturan user: race to 4, begitu King Court nyentuh target, court lain otomatis
    dianggap selesai walau skornya baru 2-1 atau 1-0. Pemenang court lain = skor
    lebih tinggi; seri dipecah rank klasemen live (decide() v179, gak disentuh).
@@ -42660,7 +42660,7 @@ html body #tourneyDrawView .sb-courts { grid-template-columns: 1fr !important; }
 })();
 </script>
 <style id="codex-revision-v073220-css">
-/* v0.73.220: KOTH seri, pilih pemenang manual (prefix .kth-) */
+/* v0.73.220: KOTC seri, pilih pemenang manual (prefix .kth-) */
 .sb-court-card .kth-tie{margin:10px 12px 12px;padding:8px 10px;border-radius:14px;display:flex;flex-direction:column;gap:8px;
   background:rgba(160,56,56,.08);border:1px solid rgba(160,56,56,.35)}
 .sb-court-card .kth-tie.kth-done{background:rgba(93,124,28,.10);border-color:rgba(93,124,28,.45)}
@@ -42678,10 +42678,10 @@ html.dark .kth-pick{background:#1d2412;color:#ece7da;border-color:rgba(236,231,2
 html.dark .kth-pick.kth-on{background:#94b946;color:#141a0c;border-color:#94b946}
 </style>
 <script id="codex-revision-v073220-js">
-/* v0.73.220 -- KOTH: seri WAJIB dipilih manual, pemenang ditandai.
+/* v0.73.220 -- KOTC: seri WAJIB dipilih manual, pemenang ditandai.
    - m.tieWin 'A'|'B' (null kalau belum). Skor berubah = pilihan dihapus.
    - Gate (unscoredCourts) nahan Next/+Add sampai semua court seri dipilih.
-   - matchWinner() KOTH balikin tieWin pas seri, jadi dot + kotak skor
+   - matchWinner() KOTC balikin tieWin pas seri, jadi dot + kotak skor
      pemenang yang SUDAH ADA ikut nyala (admin, nonton, semua 3 tempat render).
    - Strip .kth-tie di kartu court: admin = 2 tombol, nonton = teks doang
      (viewer gak dapat <button>, aman dari disable-pass applyViewerUI).
@@ -42788,6 +42788,95 @@ html.dark .kth-pick.kth-on{background:#94b946;color:#141a0c;border-color:#94b946
   });
 
   try { if (state && state.started) renderAll(); } catch (e) {}
+})();
+</script>
+<style id="codex-revision-v073222-css">
+/* v0.73.222: Best partner + Toughest opponent di kartu stat personal (prefix .pp-ins) */
+#ppInsights{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 20px 14px;flex-shrink:0}
+#ppInsights.pp-ins-one{grid-template-columns:1fr}
+#ppInsights .pp-ins{background:rgba(255,255,255,0.65);border:1px solid rgba(82,102,39,0.12);border-radius:12px;padding:10px 12px;min-width:0}
+#ppInsights .pp-ins-key{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#6c8633}
+#ppInsights .pp-ins-name{font-size:14px;font-weight:800;line-height:1.25;color:#2f3a16;margin-top:4px;overflow-wrap:anywhere;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#ppInsights .pp-ins-sub{font-size:11px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums;color:#526627}
+#ppInsights .pp-ins.pp-ins-hard .pp-ins-sub{color:#a03838}
+#ppInsights .pp-ins.pp-ins-empty .pp-ins-name{color:#6c8633;font-weight:700}
+html.dark #ppInsights .pp-ins{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.12)}
+html.dark #ppInsights .pp-ins-key{color:var(--cream-dim)}
+html.dark #ppInsights .pp-ins-name{color:var(--cream)}
+html.dark #ppInsights .pp-ins-sub{color:#a8c95a}
+html.dark #ppInsights .pp-ins.pp-ins-hard .pp-ins-sub{color:#e57373}
+html.dark #ppInsights .pp-ins.pp-ins-empty .pp-ins-name{color:var(--cream-dim)}
+</style>
+<script id="codex-revision-v073222-js">
+/* v0.73.222 -- kartu stat personal: Best partner + Toughest opponent.
+   Dihitung dari match TERSKOR (bukan 0-0) di state.rounds, tanpa nyentuh
+   computeStandings / pairing. Format team (pair tetap): Best partner
+   disembunyiin (partner = pair-nya sendiri), Toughest opponent = pair lawan.
+   Best partner = yang paling sering menang bareng lo (min 1 menang), seri ->
+   win rate tertinggi -> rata-rata selisih. Toughest opponent = yang paling sering
+   ngalahin lo (min 1 kalah), seri -> win rate lo terendah -> selisih paling negatif.
+   Rate = (W + 0.5 D) / G. Sengaja pakai jumlah menang/kalah, bukan rate doang,
+   biar 1 game doang (1-0) gak ngalahin partner yang udah 3x menang bareng. */
+(function () {
+  'use strict';
+  function nameOf(id) {
+    if (isTeam()) { var p = state.pairNames && state.pairNames[id]; return p ? p.filter(Boolean).join(' & ') : 'Pair ' + (id + 1); }
+    return (state.playerNames && state.playerNames[id]) || ('P' + (id + 1));
+  }
+  function bump(map, id, my, op) {
+    var r = map[id] || (map[id] = { id: id, g: 0, w: 0, l: 0, d: 0, df: 0 });
+    r.g++; r.df += my - op;
+    if (my > op) r.w++; else if (my < op) r.l++; else r.d++;
+  }
+  function calc(pid) {
+    var par = {}, opp = {};
+    (state.rounds || []).forEach(function (rd) {
+      if (!rd || !rd.matches) return;
+      rd.matches.forEach(function (m) {
+        var inA = m.teamA.indexOf(pid) >= 0, inB = m.teamB.indexOf(pid) >= 0;
+        if (!inA && !inB) return;
+        if (!(m.scoreA > 0 || m.scoreB > 0)) return;
+        var my = inA ? m.scoreA : m.scoreB, op = inA ? m.scoreB : m.scoreA;
+        (inA ? m.teamA : m.teamB).forEach(function (id) { if (id !== pid) bump(par, id, my, op); });
+        (inA ? m.teamB : m.teamA).forEach(function (id) { bump(opp, id, my, op); });
+      });
+    });
+    function rate(r) { return (r.w + 0.5 * r.d) / r.g; }
+    function list(map) { return Object.keys(map).map(function (k) { return map[k]; }); }
+    var best = list(par).filter(function (r) { return r.w > 0; }).sort(function (a, b) {
+      return b.w - a.w || rate(b) - rate(a) || (b.df / b.g) - (a.df / a.g);
+    })[0] || null;
+    var hard = list(opp).filter(function (r) { return r.l > 0; }).sort(function (a, b) {
+      return b.l - a.l || rate(a) - rate(b) || (a.df / a.g) - (b.df / b.g);
+    })[0] || null;
+    return { best: best, hard: hard };
+  }
+  function rec(r) { return r.w + '-' + r.l + (r.d ? '-' + r.d : '') + ' · ' + (r.df > 0 ? '+' : '') + r.df; }
+  function esc(t) { return typeof escapeHtml === 'function' ? escapeHtml(t) : String(t); }
+  function card(key, r, hard, emptyTxt) {
+    if (!r) return '<div class="pp-ins pp-ins-empty"><div class="pp-ins-key">' + key + '</div><div class="pp-ins-name">' + emptyTxt + '</div></div>';
+    return '<div class="pp-ins' + (hard ? ' pp-ins-hard' : '') + '"><div class="pp-ins-key">' + key + '</div><div class="pp-ins-name">' +
+      esc(nameOf(r.id)) + '</div><div class="pp-ins-sub">' + rec(r) + ' · ' + r.g + 'x</div></div>';
+  }
+  function render(pid) {
+    var grid = document.getElementById('ppStatsGrid'); if (!grid) return;
+    var host = document.getElementById('ppInsights');
+    if (!host) { host = document.createElement('div'); host.id = 'ppInsights'; grid.parentNode.insertBefore(host, grid.nextSibling); }
+    var c = calc(pid), team = isTeam();
+    host.className = team ? 'pp-ins-one' : '';
+    host.innerHTML = (team ? '' : card('Best partner', c.best, false, 'Belum ada')) +
+      card('Toughest opponent', c.hard, true, 'Belum pernah kalah');
+  }
+  var _sp = window.showPlayerProfile;
+  if (typeof _sp === 'function') {
+    window.showPlayerProfile = function (playerId) {
+      var r = _sp.apply(this, arguments);
+      try { render(playerId); } catch (e) { console.warn('[v222] insights', e); }
+      return r;
+    };
+    try { showPlayerProfile = window.showPlayerProfile; } catch (e) {}
+  }
 })();
 </script>
 </body>
