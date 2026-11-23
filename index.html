@@ -4259,7 +4259,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.223</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.224</div>
     </div>
   </div>
 
@@ -42798,14 +42798,19 @@ html.dark .kth-pick.kth-on{background:#94b946;color:#141a0c;border-color:#94b946
 #ppInsights .pp-ins-key{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#6c8633}
 #ppInsights .pp-ins-name{font-size:14px;font-weight:800;line-height:1.25;color:#2f3a16;margin-top:4px;overflow-wrap:anywhere;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-#ppInsights .pp-ins-sub{font-size:11px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums;color:#526627}
-#ppInsights .pp-ins.pp-ins-hard .pp-ins-sub{color:#a03838}
+#ppInsights .pp-ins-pct{font-size:30px;font-weight:900;line-height:1;letter-spacing:-1px;margin-top:8px;font-variant-numeric:tabular-nums;color:#526627}
+#ppInsights .pp-ins-pct span{font-size:16px;font-weight:800;letter-spacing:0;margin-left:1px}
+#ppInsights .pp-ins-games{font-size:12px;font-weight:800;margin-top:5px;color:#2f3a16}
+#ppInsights .pp-ins-rec{font-size:11px;font-weight:600;margin-top:2px;color:#6c8633;font-variant-numeric:tabular-nums}
+#ppInsights .pp-ins.pp-ins-hard .pp-ins-pct{color:#a03838}
 #ppInsights .pp-ins.pp-ins-empty .pp-ins-name{color:#6c8633;font-weight:700}
 html.dark #ppInsights .pp-ins{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.12)}
 html.dark #ppInsights .pp-ins-key{color:var(--cream-dim)}
 html.dark #ppInsights .pp-ins-name{color:var(--cream)}
-html.dark #ppInsights .pp-ins-sub{color:#a8c95a}
-html.dark #ppInsights .pp-ins.pp-ins-hard .pp-ins-sub{color:#e57373}
+html.dark #ppInsights .pp-ins-pct{color:#a8c95a}
+html.dark #ppInsights .pp-ins-games{color:var(--cream)}
+html.dark #ppInsights .pp-ins-rec{color:var(--cream-dim)}
+html.dark #ppInsights .pp-ins.pp-ins-hard .pp-ins-pct{color:#e57373}
 html.dark #ppInsights .pp-ins.pp-ins-empty .pp-ins-name{color:var(--cream-dim)}
 </style>
 <script id="codex-revision-v073222-js">
@@ -42852,12 +42857,15 @@ html.dark #ppInsights .pp-ins.pp-ins-empty .pp-ins-name{color:var(--cream-dim)}
     })[0] || null;
     return { best: best, hard: hard };
   }
-  function rec(r) { return r.w + '-' + r.l + (r.d ? '-' + r.d : '') + ' · ' + Math.round(100 * r.w / r.g) + '% · ' + (r.df > 0 ? '+' : '') + r.df; }
   function esc(t) { return typeof escapeHtml === 'function' ? escapeHtml(t) : String(t); }
   function card(key, r, hard, emptyTxt) {
     if (!r) return '<div class="pp-ins pp-ins-empty"><div class="pp-ins-key">' + key + '</div><div class="pp-ins-name">' + emptyTxt + '</div></div>';
-    return '<div class="pp-ins' + (hard ? ' pp-ins-hard' : '') + '"><div class="pp-ins-key">' + key + '</div><div class="pp-ins-name">' +
-      esc(nameOf(r.id)) + '</div><div class="pp-ins-sub">' + rec(r) + ' · ' + r.g + 'x</div></div>';
+    var rc = r.w + ' menang \u00b7 ' + r.l + ' kalah' + (r.d ? ' \u00b7 ' + r.d + ' seri' : '');
+    return '<div class="pp-ins' + (hard ? ' pp-ins-hard' : '') + '"><div class="pp-ins-key">' + key + '</div>' +
+      '<div class="pp-ins-name">' + esc(nameOf(r.id)) + '</div>' +
+      '<div class="pp-ins-pct">' + Math.round(100 * r.w / r.g) + '<span>%</span></div>' +
+      '<div class="pp-ins-games">' + r.g + 'x main</div>' +
+      '<div class="pp-ins-rec">' + rc + '</div></div>';
   }
   function render(pid) {
     var grid = document.getElementById('ppStatsGrid'); if (!grid) return;
