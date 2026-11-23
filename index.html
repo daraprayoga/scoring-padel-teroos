@@ -4259,7 +4259,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.224</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.225</div>
     </div>
   </div>
 
@@ -42885,6 +42885,105 @@ html.dark #ppInsights .pp-ins.pp-ins-empty .pp-ins-name{color:var(--cream-dim)}
     };
     try { showPlayerProfile = window.showPlayerProfile; } catch (e) {}
   }
+})();
+</script>
+<style id="codex-revision-v073225-css">
+/* v0.73.225: KOTC, juara = pemenang terakhir di King Court (prefix .kth-) */
+.kth-king{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:999px;font-size:9px;font-weight:900;letter-spacing:1.2px;
+  vertical-align:middle;background:rgba(139,96,16,0.14);color:#8b6010;border:1px solid rgba(139,96,16,0.35)}
+.kth-champ-note{margin:0 0 10px;padding:8px 12px;border-radius:12px;font-size:12px;font-weight:700;line-height:1.35;
+  background:rgba(139,96,16,0.08);border:1px solid rgba(139,96,16,0.25);color:#6b4a0c}
+html.dark .kth-king{background:rgba(226,195,124,0.14);color:#e2c37c;border-color:rgba(226,195,124,0.4)}
+html.dark .kth-champ-note{background:rgba(226,195,124,0.08);border-color:rgba(226,195,124,0.25);color:#e2c37c}
+</style>
+<script id="codex-revision-v073225-js">
+/* v0.73.225 -- KOTC: JUARA = pemenang terakhir di King Court, bukan jumlah menang.
+   - kingChampIds(): round TERAKHIR yang King Court-nya (match index 0) udah
+     selesai (isMatchComplete atau tieWin), atau round lama yang udah dilewati
+     round berikutnya, atau sesi udah ended. Pemenang = sisi pemenang match itu
+     (team: 1 pair, individu: 2 pemain = juara bareng).
+   - computeStandings(): di KOTC, juara dipaksa di atas (urutan lama dipertahankan
+     di dalam grup juara dan di sisanya). Semua konsumen (tabel, podium, share,
+     story) manggil computeStandings() lewat nama global, jadi ikut tanpa disentuh.
+   - podiumUnsplittable/podiumRankNotes: co-juara individu berbagi peringkat 1,
+     dan catatan podium gak ngarang alasan "menang lebih banyak".
+   Format lain: delegate persis ke fungsi asli. */
+(function () {
+  'use strict';
+  function koth() { return typeof isKoth === 'function' && isKoth(); }
+  function champIds() {
+    var R = (state && state.rounds) || [];
+    for (var i = R.length - 1; i >= 0; i--) {
+      var m = R[i] && R[i].matches && R[i].matches[0];
+      if (!m || !(m.scoreA > 0 || m.scoreB > 0)) continue;
+      var last = (i === R.length - 1);
+      var done = isMatchComplete(m) || m.tieWin === 'A' || m.tieWin === 'B' || !last || !!state.ended;
+      if (!done) continue;
+      var w = matchWinner(m);
+      if (w === 'A') return m.teamA.slice();
+      if (w === 'B') return m.teamB.slice();
+    }
+    return null;
+  }
+  var _cs = window.computeStandings;
+  window.computeStandings = function () {
+    var arr = _cs.apply(this, arguments);
+    if (!koth()) return arr;
+    var ch = champIds();
+    if (!ch || !ch.length) return arr;
+    var top = [], rest = [];
+    arr.forEach(function (s) { if (ch.indexOf(s.id) >= 0) { s.kingChamp = true; top.push(s); } else rest.push(s); });
+    return top.concat(rest);
+  };
+  computeStandings = window.computeStandings;
+
+  var _pu = window.podiumUnsplittable;
+  window.podiumUnsplittable = function (a, b) {
+    if (koth() && (a.kingChamp || b.kingChamp)) return !!(a.kingChamp && b.kingChamp);
+    return _pu.apply(this, arguments);
+  };
+  podiumUnsplittable = window.podiumUnsplittable;
+
+  var _prn = window.podiumRankNotes;
+  window.podiumRankNotes = function (entries, labelOf) {
+    var out = _prn.apply(this, arguments);
+    if (!koth()) return out;
+    try {
+      entries.forEach(function (e, i) {
+        if (!e.s.kingChamp) return;
+        var mates = entries.filter(function (o, j) { return j !== i && o.s.kingChamp; }).map(function (o) { return o.s.name; });
+        out[i] = ['Menang terakhir di King Court' + (mates.length ? ' bareng ' + mates.join(' & ') : '')];
+      });
+    } catch (x) {}
+    return out;
+  };
+  podiumRankNotes = window.podiumRankNotes;
+
+  // tabel klasemen: pill KING + catatan aturan
+  var _ust = window.updateStandingTable;
+  window.updateStandingTable = function () {
+    var r = _ust.apply(this, arguments);
+    try {
+      var tbl = document.getElementById('standingTable');
+      var note = document.getElementById('kthChampNote');
+      var ch = koth() ? champIds() : null;
+      if (note && (!ch || !tbl)) note.remove();
+      if (ch && tbl) {
+        if (!note) {
+          note = document.createElement('div'); note.id = 'kthChampNote'; note.className = 'kth-champ-note';
+          note.textContent = 'KOTC: juara = pemenang terakhir di King Court, bukan jumlah menang. Urutan di bawahnya ikut klasemen.';
+          tbl.parentNode.insertBefore(note, tbl);
+        }
+        document.querySelectorAll('#standingBody tr[data-eid]').forEach(function (tr) {
+          if (ch.indexOf(+tr.dataset.eid) < 0) return;
+          var c = tr.querySelector('.player-name-cell');
+          if (c && !c.querySelector('.kth-king')) c.insertAdjacentHTML('beforeend', '<span class="kth-king">KING</span>');
+        });
+      }
+    } catch (x) {}
+    return r;
+  };
+  updateStandingTable = window.updateStandingTable;
 })();
 </script>
 </body>
