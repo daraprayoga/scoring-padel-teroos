@@ -4259,7 +4259,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.225</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.226</div>
     </div>
   </div>
 
@@ -42984,6 +42984,174 @@ html.dark .kth-champ-note{background:rgba(226,195,124,0.08);border-color:rgba(22
     return r;
   };
   updateStandingTable = window.updateStandingTable;
+})();
+</script>
+<style id="codex-revision-v073226-css">
+/* v0.73.226: KOTC Timeline (prefix .kth-tl) */
+.kth-tlseg{display:flex;background:rgba(82,102,39,0.10);border-radius:999px;padding:3px;margin:0 0 10px}
+.kth-tlseg button{flex:1;border:0;background:transparent;padding:8px 0;border-radius:999px;font:inherit;font-weight:800;font-size:13px;color:#526627;cursor:pointer}
+.kth-tlseg button.on{background:#5d7c1c;color:#fff}
+.kth-tlcard{background:#fbfaf5;border:1px solid #e3ddc8;border-radius:16px;margin:0 0 10px;overflow:hidden}
+.kth-tlhead{display:flex;justify-content:space-between;align-items:center;padding:8px 12px 6px}
+.kth-tlhead b{font-size:12px;letter-spacing:.14em;color:#526627}
+.kth-tlhead i{font-style:normal;font-size:10px;font-weight:800;letter-spacing:.12em;color:#9a7424}
+.kth-tlrow{display:grid;grid-template-columns:54px 1fr auto;gap:8px;align-items:center;padding:6px 12px;border-top:1px solid #efeadb}
+.kth-tlrow.kc{background:linear-gradient(90deg,#f6ecd0,#fbf6e6)}
+.kth-tlrow .l{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:13px;font-weight:700;line-height:1.1;color:#6c8633}
+.kth-tlrow.kc .l{color:#9a7424}
+.kth-tlrow .t div{font-size:12.5px;font-weight:800;text-transform:uppercase;line-height:1.3;color:#7d8c5a}
+.kth-tlrow .t div.w{color:#1f2a10}
+.kth-tlrow .t div.w:before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:#c8a45a;margin-right:6px;vertical-align:middle}
+.kth-tlrow .sc{display:flex;gap:4px}
+.kth-tlrow .sc em{font-style:normal;font-weight:900;font-size:14px;min-width:26px;height:25px;border-radius:7px;display:flex;align-items:center;justify-content:center;background:#ecebe0;color:#8a8a70}
+.kth-tlrow .sc em.w{background:#526627;color:#fff}
+.kth-tlrow.empty{opacity:.55}
+.kth-tltag{display:inline-block;margin-left:6px;padding:0 6px;border-radius:999px;font-size:9px;font-weight:900;letter-spacing:1px;background:#c8a45a;color:#fff;vertical-align:middle;font-style:normal}
+.kth-tlcard.share{margin:0 0 7px}
+.kth-tlcard.share .kth-tlrow{padding:4px 12px}
+.kth-tlcard.share .kth-tlhead{padding:6px 12px 4px}
+.kth-tlcard.share .kth-tlrow .t div{font-size:12px;line-height:1.25}
+.kth-tlpage-list{display:flex;flex-direction:column;width:100%;max-width:1100px;margin:0 auto}
+.kth-podnote{margin:2px 14px 10px;padding:8px 12px;border-radius:12px;font-size:12px;font-weight:700;line-height:1.35;text-align:center;
+  background:#efe6cf;border:1px solid #e0d2a6;color:#7a5a14}
+html.dark #kthTl .kth-tlcard{background:#232a17;border-color:rgba(236,231,218,0.12)}
+html.dark #kthTl .kth-tlhead b{color:#cfe3a0}
+html.dark #kthTl .kth-tlrow{border-top-color:rgba(236,231,218,0.08)}
+html.dark #kthTl .kth-tlrow.kc{background:linear-gradient(90deg,rgba(226,195,124,0.16),rgba(226,195,124,0.05))}
+html.dark #kthTl .kth-tlrow .t div{color:rgba(236,231,218,0.55)}
+html.dark #kthTl .kth-tlrow .t div.w{color:#ece7da}
+html.dark #kthTl .kth-tlrow .sc em{background:rgba(236,231,218,0.10);color:rgba(236,231,218,0.55)}
+html.dark #kthTl .kth-tlrow .sc em.w{background:#5d7c1c;color:#fff}
+html.dark .kth-tlseg{background:rgba(236,231,218,0.08)}
+html.dark .kth-tlseg button{color:#cfe3a0}
+html.dark .kth-tlseg button.on{color:#fff}
+</style>
+<script id="codex-revision-v073226-js">
+/* v0.73.226 -- KOTC Timeline.
+   - Klasemen in-app: toggle Klasemen | Timeline (cuma KOTC). Timeline = kartu per round,
+     terbaru di atas; baris King Court (match index 0) di-highlight; pemenang tebal + titik emas.
+   - Share podium (KOTC): halaman "Round Timeline" (kronologis, 3 round/halaman) menggantikan
+     "Results" flat, ditaruh SETELAH podium dan SEBELUM Full Standings. Full Standings dapat
+     keterangan KOTC. Format lain: gak berubah sama sekali.
+   - Pemenang baris = matchWinner(m) (hormati tieWin v220). Court yang belum dimainkan tampil redup "-".
+   - Nama pair/pemain lewat getMatchPlayerNames(m,'A'|'B') (team: 1 pair, individu: 2 pemain "A & B"). */
+(function () {
+  'use strict';
+  var NOTE = 'KOTC: juara = tim <b>terakhir yang menang di King Court</b>, bukan yang paling banyak menang. Urutan di bawahnya ikut klasemen.';
+  function koth() { return typeof isKoth === 'function' && isKoth(); }
+  function esc(t) { return typeof escapeHtml === 'function' ? escapeHtml(t) : String(t); }
+  function side(m, s) {
+    var n = []; try { n = getMatchPlayerNames(m, s) || []; } catch (e) {}
+    return esc(n.filter(Boolean).join(' & ') || '-');
+  }
+  function courtName(i) { return (state.courtNames && state.courtNames[i]) || (i === 0 ? 'King Court' : 'Court ' + (i + 1)); }
+  function played(m) { return m && (m.scoreA > 0 || m.scoreB > 0); }
+  function roundPlayed(r) { return r && r.matches && r.matches.some(played); }
+  function playedRounds() {
+    var out = [];
+    (state.rounds || []).forEach(function (r, i) { if (roundPlayed(r)) out.push(i); });
+    return out;
+  }
+  function cardHtml(ri, share) {
+    var R = state.rounds[ri], last = (ri === state.rounds.length - 1);
+    var h = '<div class="kth-tlcard' + (share ? ' share' : '') + '"><div class="kth-tlhead"><b>ROUND ' + (ri + 1) + '</b>' + (last && state.ended ? '<i>FINAL</i>' : '') + '</div>';
+    R.matches.forEach(function (m, ci) {
+      var pl = played(m), w = null;
+      if (pl) { try { w = matchWinner(m); } catch (e) { w = m.scoreA > m.scoreB ? 'A' : (m.scoreB > m.scoreA ? 'B' : null); } }
+      h += '<div class="kth-tlrow' + (ci === 0 ? ' kc' : '') + (pl ? '' : ' empty') + '"><div class="l">' + esc(courtName(ci)) + '</div>' +
+        '<div class="t"><div class="' + (w === 'A' ? 'w' : '') + '">' + side(m, 'A') + '</div><div class="' + (w === 'B' ? 'w' : '') + '">' + side(m, 'B') + '</div></div>' +
+        '<div class="sc"><em class="' + (w === 'A' ? 'w' : '') + '">' + (pl ? m.scoreA : '-') + '</em><em class="' + (w === 'B' ? 'w' : '') + '">' + (pl ? m.scoreB : '-') + '</em></div></div>';
+    });
+    return h + '</div>';
+  }
+
+  /* ---------- in-app Klasemen | Timeline ---------- */
+  window.__kthTlMode = window.__kthTlMode || 'table';
+  function champBanner() {
+    try {
+      var cs = computeStandings(); var top = cs && cs[0]; if (!top || !top.kingChamp) return '';
+      var ids = cs.filter(function (s) { return s.kingChamp; }).map(function (s) { return s.name; });
+      return '<div class="kth-champ-note">Juara KOTC: <b>' + esc(ids.join(' & ')) + '</b>, pemenang terakhir di King Court.</div>';
+    } catch (e) { return ''; }
+  }
+  function syncTimeline() {
+    var page = document.getElementById('sbPageStandings'); if (!page) return;
+    var wrap = page.querySelector('.sb-standings-wrap'); if (!wrap) return;
+    var tog = document.getElementById('kthTlTog'), tl = document.getElementById('kthTl');
+    if (!koth()) {
+      if (tog) tog.remove(); if (tl) tl.remove();
+      [].forEach.call(wrap.children, function (c) { c.style.removeProperty('display'); });
+      return;
+    }
+    if (!tog) {
+      tog = document.createElement('div'); tog.id = 'kthTlTog'; tog.className = 'kth-tlseg';
+      tog.innerHTML = '<button type="button" data-m="table">Klasemen</button><button type="button" data-m="timeline">Timeline</button>';
+      tog.addEventListener('click', function (e) {
+        var b = e.target.closest('button[data-m]'); if (!b) return;
+        window.__kthTlMode = b.dataset.m; syncTimeline();
+      });
+      wrap.insertBefore(tog, wrap.firstChild);
+    }
+    if (!tl) { tl = document.createElement('div'); tl.id = 'kthTl'; wrap.appendChild(tl); }
+    var m = window.__kthTlMode;
+    [].forEach.call(tog.children, function (b) { b.classList.toggle('on', b.dataset.m === m); });
+    [].forEach.call(wrap.children, function (c) {
+      if (c === tog || c === tl) return;
+      if (m === 'timeline') c.style.setProperty('display', 'none', 'important'); else c.style.removeProperty('display');
+    });
+    if (m === 'timeline') {
+      var rs = playedRounds().reverse();
+      tl.style.display = '';
+      tl.innerHTML = champBanner() + (rs.length ? rs.map(function (i) { return cardHtml(i, false); }).join('') :
+        '<div class="kth-champ-note">Belum ada match yang dimainkan.</div>');
+    } else { tl.style.display = 'none'; tl.innerHTML = ''; }
+  }
+  var _us = window.updateStandingTable;
+  window.updateStandingTable = function () {
+    var r = _us.apply(this, arguments);
+    try { syncTimeline(); } catch (e) { console.warn('[v226] timeline', e); }
+    return r;
+  };
+  updateStandingTable = window.updateStandingTable;
+
+  /* ---------- share podium ---------- */
+  var _br = window.buildResultsPages || buildResultsPages;
+  window.buildResultsPages = function () {
+    if (!koth()) return _br.apply(this, arguments);
+    var rs = playedRounds(); if (!rs.length) return '';
+    var PER = 3, pages = Math.ceil(rs.length / PER), html = '';
+    var title = esc(state.tournamentName || 'Mabar Padel');
+    for (var p = 0; p < pages; p++) {
+      var part = rs.slice(p * PER, (p + 1) * PER);
+      html += '<div class="podium-results-page kth-tlpage"><div class="podium-results-header"><h2>Round Timeline' + (pages > 1 ? ' ' + (p + 1) + '/' + pages : '') + '</h2>' +
+        '<div class="results-sub">' + title + ' · ' + rs.length + ' rounds</div></div>' +
+        '<div class="kth-tlpage-list">' + part.map(function (i) { return cardHtml(i, true); }).join('') + '</div>' +
+        '<div class="podium-results-footer"><div class="podium-footer-brand">Scoring by padel<span>.</span>teroos</div>' + podiumSocialFooter() + '</div></div>';
+    }
+    return html;
+  };
+  buildResultsPages = window.buildResultsPages;
+
+  var _sp = window.showPodium;
+  window.showPodium = function () {
+    var r = _sp.apply(this, arguments);
+    try {
+      if (!koth()) return r;
+      var c = document.getElementById('podiumContent'); if (!c) return r;
+      var first = c.querySelector('.podium-page-2');
+      c.querySelectorAll('.kth-tlpage').forEach(function (pg) { if (first) c.insertBefore(pg, first); });
+      c.querySelectorAll('.podium-page-2').forEach(function (pg) {
+        if (pg.querySelector('.kth-podnote')) return;
+        var wrapEl = pg.querySelector('.podium-standings-table-wrap'); if (!wrapEl) return;
+        var n = document.createElement('div'); n.className = 'kth-podnote'; n.innerHTML = NOTE;
+        wrapEl.parentNode.insertBefore(n, wrapEl);
+      });
+      var hint = c.querySelector('.podium-page-1 .podium-scroll-hint span');
+      if (hint && c.querySelector('.kth-tlpage')) hint.textContent = 'Round Timeline';
+    } catch (e) { console.warn('[v226] podium', e); }
+    return r;
+  };
+  showPodium = window.showPodium;
 })();
 </script>
 </body>
