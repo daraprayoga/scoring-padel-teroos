@@ -4259,7 +4259,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.229</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.230</div>
     </div>
   </div>
 
@@ -43245,5 +43245,16 @@ html.dark .kth-tlseg button.on{color:#fff}
   } catch (e) {}
 })();
 </script>
+<style id="codex-revision-v073230-css">
+/* v0.73.230: Results (podium) -- warna baris selang-seling (zebra), BUKAN ikut sisi pemenang.
+   Sebelumnya .row-win (menang kiri/tim A) = lebih terang, menang kanan = lebih gelap. Sekarang
+   semua baris sama, genap sedikit lebih gelap. Pemenang tetap ditandai dot + teks tebal + skor hijau. */
+.result-row.row-win{background:rgba(255,255,255,0.5);border-color:rgba(82,102,39,0.12)}
+.podium-results-list .result-row:nth-child(even){background:rgba(82,102,39,0.09) !important}
+.podium-results-list .result-row:nth-child(odd){background:rgba(255,255,255,0.55) !important}
+html.dark .podium-results-list .result-row:nth-child(even){background:rgba(255,255,255,0.085) !important}
+html.dark .podium-results-list .result-row:nth-child(odd){background:rgba(255,255,255,0.03) !important}
+html.dark .result-row.row-win{border-color:rgba(255,255,255,0.10) !important}
+</style>
 </body>
 </html>
