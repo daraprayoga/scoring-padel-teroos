@@ -4259,7 +4259,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.230</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.231</div>
     </div>
   </div>
 
@@ -43156,7 +43156,7 @@ html.dark .kth-tlseg button.on{color:#fff}
 </script>
 <style id="codex-revision-v073227-css">
 /* v0.73.227: plakat "Champions" holo, reveal ala game saat podium dibuka (prefix .plq-) */
-#plqOverlay{position:fixed;inset:0;z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;
+#plqOverlay{pointer-events:auto !important;position:fixed;inset:0;z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;
   background:radial-gradient(ellipse at 50% 42%,rgba(40,56,16,0.78),rgba(8,12,3,0.92));-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
   opacity:0;animation:plqBg .35s ease-out forwards;touch-action:manipulation;cursor:pointer;overflow:hidden;perspective:900px}
 #plqOverlay.out{animation:plqBgOut .35s ease-in forwards}
@@ -43227,22 +43227,23 @@ html.dark .kth-tlseg button.on{color:#fff}
     ov.addEventListener('click', function () { close(ov); });
     timer = setTimeout(function () { close(ov); }, 8000);
   }
-  var _sp = window.showPodium;
-  window.showPodium = function () {
-    var m = document.getElementById('podiumModal');
-    var wasOpen = !!(m && m.classList.contains('show'));
-    var r = _sp.apply(this, arguments);
-    try { if (!wasOpen && m && m.classList.contains('show')) show(); } catch (e) { console.warn('[v227] plaque', e); }
-    return r;
-  };
-  showPodium = window.showPodium;
-  /* modal ditutup -> overlay ikut bersih */
-  try {
-    var pm = document.getElementById('podiumModal');
-    if (pm) new MutationObserver(function () {
-      if (!pm.classList.contains('show')) close(document.getElementById('plqOverlay'), true);
+  /* v0.73.231: trigger dari MODAL-nya (class .show), bukan dari wrapper showPodium.
+     Sebelumnya plakat bergantung ke wrapper; jalur yang buka podium tanpa lewat wrapper
+     (auto-open viewer, podium yang udah kebuka sebelum script ini jalan) gak pernah memicu plakat.
+     Sekarang: transisi tertutup -> terbuka = plakat. Re-render live (remove+add .show dalam satu
+     task) gak dianggap transisi, jadi gak muncul berulang. Tutup modal = plakat bersih. */
+  var pm = document.getElementById('podiumModal');
+  if (pm) {
+    var shown = pm.classList.contains('show');
+    function fire() { setTimeout(function () { try { if (pm.classList.contains('show')) show(); } catch (e) { console.warn('[v231] plaque', e); } }, 60); }
+    new MutationObserver(function () {
+      var now = pm.classList.contains('show');
+      if (now && !shown) fire();
+      if (!now) close(document.getElementById('plqOverlay'), true);
+      shown = now;
     }).observe(pm, { attributes: true, attributeFilter: ['class'] });
-  } catch (e) {}
+    if (shown) fire();
+  }
 })();
 </script>
 <style id="codex-revision-v073230-css">
