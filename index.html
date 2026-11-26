@@ -4259,7 +4259,7 @@ try {
       <div class="card" id="resetBtnSetupSlot" style="display:none;">
         <div class="card-title">Zona Bahaya</div>
       </div>
-      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.228</div>
+      <div style="text-align:center;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--cream-dim);opacity:0.55;padding-bottom:20px;">padel.teroos scoring · v0.73.229</div>
     </div>
   </div>
 
@@ -43176,10 +43176,6 @@ html.dark .kth-tlseg button.on{color:#fff}
   85%{transform:translateY(4px) scale(.97) rotateY(-4deg)}100%{transform:none;opacity:1}}
 @keyframes plqFloat{0%,100%{transform:translateY(0) rotateZ(-1.2deg)}50%{transform:translateY(-12px) rotateZ(1.2deg)}}
 @keyframes plqShine{0%{background-position:-160% 0}55%,100%{background-position:260% 0}}
-.plq-spark{position:absolute;left:50%;top:50%;width:var(--s,10px);height:var(--s,10px);margin:calc(var(--s,10px)/-2) 0 0 calc(var(--s,10px)/-2);
-  background:radial-gradient(circle,#fff 0,#ffe08a 45%,transparent 70%);border-radius:50%;opacity:0;pointer-events:none;
-  animation:plqSpark var(--d,2.4s) ease-out var(--t,.9s) infinite}
-@keyframes plqSpark{0%{transform:translate(0,0) scale(.2);opacity:0}15%{opacity:1}100%{transform:translate(var(--x),var(--y)) scale(1.1);opacity:0}}
 .plq-name{margin-top:26px;text-align:center;opacity:0;transform:translateY(14px);animation:plqUp .6s ease-out 1s forwards;padding:0 24px}
 .plq-name small{display:block;font-size:11px;font-weight:800;letter-spacing:.28em;text-transform:uppercase;color:#e2c37c}
 .plq-name b{display:block;margin-top:6px;font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:30px;line-height:1.1;color:#fff6dc;text-shadow:0 2px 14px rgba(0,0,0,.5)}
@@ -43188,13 +43184,13 @@ html.dark .kth-tlseg button.on{color:#fff}
 @keyframes plqBlink{0%,100%{opacity:.35}50%{opacity:.9}}
 #plqOverlay.out .plq-stage{animation:plqAway .35s ease-in forwards}
 @keyframes plqAway{to{transform:translateY(-40px) scale(.7);opacity:0}}
-@media (prefers-reduced-motion:reduce){.plq-float,.plq-shine,.plq-spark,.plq-hint{animation:none!important}.plq-stage{animation:plqBg .3s both}.plq-tilt{transition:none}}
+@media (prefers-reduced-motion:reduce){.plq-float,.plq-shine,.plq-hint{animation:none!important}.plq-stage{animation:plqBg .3s both}.plq-tilt{transition:none}}
 </style>
 <script id="codex-revision-v073227-js">
 /* v0.73.227 -- plakat Champions holo muncul pas podium dibuka (reveal ala game).
    - Overlay terpisah (child body, bukan #podiumContent) -> GAK ikut kena export gambar/share.
    - Muncul cuma saat podium DIBUKA (modal belum .show sebelum showPodium), bukan tiap re-render live.
-   - Gerak: pop-in muter + overshoot, melayang, kilau diagonal (mask dari PNG plakat), sparkle,
+   - Gerak: pop-in muter + overshoot, melayang, kilau diagonal (mask dari PNG plakat),
      miring 3D ngikutin jari/mouse. Tap di mana aja = tutup. Auto tutup 8 detik.
    - prefers-reduced-motion: statis. Nama juara diambil dari DOM .podium-slot.first .podium-name. */
 (function () {
@@ -43215,10 +43211,6 @@ html.dark .kth-tlseg button.on{color:#fff}
     var old = document.getElementById('plqOverlay'); if (old) old.remove();
     var ov = document.createElement('div'); ov.id = 'plqOverlay';
     var sp = '';
-    for (var i = 0; i < 14; i++) {
-      var a = (i / 14) * Math.PI * 2 + (i % 2 ? .2 : 0), r = 130 + (i % 3) * 38;
-      sp += '<i class="plq-spark" style="--x:' + Math.round(Math.cos(a) * r) + 'px;--y:' + Math.round(Math.sin(a) * r) + 'px;--s:' + (6 + (i % 4) * 3) + 'px;--t:' + (0.9 + (i % 7) * 0.22).toFixed(2) + 's;--d:' + (1.8 + (i % 5) * 0.3).toFixed(1) + 's"></i>';
-    }
     var names = champNames();
     ov.innerHTML = '<div class="plq-stage"><div class="plq-tilt"><div class="plq-float"><img class="plq-img" alt="Champions" draggable="false" src="' + IMG + '"><div class="plq-shine"></div></div></div>' + sp + '</div>' +
       (names.length ? '<div class="plq-name"><small>Champions</small><b></b></div>' : '') + '<div class="plq-hint">Tap untuk lanjut</div>';
